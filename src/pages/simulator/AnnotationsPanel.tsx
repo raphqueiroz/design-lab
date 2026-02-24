@@ -94,18 +94,20 @@ function EditableField({
   }
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={handleEdit}
-      title={`Edit ${label}`}
-      className="group w-full text-left cursor-pointer flex items-start gap-[var(--token-spacing-1)]"
+      onKeyDown={(e) => { if (e.key === 'Enter') handleEdit() }}
+      title={`Click to edit ${label}`}
+      className="w-full text-left cursor-pointer flex items-start gap-[var(--token-spacing-1)] px-[var(--token-spacing-1)] py-[2px] -mx-[var(--token-spacing-1)] rounded-[var(--token-radius-sm)] hover:bg-surface-secondary transition-colors border border-transparent hover:border-border-default"
     >
-      <span className="flex-1">{value}</span>
+      <span className="flex-1">{value || '(empty)'}</span>
       <Pencil
         size={12}
-        className="shrink-0 mt-[3px] text-text-tertiary opacity-0 group-hover:opacity-100 transition-opacity"
+        className="shrink-0 mt-[3px] text-text-tertiary"
       />
-    </button>
+    </div>
   )
 }
 

@@ -52,9 +52,12 @@ export default function LibraryPage() {
             Picnic Design Lab
           </h1>
           <span
-            title={isSupabaseConnected() ? 'Connected to Supabase' : 'Local only — configure .env for Supabase'}
-            className={`w-[6px] h-[6px] rounded-[var(--token-radius-full)] ${isSupabaseConnected() ? 'bg-success' : 'bg-neutral-300'}`}
-          />
+            title={isSupabaseConnected() ? 'Connected to Supabase' : 'Local only (localStorage)'}
+            className="flex items-center gap-[4px] text-[length:var(--token-font-size-caption)] text-text-tertiary"
+          >
+            <span className={`inline-block w-[8px] h-[8px] rounded-[var(--token-radius-full)] ${isSupabaseConnected() ? 'bg-[#16A34A]' : 'bg-[#D1D5DB]'}`} />
+            {isSupabaseConnected() ? 'Synced' : 'Local'}
+          </span>
         </div>
         <nav className="flex gap-[var(--token-spacing-1)]">
           <Link
