@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
 import { getFlow } from './flowRegistry'
@@ -7,15 +7,27 @@ import AnnotationsPanel from './AnnotationsPanel'
 
 interface FlowPlayerProps {
   flowId: string
+  initialScreenId?: string | null
 }
 
-export default function FlowPlayer({ flowId }: FlowPlayerProps) {
+export default function FlowPlayer({ flowId, initialScreenId }: FlowPlayerProps) {
   const [screenIdx, setScreenIdx] = useState(0)
   const [direction, setDirection] = useState(1)
   const [editVersion, setEditVersion] = useState(0)
 
   // Re-read flow from registry + localStorage on each render / edit
   const flow = getFlow(flowId)
+
+  // When navigating from flow view, jump to the target screen
+  useEffect(() => {
+    if (initialScreenId && flow) {
+      const idx = flow.screens.findIndex(s => s.id === initialScreenId)
+      if (idx !== -1) {
+        setDirection(1)
+        setScreenIdx(idx)
+      }
+    }
+  }, [initialScreenId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const goNext = useCallback(() => {
     if (flow && screenIdx < flow.screens.length - 1) {

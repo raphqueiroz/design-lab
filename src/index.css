@@ -127,3 +127,56 @@
     min-height: 100vh;
   }
 }
+
+/* React Flow dark theme overrides to match shell chrome */
+.react-flow__pane {
+  background-color: var(--color-shell-bg);
+}
+
+.react-flow__edge-path {
+  stroke: #4ADE80;
+  stroke-width: 2;
+}
+
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: #6EE7A0;
+}
+
+.react-flow__handle {
+  background-color: #4ADE80;
+  border-color: var(--color-shell-surface);
+}
+
+.react-flow__connection-line {
+  stroke: #4ADE80;
+  stroke-width: 2;
+}
+
+.react-flow__minimap {
+  background-color: var(--color-shell-surface);
+  border: 1px solid var(--color-shell-border);
+  border-radius: var(--token-radius-sm);
+}
+
+.react-flow__controls {
+  background-color: var(--color-shell-surface);
+  border: 1px solid var(--color-shell-border);
+  border-radius: var(--token-radius-sm);
+  box-shadow: var(--token-shadow-lg);
+}
+
+.react-flow__controls-button {
+  background-color: var(--color-shell-surface);
+  border-color: var(--color-shell-border);
+  fill: var(--color-shell-text);
+}
+
+.react-flow__controls-button:hover {
+  background-color: var(--color-shell-hover);
+}
+
+.react-flow__selection {
+  background: rgba(74, 222, 128, 0.08);
+  border-color: rgba(74, 222, 128, 0.4);
+}

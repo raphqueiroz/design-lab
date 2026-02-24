@@ -30,10 +30,19 @@ create table if not exists token_overrides (
   updated_at timestamptz default now()
 );
 
+-- Flow graphs: stores the node+edge graph for the flow view
+create table if not exists flow_graphs (
+  flow_id text primary key,
+  nodes text not null,
+  edges text not null,
+  updated_at timestamptz default now()
+);
+
 -- Enable Row Level Security (but allow all for anon — this is a design tool, not user-facing)
 alter table flow_overrides enable row level security;
 alter table screen_overrides enable row level security;
 alter table token_overrides enable row level security;
+alter table flow_graphs enable row level security;
 
 -- Allow all operations for the anon key (single-user design tool)
 create policy "Allow all on flow_overrides" on flow_overrides
@@ -45,7 +54,11 @@ create policy "Allow all on screen_overrides" on screen_overrides
 create policy "Allow all on token_overrides" on token_overrides
   for all using (true) with check (true);
 
+create policy "Allow all on flow_graphs" on flow_graphs
+  for all using (true) with check (true);
+
 -- Enable realtime for all tables
 alter publication supabase_realtime add table flow_overrides;
 alter publication supabase_realtime add table screen_overrides;
 alter publication supabase_realtime add table token_overrides;
+alter publication supabase_realtime add table flow_graphs;
