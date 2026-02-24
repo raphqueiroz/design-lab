@@ -1,14 +1,24 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { tokenCategories, type TokenMeta } from '../../tokens/tokenMeta'
 import { setTokenVar, resetTokenVar } from '../../tokens'
+import {
+  getLocalTokenOverrides,
+  setTokenOverride,
+  resetTokenOverride,
+  resetTokenCategory,
+  hydrateTokensFromSupabase,
+  subscribeToTokenChanges,
+} from '../../lib/tokenStore'
+import { isSupabaseConnected } from '../../lib/supabase'
 
-function TokenInput({ token }: { token: TokenMeta }) {
-  const [value, setValue] = useState(token.defaultValue)
+function TokenInput({ token, initialValue }: { token: TokenMeta; initialValue: string }) {
+  const [value, setValue] = useState(initialValue)
 
   const handleChange = useCallback(
     (newVal: string) => {
       setValue(newVal)
       setTokenVar(token.cssVar, newVal)
+      setTokenOverride(token.cssVar, newVal)
     },
     [token.cssVar],
   )
@@ -16,6 +26,7 @@ function TokenInput({ token }: { token: TokenMeta }) {
   const handleReset = useCallback(() => {
     setValue(token.defaultValue)
     resetTokenVar(token.cssVar)
+    resetTokenOverride(token.cssVar)
   }, [token.cssVar, token.defaultValue])
 
   if (token.type === 'color') {
@@ -92,20 +103,53 @@ function exportTokens() {
 
 export default function TokenEditor() {
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [overrides, setOverrides] = useState<Record<string, string>>(getLocalTokenOverrides)
+
+  // On mount: apply persisted overrides to CSS and hydrate from Supabase
+  useEffect(() => {
+    // Apply localStorage overrides immediately
+    const local = getLocalTokenOverrides()
+    for (const [cssVar, value] of Object.entries(local)) {
+      document.documentElement.style.setProperty(`--token-${cssVar}`, value)
+    }
+
+    // Then hydrate from Supabase (may overwrite localStorage)
+    hydrateTokensFromSupabase().then((hydrated) => {
+      if (hydrated) setOverrides(getLocalTokenOverrides())
+    })
+
+    // Subscribe to real-time changes
+    const unsub = subscribeToTokenChanges(() => {
+      setOverrides(getLocalTokenOverrides())
+    })
+
+    return () => { unsub?.() }
+  }, [])
 
   const handleResetCategory = (label: string) => {
     const cat = tokenCategories.find((c) => c.label === label)
     if (cat) {
+      const vars = cat.tokens.map((t) => t.cssVar)
       cat.tokens.forEach((t) => resetTokenVar(t.cssVar))
+      resetTokenCategory(vars)
+      setOverrides(getLocalTokenOverrides())
     }
   }
+
+  const supabaseStatus = isSupabaseConnected()
 
   return (
     <aside className="w-[280px] h-full shrink-0 overflow-y-auto border-l border-border-default bg-surface-primary">
       <div className="p-[var(--token-spacing-md)] flex items-center justify-between">
-        <h2 className="text-[length:var(--token-font-size-caption)] leading-[var(--token-line-height-caption)] font-semibold text-text-tertiary uppercase tracking-wider">
-          Tokens
-        </h2>
+        <div className="flex items-center gap-[var(--token-spacing-2)]">
+          <h2 className="text-[length:var(--token-font-size-caption)] leading-[var(--token-line-height-caption)] font-semibold text-text-tertiary uppercase tracking-wider">
+            Tokens
+          </h2>
+          <span
+            title={supabaseStatus ? 'Syncing with Supabase' : 'Local only — configure .env for Supabase sync'}
+            className={`w-[6px] h-[6px] rounded-[var(--token-radius-full)] ${supabaseStatus ? 'bg-success' : 'bg-neutral-300'}`}
+          />
+        </div>
         <button
           type="button"
           onClick={exportTokens}
@@ -142,7 +186,11 @@ export default function TokenEditor() {
               </div>
               <div className="flex flex-col gap-[var(--token-spacing-2)]">
                 {cat.tokens.map((t) => (
-                  <TokenInput key={t.cssVar} token={t} />
+                  <TokenInput
+                    key={t.cssVar}
+                    token={t}
+                    initialValue={overrides[t.cssVar] ?? t.defaultValue}
+                  />
                 ))}
               </div>
             </div>

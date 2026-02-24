@@ -14,6 +14,7 @@ import ComponentSidebar from './library/ComponentSidebar'
 import ComponentDetail from './library/ComponentDetail'
 import TokenEditor from './library/TokenEditor'
 import { getAllComponents } from '../library/registry'
+import { isSupabaseConnected } from '../lib/supabase'
 
 export default function LibraryPage() {
   const location = useLocation()
@@ -46,9 +47,15 @@ export default function LibraryPage() {
     >
       {/* Top bar */}
       <header className="h-[48px] flex items-center justify-between px-[var(--token-spacing-md)] border-b border-border-default bg-surface-primary shrink-0">
-        <h1 className="text-[length:var(--token-font-size-heading-sm)] font-semibold text-text-primary">
-          Picnic Design Lab
-        </h1>
+        <div className="flex items-center gap-[var(--token-spacing-2)]">
+          <h1 className="text-[length:var(--token-font-size-heading-sm)] font-semibold text-text-primary">
+            Picnic Design Lab
+          </h1>
+          <span
+            title={isSupabaseConnected() ? 'Connected to Supabase' : 'Local only — configure .env for Supabase'}
+            className={`w-[6px] h-[6px] rounded-[var(--token-radius-full)] ${isSupabaseConnected() ? 'bg-success' : 'bg-neutral-300'}`}
+          />
+        </div>
         <nav className="flex gap-[var(--token-spacing-1)]">
           <Link
             to="/library"

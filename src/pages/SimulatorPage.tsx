@@ -8,11 +8,14 @@ import '../flows/deposit'
 import FlowSidebar from './simulator/FlowSidebar'
 import FlowPlayer from './simulator/FlowPlayer'
 import { getAllFlows } from './simulator/flowRegistry'
+import { hydrateFromSupabase, subscribeToChanges } from './simulator/flowStore'
+import { isSupabaseConnected } from '../lib/supabase'
 
 export default function SimulatorPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const [selectedFlowId, setSelectedFlowId] = useState<string | null>(null)
+  const [, setVersion] = useState(0)
   const isSimulator = location.pathname.startsWith('/simulator')
 
   useEffect(() => {
@@ -21,6 +24,15 @@ export default function SimulatorPage() {
       if (all.length > 0) setSelectedFlowId(all[0].id)
     }
   }, [selectedFlowId])
+
+  // Hydrate from Supabase + subscribe to real-time changes
+  useEffect(() => {
+    hydrateFromSupabase().then((ok) => {
+      if (ok) setVersion((v) => v + 1)
+    })
+    const unsub = subscribeToChanges(() => setVersion((v) => v + 1))
+    return () => { unsub?.() }
+  }, [])
 
   return (
     <motion.div
@@ -32,9 +44,15 @@ export default function SimulatorPage() {
     >
       {/* Top bar */}
       <header className="h-[48px] flex items-center justify-between px-[var(--token-spacing-md)] border-b border-border-default bg-surface-primary shrink-0">
-        <h1 className="text-[length:var(--token-font-size-heading-sm)] font-semibold text-text-primary">
-          Picnic Design Lab
-        </h1>
+        <div className="flex items-center gap-[var(--token-spacing-2)]">
+          <h1 className="text-[length:var(--token-font-size-heading-sm)] font-semibold text-text-primary">
+            Picnic Design Lab
+          </h1>
+          <span
+            title={isSupabaseConnected() ? 'Connected to Supabase' : 'Local only — configure .env for Supabase'}
+            className={`w-[6px] h-[6px] rounded-[var(--token-radius-full)] ${isSupabaseConnected() ? 'bg-success' : 'bg-neutral-300'}`}
+          />
+        </div>
         <nav className="flex gap-[var(--token-spacing-1)]">
           <Link
             to="/library"
