@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pencil, Check, Play, Monitor, GitBranch, AlertTriangle, RotateCcw, Save, History } from 'lucide-react'
+import { Pencil, Check, Play, Monitor, GitBranch, AlertTriangle, RotateCcw, Save, History, FileText } from 'lucide-react'
 import type { Node } from '@xyflow/react'
 import type { Flow } from './flowRegistry'
 import type { FlowVersion } from './flowVersionStore'
@@ -246,14 +246,26 @@ export default function FlowViewAnnotationsPanel({
 
           {/* Open in Prototype button */}
           {nodeData.screenId && (
-            <button
-              type="button"
-              onClick={onOpenInPrototype}
-              className="w-full flex items-center justify-center gap-[var(--token-spacing-2)] py-[var(--token-spacing-2)] px-[var(--token-spacing-3)] bg-shell-selected-text/10 border border-shell-selected-text/30 text-shell-selected-text rounded-[var(--token-radius-md)] text-[length:var(--token-font-size-body-sm)] font-medium hover:bg-shell-selected-text/20 transition-colors cursor-pointer"
-            >
-              <Play size={14} />
-              Open in Prototype
-            </button>
+            <div className="flex flex-col gap-[var(--token-spacing-2)]">
+              <button
+                type="button"
+                onClick={onOpenInPrototype}
+                className="w-full flex items-center justify-center gap-[var(--token-spacing-2)] py-[var(--token-spacing-2)] px-[var(--token-spacing-3)] bg-shell-selected-text/10 border border-shell-selected-text/30 text-shell-selected-text rounded-[var(--token-radius-md)] text-[length:var(--token-font-size-body-sm)] font-medium hover:bg-shell-selected-text/20 transition-colors cursor-pointer"
+              >
+                <Play size={14} />
+                Open in Prototype
+              </button>
+              {linkedScreen?.pageId && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/pages?selected=${encodeURIComponent(linkedScreen.pageId!)}`)}
+                  className="w-full flex items-center justify-center gap-[var(--token-spacing-2)] py-[var(--token-spacing-2)] px-[var(--token-spacing-3)] bg-shell-hover border border-shell-border text-shell-text-secondary rounded-[var(--token-radius-md)] text-[length:var(--token-font-size-body-sm)] font-medium hover:text-shell-text hover:border-shell-active transition-colors cursor-pointer"
+                >
+                  <FileText size={14} />
+                  View Page
+                </button>
+              )}
+            </div>
           )}
 
           {/* Placeholder notice */}

@@ -44,16 +44,16 @@ export const colors = {
     secondary: '#F0F1F3',
     elevated: '#FFFFFF',
   },
-  text: {
-    primary: '#111827',
+  content: {
+    primary: '#1d211a',
     secondary: '#4B5563',
     tertiary: '#9CA3AF',
     inverse: '#FFFFFF',
   },
   interactive: {
-    default: '#00B84A',
-    hover: '#009E3F',
-    pressed: '#008435',
+    default: '#c8f91f',
+    hover: '#aad41a',
+    pressed: '#8cae16',
     disabled: '#D1D5DB',
   },
   border: {

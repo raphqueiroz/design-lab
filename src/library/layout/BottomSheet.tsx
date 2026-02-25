@@ -48,7 +48,7 @@ export default function BottomSheet({
             </div>
             {title && (
               <div className="px-[var(--token-spacing-md)] py-[var(--token-spacing-3)]">
-                <h2 className="text-[length:var(--token-font-size-heading-sm)] leading-[var(--token-line-height-heading-sm)] font-medium text-text-primary text-center">
+                <h2 className="text-[length:var(--token-font-size-heading-sm)] leading-[var(--token-line-height-heading-sm)] font-medium text-content-primary text-center">
                   {title}
                 </h2>
               </div>

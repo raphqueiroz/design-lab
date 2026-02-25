@@ -9,6 +9,8 @@ export interface FlowScreen {
   description: string
   componentsUsed: string[]
   component: ComponentType<FlowScreenProps>
+  /** Optional reference to a standalone Page entity in the page registry */
+  pageId?: string
 }
 
 export interface FlowScreenProps {

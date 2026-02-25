@@ -29,17 +29,18 @@
   --color-surface-secondary: var(--token-surface-secondary);
   --color-surface-elevated: var(--token-surface-elevated);
 
-  /* Text Colors */
-  --color-text-primary: var(--token-text-primary);
-  --color-text-secondary: var(--token-text-secondary);
-  --color-text-tertiary: var(--token-text-tertiary);
-  --color-text-inverse: var(--token-text-inverse);
+  /* Content (Text) Colors */
+  --color-content-primary: var(--token-content-primary);
+  --color-content-secondary: var(--token-content-secondary);
+  --color-content-tertiary: var(--token-content-tertiary);
+  --color-content-inverse: var(--token-content-inverse);
 
   /* Interactive Colors */
   --color-interactive-default: var(--token-interactive-default);
   --color-interactive-hover: var(--token-interactive-hover);
   --color-interactive-pressed: var(--token-interactive-pressed);
   --color-interactive-disabled: var(--token-interactive-disabled);
+  --color-interactive-foreground: var(--token-interactive-foreground);
 
   /* Border Colors */
   --color-border-default: var(--token-border-default);

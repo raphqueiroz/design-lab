@@ -53,7 +53,7 @@ export default function Select({
   return (
     <div ref={ref} className={`relative flex flex-col gap-[var(--token-spacing-1)] ${className}`}>
       {label && (
-        <label className="text-[length:var(--token-font-size-body-sm)] leading-[var(--token-line-height-body-sm)] font-medium text-text-primary">
+        <label className="text-[length:var(--token-font-size-body-sm)] leading-[var(--token-line-height-body-sm)] font-medium text-content-primary">
           {label}
         </label>
       )}
@@ -72,13 +72,13 @@ export default function Select({
       >
         <span
           className={`text-[length:var(--token-font-size-body-md)] ${
-            selected ? 'text-text-primary' : 'text-text-tertiary'
+            selected ? 'text-content-primary' : 'text-content-tertiary'
           }`}
         >
           {selected?.label ?? placeholder}
         </span>
         <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
-          <ChevronDown size={18} className="text-text-tertiary" />
+          <ChevronDown size={18} className="text-content-tertiary" />
         </motion.div>
       </button>
 
@@ -107,7 +107,7 @@ export default function Select({
                   w-full px-[var(--token-spacing-md)] py-[var(--token-spacing-3)]
                   text-left text-[length:var(--token-font-size-body-md)]
                   transition-colors duration-[var(--token-transition-fast)]
-                  ${option.value === value ? 'bg-brand-50 text-interactive-default' : 'text-text-primary hover:bg-surface-secondary'}
+                  ${option.value === value ? 'bg-brand-50 text-interactive-foreground' : 'text-content-primary hover:bg-surface-secondary'}
                 `}
               >
                 {option.label}

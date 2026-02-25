@@ -40,7 +40,7 @@ export default function SegmentedControl({
             relative z-10 flex-1 py-[var(--token-spacing-2)]
             text-center text-[length:var(--token-font-size-body-sm)] leading-[var(--token-line-height-body-sm)] font-medium
             transition-colors duration-[var(--token-transition-fast)] cursor-pointer
-            ${i === activeIndex ? 'text-text-primary' : 'text-text-secondary'}
+            ${i === activeIndex ? 'text-content-primary' : 'text-content-secondary'}
           `}
         >
           {seg}

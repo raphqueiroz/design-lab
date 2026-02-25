@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Monitor, GitBranch } from 'lucide-react'
 
 /* Force flow registrations */
 import '../flows/deposit'
+import '../flows/perks'
 
 import AppHeader from '../components/AppHeader'
 import FlowSidebar from './simulator/FlowSidebar'
@@ -13,19 +15,33 @@ import { getAllFlows, getFlow, hydrateDynamicFlows } from './simulator/flowRegis
 import { hydrateFromSupabase, subscribeToChanges } from './simulator/flowStore'
 import { hydrateGraphsFromSupabase, subscribeToGraphChanges } from './simulator/flowGraphStore'
 
-type ViewMode = 'prototype' | 'flow'
+type ViewMode = 'flow' | 'prototype'
+
+const viewModes = [
+  { key: 'flow' as const, label: 'Flow', icon: GitBranch },
+  { key: 'prototype' as const, label: 'Prototype', icon: Monitor },
+]
 
 export default function SimulatorPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [selectedFlowId, setSelectedFlowId] = useState<string | null>(null)
   const [, setVersion] = useState(0)
-  const [viewMode, setViewMode] = useState<ViewMode>('prototype')
+  const [viewMode, setViewMode] = useState<ViewMode>('flow')
   const [targetScreenId, setTargetScreenId] = useState<string | null>(null)
 
-  // Hydrate dynamic flows from localStorage on mount
   useEffect(() => {
     hydrateDynamicFlows()
     setVersion((v) => v + 1)
   }, [])
+
+  // Pick up ?flow= query parameter from deep links (e.g. from Pages sidebar)
+  useEffect(() => {
+    const flowParam = searchParams.get('flow')
+    if (flowParam) {
+      setSelectedFlowId(flowParam)
+      setSearchParams({}, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   useEffect(() => {
     if (!selectedFlowId) {
@@ -34,7 +50,6 @@ export default function SimulatorPage() {
     }
   }, [selectedFlowId])
 
-  // Hydrate from Supabase + subscribe to real-time changes
   useEffect(() => {
     Promise.all([
       hydrateFromSupabase(),
@@ -50,13 +65,13 @@ export default function SimulatorPage() {
     }
   }, [])
 
-  // Navigate from flow view to prototype view at a specific screen
   const handleNavigateToScreen = useCallback((screenId: string) => {
     setTargetScreenId(screenId)
     setViewMode('prototype')
   }, [])
 
   const selectedFlow = selectedFlowId ? getFlow(selectedFlowId) : null
+  const activeIndex = viewModes.findIndex((m) => m.key === viewMode)
 
   return (
     <motion.div
@@ -68,51 +83,43 @@ export default function SimulatorPage() {
     >
       <AppHeader />
 
-      {/* Sub-header: view toggle + flow actions */}
-      <div className="h-[40px] flex items-center justify-between px-[var(--token-spacing-md)] border-b border-shell-border bg-shell-surface shrink-0">
-        {/* View toggle */}
-        <div className="relative flex p-[2px] bg-shell-bg rounded-[var(--token-radius-sm)]">
+      {/* Sub-header: view toggle + flow name */}
+      <div className="h-[40px] flex items-center px-[var(--token-spacing-md)] border-b border-shell-border bg-shell-surface shrink-0">
+        <div className="flex-1 min-w-0" />
+
+        {/* 2-way view toggle (centered) */}
+        <div className="relative flex w-[200px] p-[2px] bg-shell-bg rounded-[var(--token-radius-sm)] shrink-0">
           <motion.div
             className="absolute top-[2px] bottom-[2px] bg-shell-hover rounded-[6px]"
             initial={false}
             animate={{
-              left: viewMode === 'prototype' ? '2px' : 'calc(50% + 0px)',
-              width: 'calc(50% - 4px)',
+              left: activeIndex === 0 ? '2px' : 'calc(50%)',
+              width: 'calc(50% - 2px)',
             }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
           />
-          <button
-            type="button"
-            onClick={() => setViewMode('prototype')}
-            className={`
-              relative z-10 flex items-center gap-[var(--token-spacing-1)]
-              px-[var(--token-spacing-3)] py-[var(--token-spacing-1)]
-              text-[length:var(--token-font-size-caption)] font-medium
-              transition-colors cursor-pointer rounded-[6px]
-              ${viewMode === 'prototype' ? 'text-shell-text' : 'text-shell-text-tertiary hover:text-shell-text-secondary'}
-            `}
-          >
-            <Monitor size={12} />
-            Prototype
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('flow')}
-            className={`
-              relative z-10 flex items-center gap-[var(--token-spacing-1)]
-              px-[var(--token-spacing-3)] py-[var(--token-spacing-1)]
-              text-[length:var(--token-font-size-caption)] font-medium
-              transition-colors cursor-pointer rounded-[6px]
-              ${viewMode === 'flow' ? 'text-shell-text' : 'text-shell-text-tertiary hover:text-shell-text-secondary'}
-            `}
-          >
-            <GitBranch size={12} />
-            Flow
-          </button>
+          {viewModes.map((mode) => (
+            <button
+              key={mode.key}
+              type="button"
+              onClick={() => setViewMode(mode.key)}
+              className={`
+                relative z-10 flex items-center justify-center gap-[var(--token-spacing-1)]
+                flex-1 min-w-[80px]
+                px-[var(--token-spacing-3)] py-[var(--token-spacing-1)]
+                text-[length:var(--token-font-size-caption)] font-medium
+                transition-colors cursor-pointer rounded-[6px]
+                ${viewMode === mode.key ? 'text-shell-text' : 'text-shell-text-tertiary hover:text-shell-text-secondary'}
+              `}
+            >
+              <mode.icon size={12} />
+              {mode.label}
+            </button>
+          ))}
         </div>
 
-        {/* Flow-level actions (right side) */}
-        <div className="flex items-center gap-[var(--token-spacing-2)]">
+        {/* Flow name (right side) */}
+        <div className="flex-1 flex items-center justify-end min-w-0">
           {selectedFlow && (
             <span className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary">
               {selectedFlow.name}

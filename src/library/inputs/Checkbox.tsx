@@ -43,7 +43,7 @@ export default function Checkbox({
         )}
       </motion.div>
       {label && (
-        <span className="text-[length:var(--token-font-size-body-md)] leading-[var(--token-line-height-body-md)] text-text-primary">
+        <span className="text-[length:var(--token-font-size-body-md)] leading-[var(--token-line-height-body-md)] text-content-primary">
           {label}
         </span>
       )}

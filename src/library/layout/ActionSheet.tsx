@@ -73,7 +73,7 @@ export default function ActionSheet({
                     text-[length:var(--token-font-size-body-md)]
                     transition-colors duration-[var(--token-transition-fast)]
                     hover:bg-surface-secondary cursor-pointer
-                    ${action.destructive ? 'text-error' : 'text-text-primary'}
+                    ${action.destructive ? 'text-error' : 'text-content-primary'}
                   `}
                 >
                   {action.icon && <span className="shrink-0">{action.icon}</span>}

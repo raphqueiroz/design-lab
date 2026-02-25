@@ -9,12 +9,12 @@ import Divider from '../../library/foundations/Divider'
 export default function Screen1_AddFunds({ onNext, onBack }: FlowScreenProps) {
   return (
     <ScreenLayout header={<Header title="Add funds" onBack={onBack} />}>
-      <div className="px-[var(--token-spacing-md)] py-[var(--token-spacing-lg)]">
+      <div className="px-[var(--token-spacing-md)]">
         <Text variant="heading-sm">Choose a deposit method</Text>
       </div>
       <div className="bg-surface-primary mx-[var(--token-spacing-md)] rounded-[var(--token-radius-lg)] overflow-hidden">
         <ListItem
-          icon={<QrCode size={20} className="text-interactive-default" />}
+          icon={<QrCode size={20} className="text-interactive-foreground" />}
           label="PIX"
           description="Instant transfer"
           rightValue="Free"

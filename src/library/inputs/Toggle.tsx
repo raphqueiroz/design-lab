@@ -28,7 +28,7 @@ export default function Toggle({
       className={`flex items-center justify-between gap-[var(--token-spacing-3)] ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${className}`}
     >
       {label && (
-        <span className="text-[length:var(--token-font-size-body-md)] leading-[var(--token-line-height-body-md)] text-text-primary">
+        <span className="text-[length:var(--token-font-size-body-md)] leading-[var(--token-line-height-body-md)] text-content-primary">
           {label}
         </span>
       )}

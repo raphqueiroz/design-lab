@@ -66,21 +66,22 @@ export const tokenCategories: TokenCategory[] = [
     ],
   },
   {
-    label: 'Text',
+    label: 'Content',
     tokens: [
-      { cssVar: 'text-primary', label: 'Text Primary', type: 'color', defaultValue: '#111827' },
-      { cssVar: 'text-secondary', label: 'Text Secondary', type: 'color', defaultValue: '#4B5563' },
-      { cssVar: 'text-tertiary', label: 'Text Tertiary', type: 'color', defaultValue: '#9CA3AF' },
-      { cssVar: 'text-inverse', label: 'Text Inverse', type: 'color', defaultValue: '#FFFFFF' },
+      { cssVar: 'content-primary', label: 'Content Primary', type: 'color', defaultValue: '#1d211a' },
+      { cssVar: 'content-secondary', label: 'Content Secondary', type: 'color', defaultValue: '#4B5563' },
+      { cssVar: 'content-tertiary', label: 'Content Tertiary', type: 'color', defaultValue: '#9CA3AF' },
+      { cssVar: 'content-inverse', label: 'Content Inverse', type: 'color', defaultValue: '#FFFFFF' },
     ],
   },
   {
     label: 'Interactive',
     tokens: [
-      { cssVar: 'interactive-default', label: 'Default', type: 'color', defaultValue: '#00B84A' },
-      { cssVar: 'interactive-hover', label: 'Hover', type: 'color', defaultValue: '#009E3F' },
-      { cssVar: 'interactive-pressed', label: 'Pressed', type: 'color', defaultValue: '#008435' },
+      { cssVar: 'interactive-default', label: 'Default', type: 'color', defaultValue: '#c8f91f' },
+      { cssVar: 'interactive-hover', label: 'Hover', type: 'color', defaultValue: '#aad41a' },
+      { cssVar: 'interactive-pressed', label: 'Pressed', type: 'color', defaultValue: '#8cae16' },
       { cssVar: 'interactive-disabled', label: 'Disabled', type: 'color', defaultValue: '#D1D5DB' },
+      { cssVar: 'interactive-foreground', label: 'Foreground', type: 'color', defaultValue: '#4D7C0F' },
     ],
   },
   {

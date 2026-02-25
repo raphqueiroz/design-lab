@@ -25,7 +25,7 @@ export default function PlaceholderScreen({
     >
       <div className="flex-1 flex items-center justify-center px-[var(--token-spacing-md)]">
         <EmptyState
-          icon={<Monitor size={32} className="text-interactive-default" />}
+          icon={<Monitor size={32} className="text-interactive-foreground" />}
           title={screenTitle}
           description={screenDescription || 'This screen is a placeholder. Build the actual screen component to replace it.'}
         />

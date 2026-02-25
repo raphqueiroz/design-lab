@@ -39,16 +39,16 @@ export default function ListItem({
       `}
     >
       {icon && (
-        <span className="shrink-0 mr-[var(--token-spacing-3)] text-text-secondary">
+        <span className="shrink-0 mr-[var(--token-spacing-3)] p-[var(--token-spacing-3)] rounded-full bg-[var(--token-neutral-100)] text-text-secondary">
           {icon}
         </span>
       )}
       <div className="flex-1 min-w-0">
-        <p className="text-[length:var(--token-font-size-body-md)] leading-[var(--token-line-height-body-md)] text-text-primary truncate">
+        <p className="text-[length:16px] leading-[var(--token-line-height-body-md)] font-semibold text-text-primary truncate">
           {label}
         </p>
         {description && (
-          <p className="text-[length:var(--token-font-size-body-sm)] leading-[var(--token-line-height-body-sm)] text-text-secondary truncate">
+          <p className="text-[length:var(--token-font-size-body-sm)] leading-[var(--token-line-height-body-sm)] text-neutral-700 truncate">
             {description}
           </p>
         )}

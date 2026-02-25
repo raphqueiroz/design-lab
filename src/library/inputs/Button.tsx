@@ -16,19 +16,25 @@ export interface ButtonProps {
 
 const variantStyles = {
   primary:
-    'bg-interactive-default text-text-inverse hover:bg-interactive-hover active:bg-interactive-pressed',
+    'bg-[#c8f91f] text-[#1d211a] font-semibold hover:bg-[#b8e61a] active:bg-[#a8d315]',
   secondary:
-    'bg-surface-primary text-text-primary border border-border-default hover:bg-surface-secondary active:bg-neutral-200',
+    'bg-[#1d211a] text-[#f9fafb] font-semibold hover:bg-[#2a2f26] active:bg-[#363b32]',
   ghost:
-    'bg-transparent text-interactive-default hover:bg-brand-50 active:bg-brand-100',
+    'bg-transparent text-[#4d7c0f] font-medium hover:bg-[#4d7c0f]/5 active:bg-[#4d7c0f]/10',
   destructive:
-    'bg-error text-text-inverse hover:bg-[#B91C1C] active:bg-[#991B1B]',
+    'bg-[#dc2626] text-white font-medium hover:bg-[#B91C1C] active:bg-[#991B1B]',
+} as const
+
+const primarySizeStyles = {
+  sm: 'h-[36px] px-[16px] text-[14px] rounded-full',
+  md: 'h-[44px] px-[24px] text-[16px] tracking-[-0.16px] rounded-[12px]',
+  lg: 'h-[56px] px-[24px] text-[16px] tracking-[-0.16px] rounded-[12px]',
 } as const
 
 const sizeStyles = {
-  sm: 'h-[36px] px-[var(--token-spacing-md)] text-[length:var(--token-font-size-body-sm)] rounded-[var(--token-radius-sm)]',
-  md: 'h-[44px] px-[var(--token-spacing-lg)] text-[length:var(--token-font-size-body-md)] rounded-[var(--token-radius-md)]',
-  lg: 'h-[52px] px-[var(--token-spacing-xl)] text-[length:var(--token-font-size-body-lg)] rounded-[var(--token-radius-md)]',
+  sm: 'h-[36px] px-[16px] text-[13px] rounded-[8px]',
+  md: 'h-[44px] px-[24px] text-[15px] rounded-[12px]',
+  lg: 'h-[52px] px-[32px] text-[17px] rounded-[12px]',
 } as const
 
 export default function Button({
@@ -53,7 +59,7 @@ export default function Button({
         inline-flex items-center justify-center font-medium
         transition-colors duration-[var(--token-transition-fast)]
         ${variantStyles[variant]}
-        ${sizeStyles[size]}
+        ${variant === 'primary' ? primarySizeStyles[size] : sizeStyles[size]}
         ${fullWidth ? 'w-full' : ''}
         ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         ${className}

@@ -18,24 +18,23 @@ export default function Header({
   return (
     <div
       className={`
-        flex items-center h-[56px]
+        flex flex-col items-start justify-start gap-2 h-fit
         px-[var(--token-spacing-md)]
-        bg-surface-primary
         ${className}
       `}
     >
-      <div className="w-[40px] shrink-0">
+      <div className="w-[40px] shrink-0 bg-neutral-100 rounded-full">
         {onBack && (
           <button
             type="button"
             onClick={onBack}
             className="w-[40px] h-[40px] flex items-center justify-center rounded-[var(--token-radius-full)] hover:bg-surface-secondary transition-colors cursor-pointer"
           >
-            <ArrowLeft size={22} className="text-text-primary" />
+            <ArrowLeft size={22} className="text-content-primary" />
           </button>
         )}
       </div>
-      <h1 className="flex-1 text-center text-[length:var(--token-font-size-heading-sm)] leading-[var(--token-line-height-heading-sm)] font-medium text-text-primary truncate">
+      <h1 className="flex-1 text-center text-[length:var(--token-font-size-heading-lg)] leading-[var(--token-line-height-heading-lg)] font-semibold tracking-[-1px] text-content-primary truncate">
         {title}
       </h1>
       <div className="w-[40px] shrink-0 flex justify-end">

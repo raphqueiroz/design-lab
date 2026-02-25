@@ -15,7 +15,7 @@ export default function ScreenLayout({
   className = '',
 }: ScreenLayoutProps) {
   return (
-    <div className={`flex flex-col h-full bg-background ${className}`}>
+    <div className={`flex flex-col h-full bg-surface-primary ${className}`}>
       {header && <div className="shrink-0">{header}</div>}
       <div className="flex-1 overflow-y-auto">{children}</div>
       {bottomCTA && (

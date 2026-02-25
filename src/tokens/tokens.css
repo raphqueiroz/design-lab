@@ -44,17 +44,18 @@
   --token-surface-secondary: #F0F1F3;
   --token-surface-elevated: #FFFFFF;
 
-  /* ── Text Hierarchy ── */
-  --token-text-primary: #111827;
-  --token-text-secondary: #4B5563;
-  --token-text-tertiary: #9CA3AF;
-  --token-text-inverse: #FFFFFF;
+  /* ── Content (Text) Hierarchy ── */
+  --token-content-primary: #1d211a;
+  --token-content-secondary: #4B5563;
+  --token-content-tertiary: #9CA3AF;
+  --token-content-inverse: #FFFFFF;
 
   /* ── Interactive Colors ── */
-  --token-interactive-default: #00B84A;
-  --token-interactive-hover: #009E3F;
-  --token-interactive-pressed: #008435;
+  --token-interactive-default: #c8f91f;
+  --token-interactive-hover: #aad41a;
+  --token-interactive-pressed: #8cae16;
   --token-interactive-disabled: #D1D5DB;
+  --token-interactive-foreground: #4D7C0F;
 
   /* ── Border Colors ── */
   --token-border-default: #E5E7EB;

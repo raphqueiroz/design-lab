@@ -53,7 +53,7 @@ export default function ComponentDetail({ componentName }: ComponentDetailProps)
         {/* Preview — light background for component rendering */}
         <div
           className={`
-            bg-[#F5F6F8] text-text-primary rounded-[var(--token-radius-lg)] p-[var(--token-spacing-lg)] mb-[var(--token-spacing-lg)]
+            bg-[#F5F6F8] text-content-primary rounded-[var(--token-radius-lg)] p-[var(--token-spacing-lg)] mb-[var(--token-spacing-lg)]
             ${phoneView ? 'max-w-[393px] mx-auto' : ''}
           `}
         >

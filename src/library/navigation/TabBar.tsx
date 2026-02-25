@@ -42,7 +42,7 @@ export default function TabBar({
               flex-1 h-full pt-[var(--token-spacing-2)]
               transition-colors duration-[var(--token-transition-fast)]
               cursor-pointer
-              ${active ? 'text-interactive-default' : 'text-text-tertiary'}
+              ${active ? 'text-interactive-foreground' : 'text-content-tertiary'}
             `}
           >
             <span className="w-[22px] h-[22px] flex items-center justify-center">
