@@ -9,7 +9,7 @@ function StatusBar() {
   const time = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false })
 
   return (
-    <div className="relative h-[54px] bg-surface-primary shrink-0">
+    <div className="absolute top-0 left-0 right-0 h-[54px] z-40 pointer-events-none">
       {/* Time — left of Dynamic Island, vertically centered at ~30pt from top */}
       <span
         className="absolute text-[17px] font-semibold text-content-primary leading-none"
@@ -52,7 +52,10 @@ function StatusBar() {
 
 export default function PhoneFrame({ children }: PhoneFrameProps) {
   return (
-    <div className="relative w-[393px] h-[852px] bg-background text-content-primary rounded-[48px] border-[6px] border-neutral-800 overflow-hidden shadow-lg flex flex-col">
+    <div
+      className="relative w-[393px] h-[852px] bg-background text-content-primary rounded-[48px] border-[6px] border-neutral-800 overflow-hidden shadow-lg flex flex-col"
+      style={{ '--safe-area-top': '54px', transform: 'translateZ(0)' } as React.CSSProperties}
+    >
       {/* Dynamic Island */}
       <div className="absolute top-[11px] left-1/2 -translate-x-1/2 w-[126px] h-[37px] bg-neutral-900 rounded-[20px] z-50" />
       <StatusBar />

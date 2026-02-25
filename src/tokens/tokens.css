@@ -55,6 +55,7 @@
   --token-interactive-hover: #aad41a;
   --token-interactive-pressed: #8cae16;
   --token-interactive-disabled: #D1D5DB;
+  --token-interactive-secondary: #dbe0d8;
   --token-interactive-foreground: #4D7C0F;
 
   /* ── Border Colors ── */
@@ -108,7 +109,7 @@
   --token-font-weight-heading-sm: 500;
 
   /* Body LG */
-  --token-font-size-body-lg: 17px;
+  --token-font-size-body-lg: 16px;
   --token-line-height-body-lg: 24px;
   --token-font-weight-body-lg: 400;
 

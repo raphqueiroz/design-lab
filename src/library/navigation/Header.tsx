@@ -19,6 +19,7 @@ export default function Header({
     <div
       className={`
         flex flex-col items-start justify-start gap-2 h-fit
+        pt-[var(--safe-area-top,0px)]
         px-[var(--token-spacing-md)]
         ${className}
       `}

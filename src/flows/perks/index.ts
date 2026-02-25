@@ -27,7 +27,7 @@ const screenDefs = [
     id: 'dollar-rate',
     title: 'Dollar Rate Detail',
     description: 'Explains competitive dollar conversion rate with benefits breakdown.',
-    componentsUsed: ['Header', 'ScreenLayout', 'Text', 'Button', 'Card', 'Spacer', 'Divider'],
+    componentsUsed: ['HeroHeader', 'ScreenLayout', 'Text', 'Button', 'SavingsCard', 'BottomSheet'],
     component: Screen3_DollarRate,
   },
   {

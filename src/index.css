@@ -40,6 +40,7 @@
   --color-interactive-hover: var(--token-interactive-hover);
   --color-interactive-pressed: var(--token-interactive-pressed);
   --color-interactive-disabled: var(--token-interactive-disabled);
+  --color-interactive-secondary: var(--token-interactive-secondary);
   --color-interactive-foreground: var(--token-interactive-foreground);
 
   /* Border Colors */
