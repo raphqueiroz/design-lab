@@ -142,7 +142,7 @@ for (const s of allScreenDefs) {
     area: 'Earn',
     componentsUsed: [...s.componentsUsed],
     component: s.component,
-    ...('states' in s && s.states ? { states: s.states } : {}),
+    ...('states' in s && s.states ? { states: s.states as import('../../pages/gallery/pageRegistry').PageStateDefinition[] } : {}),
   })
 }
 

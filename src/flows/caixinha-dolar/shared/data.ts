@@ -109,13 +109,13 @@ export function projectedYield(principal: number, months: number): number {
 }
 
 export const DEPOSIT_PROCESSING_STEPS = [
-  'Verificando dados…',
-  'Processando depósito…',
-  'Atualizando saldo…',
+  { title: 'Verificando dados…', progress: 33 },
+  { title: 'Processando depósito…', progress: 66 },
+  { title: 'Atualizando saldo…', progress: 100 },
 ]
 
 export const WITHDRAW_PROCESSING_STEPS = [
-  'Verificando saldo…',
-  'Processando resgate…',
-  'Atualizando saldo…',
+  { title: 'Verificando saldo…', progress: 33 },
+  { title: 'Processando resgate…', progress: 66 },
+  { title: 'Atualizando saldo…', progress: 100 },
 ]
