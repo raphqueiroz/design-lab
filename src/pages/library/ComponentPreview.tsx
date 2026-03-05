@@ -277,10 +277,10 @@ function CurrencyInputPreview() {
   const [val, setVal] = useState('15000')
   return (
     <div className="flex flex-col gap-[var(--token-spacing-md)] max-w-[360px]">
-      <CurrencyInput label="Amount to deposit" value={val} onChange={setVal} helperText="Min R$ 10.00" />
-      <CurrencyInput label="With error" value="0" error="Amount must be greater than zero" />
-      <CurrencyInput label="Receba" value="100000" />
-      <CurrencyInput label="Disabled" disabled />
+      <CurrencyInput label="Amount to deposit" value={val} onChange={setVal} currencySymbol="R$" helperText="Min R$ 10.00" />
+      <CurrencyInput label="With error" value="0" currencySymbol="US$" error="Amount must be greater than zero" />
+      <CurrencyInput label="Receba" value="100000" currencySymbol="US$" />
+      <CurrencyInput label="Disabled" currencySymbol="US$" disabled />
     </div>
   )
 }
@@ -735,6 +735,33 @@ function DataListPreview() {
               ],
             },
             { label: 'Fee', value: 'R$ 1.50' },
+          ]} />
+        </div>
+      </div>
+      <div>
+        <SectionLabel>vertical — card details</SectionLabel>
+        <div className="bg-surface-primary p-[var(--token-spacing-md)] rounded-[var(--token-radius-md)] max-w-[400px]">
+          <DataList variant="vertical" data={[
+            { label: 'Nome', value: 'Cartão Virtual' },
+            { label: 'Número', value: '0234 3829 3090 3849', copyable: true },
+            [
+              { label: 'Data de Validade', value: '10/30' },
+              { label: 'CVV', value: '039' },
+            ],
+          ]} />
+        </div>
+      </div>
+      <div>
+        <SectionLabel>vertical — with action button</SectionLabel>
+        <div className="bg-surface-primary p-[var(--token-spacing-md)] rounded-[var(--token-radius-md)] max-w-[400px]">
+          <DataList variant="vertical" data={[
+            {
+              label: 'Limite diário de gastos',
+              value: 'US$ 5.000,00',
+              action: <Button variant="secondary" size="sm" onPress={() => {}}>Editar</Button>,
+            },
+            { label: 'Limite por transação', value: 'US$ 5.000,00' },
+            { label: 'Instruções para uso', value: 'Escolha sempre o método crédito e a moeda local ao realizar compras.' },
           ]} />
         </div>
       </div>

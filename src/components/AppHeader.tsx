@@ -2,7 +2,7 @@ import { type ReactNode, useState, useEffect, useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { RiRefreshLine } from '@remixicon/react'
 import { isSupabaseConnected } from '../lib/supabase'
-import { getSyncStatus, subscribeSyncStatus, syncAll, type SyncStatus } from '../lib/syncStore'
+import { getSyncStatus, subscribeSyncStatus, syncAll, pushAllToSupabase, type SyncStatus } from '../lib/syncStore'
 
 interface AppHeaderProps {
   actions?: ReactNode
@@ -31,10 +31,10 @@ export default function AppHeader({ actions, onSynced }: AppHeaderProps) {
 
   useEffect(() => subscribeSyncStatus(setStatus), [])
 
-  const handleSync = useCallback(() => {
-    syncAll().then((ok) => {
-      if (ok) onSynced?.()
-    })
+  const handleSync = useCallback(async () => {
+    await pushAllToSupabase()
+    const ok = await syncAll()
+    if (ok) onSynced?.()
   }, [onSynced])
 
   const cfg = statusConfig[status]

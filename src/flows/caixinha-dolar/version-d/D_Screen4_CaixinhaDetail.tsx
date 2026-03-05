@@ -54,8 +54,8 @@ export default function D_Screen4_CaixinhaDetail({ onNext, onBack, onElementTap 
             label="Depositar"
             variant="primary"
             onPress={() => {
-              onElementTap?.('ShortcutButton: Depositar')
-              onNext()
+              const resolved = onElementTap?.('ShortcutButton: Depositar')
+              if (!resolved) onNext()
             }}
           />
           <ShortcutButton
@@ -63,8 +63,8 @@ export default function D_Screen4_CaixinhaDetail({ onNext, onBack, onElementTap 
             label="Resgatar"
             variant="secondary"
             onPress={() => {
-              onElementTap?.('ShortcutButton: Resgatar')
-              onNext()
+              const resolved = onElementTap?.('ShortcutButton: Resgatar')
+              if (!resolved) onNext()
             }}
           />
         </Stack>

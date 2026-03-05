@@ -85,6 +85,7 @@ export default function Screen2_Amount({ onNext, onBack }: FlowScreenProps) {
           value={usdValue}
           onChange={setUsdValue}
           tokenIcon={USD_ICON}
+          currencySymbol="US$"
         />
 
         {isPix && (

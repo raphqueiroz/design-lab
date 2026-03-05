@@ -132,6 +132,52 @@ function followEdgesToScreens(
   return results
 }
 
+type FollowResult =
+  | { type: 'screen'; node: Node }
+  | { type: 'flow-reference'; flowId: string }
+
+/**
+ * Like followEdgesToScreens, but also stops at flow-reference nodes.
+ * Used by resolveScreenElementTarget / resolveOverlayElementTarget
+ * to find cross-flow navigation targets through pass-through nodes
+ * (api-call, delay, decision, etc.).
+ */
+function followEdgesToDestination(
+  fromNodeId: string,
+  adj: Map<string, string[]>,
+  nodeMap: Map<string, Node>,
+  visited: Set<string> = new Set(),
+  skipScreenId?: string,
+): FollowResult[] {
+  const results: FollowResult[] = []
+  const targets = adj.get(fromNodeId) ?? []
+
+  for (const targetId of targets) {
+    if (visited.has(targetId)) continue
+    visited.add(targetId)
+
+    const targetNode = nodeMap.get(targetId)
+    if (!targetNode) continue
+    const td = targetNode.data as FlowNodeData
+
+    if (td.nodeType === 'flow-reference' && td.targetFlowId) {
+      results.push({ type: 'flow-reference', flowId: td.targetFlowId })
+    } else if (isScreenNode(targetNode)) {
+      const sid = td.screenId ?? td.pageId
+      if (skipScreenId && sid === skipScreenId) {
+        results.push(...followEdgesToDestination(targetId, adj, nodeMap, visited, skipScreenId))
+      } else {
+        results.push({ type: 'screen', node: targetNode })
+      }
+    } else {
+      // Pass-through: keep following edges
+      results.push(...followEdgesToDestination(targetId, adj, nodeMap, visited, skipScreenId))
+    }
+  }
+
+  return results
+}
+
 /**
  * Derive a linear navigation path from the graph by walking edges
  * starting from the start node. Unreachable screen nodes are appended
@@ -415,11 +461,17 @@ export function resolveScreenElementTarget(
             }
             return { type: 'screen', nodeId: destNode.id, screenId: destScreenId }
           }
-          // Keep following pass-through nodes
-          const deeper = followEdgesToScreens(destId, adj, nodeMap, new Set(), originScreenId ?? undefined)
-          if (deeper.length > 0) {
-            const ds = deeper[0].data as FlowNodeData
-            return { type: 'screen', nodeId: deeper[0].id, screenId: (ds.screenId ?? ds.pageId)! }
+          // Keep following pass-through nodes (api-call, delay, decision, etc.)
+          // Must check for flow-reference nodes too, not just screens
+          const deeper = followEdgesToDestination(destId, adj, nodeMap, new Set(), originScreenId ?? undefined)
+          for (const result of deeper) {
+            if (result.type === 'flow-reference') {
+              return { type: 'flow', flowId: result.flowId }
+            }
+            if (result.type === 'screen') {
+              const ds = result.node.data as FlowNodeData
+              return { type: 'screen', nodeId: result.node.id, screenId: (ds.screenId ?? ds.pageId)! }
+            }
           }
         }
       }
@@ -465,11 +517,16 @@ export function resolveOverlayElementTarget(
         if ((dd.nodeType === 'screen' || dd.nodeType === 'page') && (dd.screenId || dd.pageId)) {
           return { type: 'screen', nodeId: destNode.id, screenId: (dd.screenId ?? dd.pageId)! }
         }
-        // Keep following pass-through nodes
-        const deeper = followEdgesToScreens(destId, adj, nodeMap)
-        if (deeper.length > 0) {
-          const ds = deeper[0].data as FlowNodeData
-          return { type: 'screen', nodeId: deeper[0].id, screenId: (ds.screenId ?? ds.pageId)! }
+        // Keep following pass-through nodes (api-call, delay, decision, etc.)
+        const deeper = followEdgesToDestination(destId, adj, nodeMap)
+        for (const result of deeper) {
+          if (result.type === 'flow-reference') {
+            return { type: 'flow', flowId: result.flowId }
+          }
+          if (result.type === 'screen') {
+            const ds = result.node.data as FlowNodeData
+            return { type: 'screen', nodeId: result.node.id, screenId: (ds.screenId ?? ds.pageId)! }
+          }
         }
       }
     }

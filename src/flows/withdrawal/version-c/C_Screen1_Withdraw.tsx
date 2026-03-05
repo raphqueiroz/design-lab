@@ -103,6 +103,7 @@ export default function C_Screen1_Withdraw({ onNext, onBack }: FlowScreenProps) 
         value={usdValue}
         onChange={setUsdValue}
         tokenIcon={USD_ICON}
+        currencySymbol="US$"
       />
 
       <Divider />
@@ -112,6 +113,7 @@ export default function C_Screen1_Withdraw({ onNext, onBack }: FlowScreenProps) 
         value={brlDisplay}
         onChange={() => {}}
         tokenIcon={BRL_ICON}
+        currencySymbol="R$"
         readOnly
       />
 

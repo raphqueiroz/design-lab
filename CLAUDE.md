@@ -36,6 +36,17 @@ Picnic Design Lab — a React-based design system browser, flow prototyper, and 
 7. When no component exists, create one in `src/library/` or extend an existing one
 8. English for all names, docs, labels, and code. Only in-screen UI copy is pt-BR.
 
+## FLOW-PATTERNS.md Is Law (for Flow Graphs)
+
+`FLOW-PATTERNS.md` is the authoritative guide for defining flow graphs. Read it before creating or modifying any flow's `index.ts`. Key rules:
+
+1. Write the graph before writing screens — the graph is the spec
+2. No direct screen-to-screen edges — every transition needs an intermediate node (action, api-call, decision, delay)
+3. Every `onElementTap()` call must be backed by an action node in the graph
+3. Every `linkedFlows` entry must have a `flow-reference` node
+4. Never call `onNext()` unconditionally after `onElementTap()` — check the return value
+5. Always call `saveFlowGraph()` in `index.ts` — never rely on auto-generation for non-trivial flows
+
 ## Architecture
 
 ### Four Routes
@@ -75,6 +86,10 @@ Screen1_Name.parts.tsx      — Optional: screen-local sub-components (named exp
 
 Flows have a React Flow directed graph stored in localStorage (+ optionally Supabase). Node types: `screen`, `page`, `decision`, `error`, `flow-reference`, `action`, `overlay`, `api-call`, `delay`, `note`. Navigation is derived from the graph via `flowGraphNavigation.ts` — the player walks edges to build a `NavigableStep[]` path, skipping non-screen pass-through nodes.
 
+**The `onElementTap` contract**: Screens call `onElementTap('Component: Label')` to signal a user interaction. The navigation engine (`resolveScreenElementTarget`) finds action nodes whose `actionTarget` matches exactly, then follows edges to the destination. Screens must check the return value: `const resolved = onElementTap?.('...'); if (!resolved) onNext()`. Calling `onNext()` unconditionally after `onElementTap()` is an anti-pattern that defeats graph navigation.
+
+**Canonical example**: `src/flows/deposit-v2/index.ts` is the gold-standard flow graph — 25 nodes, all node types, 3-column layout, complete descriptions. Study it before authoring a new graph. See `FLOW-PATTERNS.md` for the full guide.
+
 ### Persistence
 
 Dual-write pattern: always localStorage (sync), optionally Supabase (async). Supabase client is created from `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` env vars; `null` if not configured. Hydration on mount overwrites localStorage from Supabase if data exists.
@@ -98,15 +113,18 @@ Dual-write pattern: always localStorage (sync), optionally Supabase (async). Sup
 
 ### Supplemental Prompts
 
-The `claude-code-prompt-*.md` files at the project root contain detailed task specifications for specific features. Read the relevant one when working on: cross-flow linking, non-UI flow nodes, page states/IDs, or one-time patterns.
+The `claude-code-prompt-*.md` files in `docs/archive/` are historical task specifications for features that have already been implemented (cross-flow linking, non-UI flow nodes, page states/IDs, one-time patterns). They are kept for reference only. The current authoritative guides are:
 
-## UX & UI Patterns
+- **`PATTERNS.md`** — screen composition, UI components, design tokens
+- **`FLOW-PATTERNS.md`** — flow graph authoring, `saveFlowGraph()`, `onElementTap` contract, cross-flow linking
 
-**PATTERNS.md has the full reference** (component catalog, props, screen patterns, composition rules). Below is a quick-reference summary.
+### Session Memory
 
-### Screen Shell
+`MEMORY.md` (in the Claude Code project memory directory) captures session-to-session learnings — common mistakes, user preferences, and anti-patterns observed during flow creation. Consult it before writing new flows.
 
-Every flow screen follows this skeleton:
+## Screen Shell (Quick Reference)
+
+Every flow screen follows this skeleton — see PATTERNS.md Section 4 for all patterns:
 
 ```
 BaseLayout
@@ -120,79 +138,22 @@ BaseLayout
 - One primary Button per screen, always in StickyFooter.
 - Use `Stack` for vertical grouping (gap presets: `none`/`sm`/`default`/`lg`), never manual `flex-col` + `gap`.
 
-### Screen Pattern Catalog
+## Canonical Examples
 
-| Pattern | Key Components | When to use |
-|---------|---------------|-------------|
-| **List / Selection** | Header + Stack(gap=none) of ListItems | User picks from a list; no StickyFooter (selection navigates directly) |
-| **Form / Input** | Header + CurrencyInput or TextInput + StickyFooter(Button disabled until valid) | Data entry |
-| **Detail / Review** | Header + DataList + Banner (optional) + StickyFooter | Confirmation before action |
-| **Payment Instruction** | Header + Banner(warning) + ListItem(code+copy) + Countdown + DataList + Toast | Display payment codes, QR, deadlines |
-| **Processing** | LoadingScreen (Lottie + step messages + ProgressBar) | Async wait with progress |
-| **Success** | FeedbackLayout (Lottie + display title + DataList + StickyFooter) | Confirmation after action |
-| **Currency Entry** | Header(onClose) + dual CurrencyInput + Divider + ListItem(payment selector) + DataListSkeleton→DataList | Amount conversion with async calc |
-| **Feature Intro** | FeatureLayout (hero image + display title + Summary + StickyFooter) | Introduce a new feature |
+Study these files before writing any flow. They are the gold standard.
 
-### Component Composition Quick Reference
+### Flow Graph
+`src/flows/deposit-v2/index.ts` — 25 nodes, 3-column layout, all node types, screen states, interactiveElements, linkedFlows.
 
-- **Navigation list**: ListItem rows in `Stack gap="none"`, Avatar in `left`, Text in `right`
-- **Data display**: GroupHeader + DataList
-- **Settings row**: ListItem with `right={<Toggle>}` or `right={<Badge>}`
-- **Selection**: RadioGroup (2-5 visible choices) or Select (dropdown)
-- **Contextual alert**: Banner (variants: `neutral`/`success`/`warning`/`critical`)
-- **Overlay content**: BottomSheet (bottom on mobile, centered on desktop) with ListItem rows
-- **Interrupting decision**: Modal (variants: `regular`/`bottom`)
-- **Tabs**: SegmentedControl (2-4 segments) + conditional content
-- **Loading states**: Skeleton/DataListSkeleton/BannerSkeleton (content preview) or LoadingSpinner (action indicator)
-- **Empty content**: EmptyState with icon, title, description, optional action
+### Screens (one per pattern)
+| Pattern | File | Key techniques |
+|---------|------|----------------|
+| Currency Entry + Async Calc | `deposit-v2/Screen1_AmountEntry.tsx` | useScreenData, onStateChange, CalcState machine, skeleton→content, onElementTap |
+| Payment Instruction | `deposit-v2/Screen3_PixPayment.tsx` | Copy+Toast, Countdown, GroupHeader+DataList, QR BottomSheet |
+| Processing | `deposit-v2/Screen4_Processing.tsx` | LoadingScreen with steps array, autoAdvance, onComplete |
+| Success / Confirmation | `deposit-v2/Screen5_Success.tsx` | FeedbackLayout, display title, DataList summary |
+| Cards List (Tab Screen) | `card-management/Screen1_CardsList.tsx` | Level-1 tab screen, useScreenData for states, conditional disabled actions |
+| Multi-flow + Versions | `caixinha-dolar/index.ts` | parentFlowId, 4-column version comparison, flow-reference linking |
 
-### CTA Hierarchy
-
-1. `Button variant="primary"` — one per screen, in StickyFooter
-2. `Button variant="secondary"` — alongside primary
-3. `Button variant="destructive"` — delete/cancel
-4. `Button variant="ghost"` — tertiary text-style action
-5. `Link` — inline within text
-6. `IconButton` — toolbar, close, compact controls
-
-### Typography via Text Component
-
-| Element | Variant |
-|---------|---------|
-| App display title | `display` |
-| Screen title | `heading-lg` (via Header) |
-| Section heading | `heading-md` |
-| Card/block heading | `heading-sm` |
-| Body text | `body-md` |
-| Small/secondary | `body-sm` |
-| Labels/captions | `caption` |
-
-### Interaction Patterns
-
-- **Copy + feedback**: `navigator.clipboard.writeText()` → show Toast, auto-dismiss after 3s
-- **Async calculation**: state machine `'idle' → 'loading' → 'ready'`; show DataListSkeleton/BannerSkeleton during loading; disable CTA until ready
-- **BottomSheet selection**: open BottomSheet with Stack of ListItems, each with `onPress` to select + close
-
-### Component Design Details
-
-- IconButton backgrounds: `bg-black/[0.06]` (adapts to any parent)
-- Toast: Material snackbar style (dark bg, white text, fixed bottom)
-- StickyFooter: always has `border-top`
-- BottomSheet: close button always visible, heading left-aligned `heading-md`
-- ListItem subtitle: `line-clamp-2` (not `truncate`)
-- All library components: `data-component="Name"` attribute for devtools
-- Content-aware skeletons must match the exact layout they replace
-
-### Adding New Components
-
-1. Create in `src/library/<category>/` with default export + props interface
-2. Call `registerComponent({ name, category, description, component, props })` at module scope
-3. Add preview in `src/pages/library/ComponentPreview.tsx` (case in switch + preview function)
-4. Update PATTERNS.md Section 3 with the new component
-
-### Adding New Patterns
-
-1. Add to `patternData` in `src/pages/library/PatternDetail.tsx`
-2. Create interactive preview in `src/pages/library/pattern-previews/`
-3. Register in sidebar via `src/pages/library/ComponentSidebar.tsx`
-4. Update PATTERNS.md Section 5 table
+### Anti-Examples (do NOT follow)
+- `withdrawal/version-a/` screens — call `onNext` directly, no `onElementTap`. Legacy code.

@@ -40,9 +40,9 @@ function writeAll(data: Record<string, DynamicFlowDef>): void {
 
 // ── Supabase helpers ──
 
-function upsertFlowToSupabase(flow: DynamicFlowDef): void {
+async function upsertFlowToSupabase(flow: DynamicFlowDef): Promise<void> {
   if (!isSupabaseConnected()) return
-  supabase!.from('dynamic_flows').upsert(
+  const { error } = await supabase!.from('dynamic_flows').upsert(
     {
       id: flow.id,
       name: flow.name,
@@ -54,6 +54,7 @@ function upsertFlowToSupabase(flow: DynamicFlowDef): void {
     },
     { onConflict: 'id' },
   )
+  if (error) console.error('[dynamicFlowStore] Supabase upsert failed:', error.message)
 }
 
 // ── Public API ──
@@ -73,13 +74,14 @@ export function saveDynamicFlow(flow: DynamicFlowDef): void {
   upsertFlowToSupabase(flow)
 }
 
-export function deleteDynamicFlow(id: string): void {
+export async function deleteDynamicFlow(id: string): Promise<void> {
   const all = readAll()
   delete all[id]
   writeAll(all)
 
   if (isSupabaseConnected()) {
-    supabase!.from('dynamic_flows').delete().eq('id', id)
+    const { error } = await supabase!.from('dynamic_flows').delete().eq('id', id)
+    if (error) console.error('[dynamicFlowStore] Supabase delete failed:', error.message)
   }
 }
 
@@ -128,7 +130,7 @@ export async function hydrateDynamicFlowsFromSupabase(): Promise<boolean> {
     const rows = data ?? []
     if (rows.length === 0) return false // nothing in Supabase yet — keep localStorage
 
-    const all: Record<string, DynamicFlowDef> = {}
+    const all = readAll()
     for (const row of rows) {
       all[row.id] = {
         id: row.id,

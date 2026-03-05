@@ -10,7 +10,7 @@ function DelayNode({ data, selected }: NodeProps) {
   return (
     <div
       className={`
-        w-[160px] rounded-[var(--token-radius-md)] border-2 overflow-hidden
+        w-[200px] rounded-[var(--token-radius-md)] border-2 overflow-hidden
         transition-colors duration-[var(--token-transition-fast)]
         ${selected
           ? 'border-[#FB923C] shadow-[0_0_0_2px_rgba(251,146,60,0.3)]'

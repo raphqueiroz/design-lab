@@ -31,7 +31,7 @@ export default function D_Screen3_CreateGoal({ onNext, onBack }: FlowScreenProps
       <Stack gap="default">
         <Stack gap="sm">
           <Text variant="heading-sm">Quanto você quer guardar?</Text>
-          <CurrencyInput label="Meta" value={targetValue} onChange={setTargetValue} tokenIcon={USD_ICON} />
+          <CurrencyInput label="Meta" value={targetValue} onChange={setTargetValue} tokenIcon={USD_ICON} currencySymbol="US$" />
         </Stack>
 
         <Stack gap="sm">

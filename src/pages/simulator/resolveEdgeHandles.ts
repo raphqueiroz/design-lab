@@ -7,15 +7,16 @@ import type { Node } from '@xyflow/react'
 export const NODE_WIDTHS: Record<string, number> = {
   screen: 200,
   page: 200,
-  decision: 160,
-  error: 180,
+  decision: 200,
+  error: 200,
   'flow-reference': 200,
-  action: 160,
+  action: 200,
   overlay: 200,
-  state: 140,
+  state: 200,
   'api-call': 200,
-  delay: 160,
+  delay: 200,
   note: 200,
+  'entry-point': 220,
 }
 
 const DEFAULT_NODE_HEIGHT = 60

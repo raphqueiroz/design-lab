@@ -1,4 +1,6 @@
 import { registerFlow } from '../../pages/simulator/flowRegistry'
+import { bootstrapFlowGraph } from '../../pages/simulator/flowGraphStore'
+import type { FlowNodeData } from '../../pages/simulator/flowGraph.types'
 import { registerPage } from '../../pages/gallery/pageRegistry'
 import Screen1_PerksHome from './Screen1_PerksHome'
 import Screen2_BenefitsPromos from './Screen2_BenefitsPromos'
@@ -95,3 +97,58 @@ registerFlow({
   entryPoints: ['tab-bar', 'onboarding'],
   screens: screenDefs.map((s) => ({ ...s, pageId: s.id })),
 })
+
+// ── Bootstrap flow graph ──
+{
+  const ROW = 120
+  const x = 300
+  const xR = 600
+
+  const nodes = [
+    // Row 0: Perks Home
+    { id: 'n-home', type: 'screen', position: { x, y: 0 }, data: { label: 'Perks Home', screenId: 'perks-home', nodeType: 'screen', pageId: 'perks-home', description: 'Hero landing page showcasing Picnic benefits' } as FlowNodeData },
+
+    // Row 1: Action — tap explore
+    { id: 'n-tap-explore', type: 'action', position: { x, y: ROW }, data: { label: 'Tap Explorar benefícios', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Button: Explorar benefícios' } as FlowNodeData },
+
+    // Row 2: Benefits & Promos
+    { id: 'n-benefits', type: 'screen', position: { x, y: ROW * 2 }, data: { label: 'Benefits & Promos', screenId: 'perks-benefits-promos', nodeType: 'screen', pageId: 'perks-benefits-promos', description: 'Segmented list of highlights and referral program' } as FlowNodeData },
+
+    // Row 3: Action — tap dollar rate
+    { id: 'n-tap-dollar', type: 'action', position: { x, y: ROW * 3 }, data: { label: 'Tap Dólar sem taxas', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'ListItem: Dólar sem taxas' } as FlowNodeData },
+
+    // Row 4: Dollar Rate Detail
+    { id: 'n-dollar-rate', type: 'screen', position: { x, y: ROW * 4 }, data: { label: 'Dollar Rate Detail', screenId: 'perks-dollar-rate', nodeType: 'screen', pageId: 'perks-dollar-rate', description: 'Competitive dollar conversion rate details' } as FlowNodeData },
+
+    // Row 5: Action — tap convert
+    { id: 'n-tap-convert', type: 'action', position: { x, y: ROW * 5 }, data: { label: 'Tap Converter agora', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Button: Converter agora' } as FlowNodeData },
+
+    // Row 6: Conversion
+    { id: 'n-conversion', type: 'screen', position: { x, y: ROW * 6 }, data: { label: 'Currency Conversion', screenId: 'perks-conversion', nodeType: 'screen', pageId: 'perks-conversion', description: 'BRL to USD conversion form' } as FlowNodeData },
+
+    // Row 7: Savings Breakdown
+    { id: 'n-savings', type: 'screen', position: { x, y: ROW * 7 }, data: { label: 'Savings Breakdown', screenId: 'perks-savings-breakdown', nodeType: 'screen', pageId: 'perks-savings-breakdown', description: 'Picnic vs market fees comparison' } as FlowNodeData },
+
+    // Row 8: Share
+    { id: 'n-share', type: 'screen', position: { x, y: ROW * 8 }, data: { label: 'Share', screenId: 'perks-share', nodeType: 'screen', pageId: 'perks-share', description: 'Share savings and referral code' } as FlowNodeData },
+
+    // Flow reference for deposit-pix-v2 (reachable from conversion context)
+    { id: 'n-ref-deposit', type: 'flow-reference', position: { x: xR, y: ROW * 6 }, data: { label: 'Deposit via PIX', screenId: null, nodeType: 'flow-reference', targetFlowId: 'deposit-pix-v2', description: 'User wants to add funds to convert' } as FlowNodeData },
+  ]
+
+  const edges = [
+    // Main spine
+    { id: 'e-1', source: 'n-home', target: 'n-tap-explore', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-2', source: 'n-tap-explore', target: 'n-benefits', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-3', source: 'n-benefits', target: 'n-tap-dollar', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-4', source: 'n-tap-dollar', target: 'n-dollar-rate', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-5', source: 'n-dollar-rate', target: 'n-tap-convert', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-6', source: 'n-tap-convert', target: 'n-conversion', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-7', source: 'n-conversion', target: 'n-savings', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-8', source: 'n-savings', target: 'n-share', sourceHandle: 'bottom', targetHandle: 'top' },
+    // Flow reference branch
+    { id: 'e-ref-deposit', source: 'n-conversion', target: 'n-ref-deposit', sourceHandle: 'right-source', targetHandle: 'left-target' },
+  ]
+
+  bootstrapFlowGraph('perks-benefits', nodes, edges)
+}

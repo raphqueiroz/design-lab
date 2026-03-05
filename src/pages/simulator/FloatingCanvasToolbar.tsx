@@ -1,4 +1,4 @@
-import { RiComputerLine, RiGitBranchLine, RiErrorWarningLine, RiExternalLinkLine, RiCursorLine, RiStackLine, RiArrowGoBackLine, RiArrowGoForwardLine, RiServerLine, RiTimerLine, RiStickyNoteLine } from '@remixicon/react'
+import { RiComputerLine, RiGitBranchLine, RiErrorWarningLine, RiExternalLinkLine, RiCursorLine, RiStackLine, RiArrowGoBackLine, RiArrowGoForwardLine, RiServerLine, RiTimerLine, RiStickyNoteLine, RiLoginBoxLine } from '@remixicon/react'
 import type { FlowNodeType } from './flowGraph.types'
 
 interface FloatingCanvasToolbarProps {
@@ -88,6 +88,9 @@ export default function FloatingCanvasToolbar({
       </ToolbarButton>
       <ToolbarButton onClick={() => onAddNode('note')} title="Add Note (N)">
         <RiStickyNoteLine size={14} />
+      </ToolbarButton>
+      <ToolbarButton onClick={() => onAddNode('entry-point')} title="Add Entry Point (P)">
+        <RiLoginBoxLine size={14} />
       </ToolbarButton>
 
       <Divider />

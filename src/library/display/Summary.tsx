@@ -22,7 +22,7 @@ export default function Summary({
   className,
 }: SummaryProps) {
   return (
-    <div data-component="Summary" className={cn('w-full flex flex-col gap-[var(--token-spacing-md)]', className)}>
+    <div data-component="Summary" className={cn('w-full flex flex-col gap-[var(--token-spacing-md)] py-[var(--token-spacing-4)]', className)}>
       {header && (
         <span className="text-[length:var(--token-font-size-body-lg)] font-semibold leading-[var(--token-line-height-body-lg)] text-[var(--color-content-primary)]">
           {header}

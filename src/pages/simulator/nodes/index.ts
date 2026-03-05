@@ -8,6 +8,7 @@ import OverlayNode from './OverlayNode'
 import ApiCallNode from './ApiCallNode'
 import DelayNode from './DelayNode'
 import NoteNode from './NoteNode'
+import EntryPointNode from './EntryPointNode'
 
 export const nodeTypes: NodeTypes = {
   screen: ScreenNode,
@@ -20,4 +21,5 @@ export const nodeTypes: NodeTypes = {
   'api-call': ApiCallNode,
   delay: DelayNode,
   note: NoteNode,
+  'entry-point': EntryPointNode,
 }

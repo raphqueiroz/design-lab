@@ -1,7 +1,7 @@
 import type { Node, Edge } from '@xyflow/react'
 
 /** The supported node types on the flow canvas */
-export type FlowNodeType = 'screen' | 'page' | 'decision' | 'error' | 'flow-reference' | 'action' | 'overlay' | 'api-call' | 'delay' | 'note'
+export type FlowNodeType = 'screen' | 'page' | 'decision' | 'error' | 'flow-reference' | 'action' | 'overlay' | 'api-call' | 'delay' | 'note' | 'entry-point'
 
 /** Action types for action nodes */
 export type ActionType = 'tap' | 'swipe' | 'input' | 'scroll' | 'long-press'
@@ -54,6 +54,12 @@ export interface FlowNodeData extends Record<string, unknown> {
   labelManuallyEdited?: boolean
   /** For overlay nodes: interactive elements inside this overlay */
   interactiveElements?: { id: string; component: string; label: string }[]
+  /** For entry-point nodes: manually added entry labels */
+  manualEntryPoints?: string[]
+  /** For entry-point nodes: auto-computed entry point labels (injected at render time) */
+  autoEntryPoints?: string[]
+  /** For entry-point nodes: auto-computed linked-from flows (injected at render time) */
+  linkedFromFlows?: { id: string; name: string }[]
 }
 
 /** Typed React Flow node using our custom data */

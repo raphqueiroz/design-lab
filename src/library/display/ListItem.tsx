@@ -79,7 +79,7 @@ export default function ListItem({
     </div>
   )
 
-  const baseClasses = 'bg-[var(--color-surface-primary)] rounded-[var(--token-radius-lg)] px-[var(--token-spacing-3)] py-[var(--token-spacing-4)]'
+  const baseClasses = 'bg-[var(--color-surface-primary)] rounded-[var(--token-radius-lg)] py-[var(--token-spacing-4)]'
 
   if (onPress) {
     return (

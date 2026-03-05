@@ -1,148 +1,19 @@
-import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { RiPencilLine, RiCheckLine, RiRefreshLine, RiHistoryLine, RiSaveLine, RiDeleteBinLine, RiArrowGoBackLine } from '@remixicon/react'
 import type { FlowScreen, Flow } from './flowRegistry'
-import type { FlowVersion } from './flowVersionStore'
-import { updateVersion, deleteVersion } from './flowVersionStore'
-import { getFlowTag, setFlowTag, type FlowTag } from './flowStore'
-import SaveVersionDialog from './SaveVersionDialog'
-import { getBaseFlow } from './flowRegistry'
-import {
-  setFlowName,
-  setFlowDescription,
-  setFlowSpec,
-  setScreenOverride,
-  resetFlowOverrides,
-} from './flowStore'
-import { syncScreenTitleToNode } from './flowGraphSync'
 
 interface AnnotationsPanelProps {
   flow: Flow
   currentScreen: FlowScreen
   screenIndex: number
   onFlowEdited: () => void
-  versions?: FlowVersion[]
-  suggestedVersion?: string
-  onSaveVersion?: (version: string, description: string, screenIds?: string[]) => void
-  onViewVersion?: (version: FlowVersion) => void
-  onRestoreVersion?: (version: FlowVersion) => void
-  onVersionsChanged?: () => void
-}
-
-function EditableField({
-  value,
-  onSave,
-  multiline,
-  label,
-}: {
-  value: string
-  onSave: (val: string) => void
-  multiline?: boolean
-  label: string
-}) {
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(value)
-
-  const handleEdit = () => {
-    setDraft(value)
-    setEditing(true)
-  }
-
-  const handleSave = () => {
-    onSave(draft)
-    setEditing(false)
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !multiline) {
-      e.preventDefault()
-      handleSave()
-    }
-    if (e.key === 'Escape') {
-      setEditing(false)
-    }
-  }
-
-  if (editing) {
-    return (
-      <div className="flex flex-col gap-[var(--token-spacing-1)]">
-        {multiline ? (
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={handleKeyDown}
-            rows={6}
-            autoFocus
-            className="w-full px-[var(--token-spacing-2)] py-[var(--token-spacing-1)] text-[length:var(--token-font-size-body-sm)] leading-[var(--token-line-height-body-sm)] text-shell-text bg-shell-input border border-shell-selected-text rounded-[var(--token-radius-sm)] outline-none resize-y"
-          />
-        ) : (
-          <input
-            type="text"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={handleKeyDown}
-            autoFocus
-            className="w-full px-[var(--token-spacing-2)] py-[var(--token-spacing-1)] text-[length:var(--token-font-size-body-sm)] leading-[var(--token-line-height-body-sm)] text-shell-text bg-shell-input border border-shell-selected-text rounded-[var(--token-radius-sm)] outline-none"
-          />
-        )}
-        <div className="flex gap-[var(--token-spacing-1)] justify-end">
-          <button
-            type="button"
-            onClick={() => setEditing(false)}
-            className="px-[var(--token-spacing-2)] py-[1px] text-[length:var(--token-font-size-caption)] text-shell-text-tertiary hover:text-shell-text-secondary cursor-pointer"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="px-[var(--token-spacing-2)] py-[1px] text-[length:var(--token-font-size-caption)] text-shell-selected-text hover:text-[#6EE7A0] font-medium cursor-pointer flex items-center gap-[2px]"
-          >
-            <RiCheckLine size={12} />
-            Save
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={handleEdit}
-      onKeyDown={(e) => { if (e.key === 'Enter') handleEdit() }}
-      title={`Click to edit ${label}`}
-      className="w-full text-left cursor-pointer flex items-start gap-[var(--token-spacing-1)] px-[var(--token-spacing-1)] py-[2px] -mx-[var(--token-spacing-1)] rounded-[var(--token-radius-sm)] hover:bg-shell-hover transition-colors border border-transparent hover:border-shell-border"
-    >
-      <span className="flex-1">{value || '(empty)'}</span>
-      <RiPencilLine
-        size={12}
-        className="shrink-0 mt-[3px] text-shell-text-tertiary"
-      />
-    </div>
-  )
 }
 
 export default function AnnotationsPanel({
   flow,
   currentScreen,
   screenIndex,
-  onFlowEdited,
-  versions = [],
-  suggestedVersion = '1.0',
-  onSaveVersion,
-  onViewVersion,
-  onRestoreVersion,
-  onVersionsChanged,
 }: AnnotationsPanelProps) {
   const navigate = useNavigate()
-  const [showVersionDialog, setShowVersionDialog] = useState(false)
-  const [specEditing, setSpecEditing] = useState(false)
-  const [specDraft, setSpecDraft] = useState(flow.specContent ?? '')
-  const [editingVersionId, setEditingVersionId] = useState<string | null>(null)
-  const [editVersionDraft, setEditVersionDraft] = useState({ version: '', description: '' })
-  const [flowTag, setFlowTagLocal] = useState<FlowTag>(() => getFlowTag(flow.id))
 
   const handleExport = () => {
     const lines = [
@@ -173,167 +44,56 @@ export default function AnnotationsPanel({
     URL.revokeObjectURL(url)
   }
 
-  const handleReset = useCallback(() => {
-    resetFlowOverrides(flow.id)
-    onFlowEdited()
-  }, [flow.id, onFlowEdited])
-
-  const handleNameSave = useCallback(
-    (name: string) => {
-      setFlowName(flow.id, name)
-      onFlowEdited()
-    },
-    [flow.id, onFlowEdited],
-  )
-
-  const handleDescriptionSave = useCallback(
-    (desc: string) => {
-      setFlowDescription(flow.id, desc)
-      onFlowEdited()
-    },
-    [flow.id, onFlowEdited],
-  )
-
-  const handleScreenTitleSave = useCallback(
-    (title: string) => {
-      setScreenOverride(flow.id, currentScreen.id, 'title', title)
-      syncScreenTitleToNode(flow.id, currentScreen.id, title)
-      onFlowEdited()
-    },
-    [flow.id, currentScreen.id, onFlowEdited],
-  )
-
-  const handleScreenDescSave = useCallback(
-    (desc: string) => {
-      setScreenOverride(flow.id, currentScreen.id, 'description', desc)
-      onFlowEdited()
-    },
-    [flow.id, currentScreen.id, onFlowEdited],
-  )
-
-  const handleSpecSave = useCallback(() => {
-    setFlowSpec(flow.id, specDraft)
-    setSpecEditing(false)
-    onFlowEdited()
-  }, [flow.id, specDraft, onFlowEdited])
-
-  const handleFlowTagChange = useCallback(
-    (tag: FlowTag) => {
-      setFlowTagLocal(tag)
-      setFlowTag(flow.id, tag)
-      onFlowEdited()
-    },
-    [flow.id, onFlowEdited],
-  )
-
-  const handleStartEditVersion = useCallback((v: FlowVersion) => {
-    setEditingVersionId(v.id)
-    setEditVersionDraft({ version: v.version, description: v.description })
-  }, [])
-
-  const handleSaveEditVersion = useCallback(() => {
-    if (!editingVersionId) return
-    updateVersion(flow.id, editingVersionId, editVersionDraft)
-    setEditingVersionId(null)
-    onVersionsChanged?.()
-  }, [flow.id, editingVersionId, editVersionDraft, onVersionsChanged])
-
-  const handleDeleteVersion = useCallback(
-    (versionId: string) => {
-      deleteVersion(flow.id, versionId)
-      onVersionsChanged?.()
-    },
-    [flow.id, onVersionsChanged],
-  )
-
-  const baseFlow = getBaseFlow(flow.id)
-  const hasOverrides =
-    flow.name !== baseFlow?.name ||
-    flow.description !== baseFlow?.description ||
-    flow.specContent !== baseFlow?.specContent ||
-    flow.screens.some(
-      (s, i) =>
-        s.title !== baseFlow?.screens[i]?.title ||
-        s.description !== baseFlow?.screens[i]?.description,
-    )
-
   return (
     <aside className="w-[300px] h-full shrink-0 overflow-y-auto border-l border-shell-border bg-shell-surface">
       <div className="p-[var(--token-spacing-md)] border-b border-shell-border flex items-center justify-between">
         <h2 className="text-[length:var(--token-font-size-caption)] leading-[var(--token-line-height-caption)] font-semibold text-shell-text-tertiary uppercase tracking-wider">
           Annotations
         </h2>
-        <div className="flex gap-[var(--token-spacing-2)]">
-          {hasOverrides && (
-            <button
-              type="button"
-              onClick={handleReset}
-              title="Reset all edits"
-              className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary hover:text-error font-medium cursor-pointer flex items-center gap-[2px]"
-            >
-              <RiRefreshLine size={11} />
-              Reset
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={handleExport}
-            className="text-[length:var(--token-font-size-caption)] text-shell-selected-text hover:text-[#6EE7A0] font-medium cursor-pointer"
-          >
-            Export
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleExport}
+          className="text-[length:var(--token-font-size-caption)] text-shell-selected-text hover:text-[#6EE7A0] font-medium cursor-pointer"
+        >
+          Export
+        </button>
       </div>
 
       <div className="p-[var(--token-spacing-md)]">
-        {/* Flow name (editable) */}
+        {/* Flow name */}
         <div className="mb-[var(--token-spacing-2)]">
           <p className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary uppercase tracking-wider mb-[var(--token-spacing-1)]">
             Flow Name
           </p>
-          <div className="text-[length:var(--token-font-size-heading-sm)] font-medium text-shell-text">
-            <EditableField value={flow.name} onSave={handleNameSave} label="flow name" />
-          </div>
+          <p className="text-[length:var(--token-font-size-heading-sm)] font-medium text-shell-text">
+            {flow.name}
+          </p>
         </div>
 
-        {/* Flow description (editable) */}
+        {/* Flow description */}
         <div className="mb-[var(--token-spacing-lg)]">
           <p className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary uppercase tracking-wider mb-[var(--token-spacing-1)]">
             Overview
           </p>
-          <div className="text-[length:var(--token-font-size-body-sm)] text-shell-text-secondary">
-            <EditableField
-              value={flow.description}
-              onSave={handleDescriptionSave}
-              multiline
-              label="flow description"
-            />
-          </div>
+          <p className="text-[length:var(--token-font-size-body-sm)] text-shell-text-secondary">
+            {flow.description}
+          </p>
         </div>
 
-        {/* Current screen info (editable) */}
+        {/* Current screen info */}
         <div className="mb-[var(--token-spacing-lg)]">
           <p className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary uppercase tracking-wider mb-[var(--token-spacing-1)]">
             Screen {screenIndex + 1} of {flow.screens.length}
           </p>
-          <div className="text-[length:var(--token-font-size-heading-sm)] font-medium text-shell-text mb-[var(--token-spacing-1)]">
-            <EditableField
-              value={currentScreen.title}
-              onSave={handleScreenTitleSave}
-              label="screen title"
-            />
-          </div>
+          <p className="text-[length:var(--token-font-size-heading-sm)] font-medium text-shell-text mb-[var(--token-spacing-1)]">
+            {currentScreen.title}
+          </p>
           <p className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary mb-[var(--token-spacing-1)] font-mono">
             {currentScreen.id}
           </p>
-          <div className="text-[length:var(--token-font-size-body-sm)] text-shell-text-secondary">
-            <EditableField
-              value={currentScreen.description}
-              onSave={handleScreenDescSave}
-              multiline
-              label="screen description"
-            />
-          </div>
+          <p className="text-[length:var(--token-font-size-body-sm)] text-shell-text-secondary">
+            {currentScreen.description}
+          </p>
         </div>
 
         {/* Components used */}
@@ -370,247 +130,25 @@ export default function AnnotationsPanel({
               <span className="text-shell-text">{flow.screens.length}</span>
             </div>
             <div className="flex justify-between text-[length:var(--token-font-size-body-sm)]">
-              <span className="text-shell-text-secondary">Storage</span>
-              <span className="text-shell-text">
-                {hasOverrides ? 'localStorage (edited)' : 'Default'}
-              </span>
+              <span className="text-shell-text-secondary">ID</span>
+              <span className="text-shell-text font-mono">{flow.id}</span>
             </div>
           </div>
         </div>
 
-        {/* Spec content (editable) */}
-        <div>
-          <div className="flex items-center justify-between mb-[var(--token-spacing-2)]">
-            <p className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary uppercase tracking-wider">
+        {/* Spec content */}
+        {flow.specContent && (
+          <div>
+            <p className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary uppercase tracking-wider mb-[var(--token-spacing-2)]">
               Spec
             </p>
-            {!specEditing && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSpecDraft(flow.specContent ?? '')
-                  setSpecEditing(true)
-                }}
-                className="text-[length:var(--token-font-size-caption)] text-shell-selected-text hover:text-[#6EE7A0] font-medium cursor-pointer flex items-center gap-[2px]"
-              >
-                <RiPencilLine size={11} />
-                Edit
-              </button>
-            )}
-          </div>
-
-          {specEditing ? (
-            <div className="flex flex-col gap-[var(--token-spacing-2)]">
-              <textarea
-                value={specDraft}
-                onChange={(e) => setSpecDraft(e.target.value)}
-                rows={16}
-                autoFocus
-                className="w-full px-[var(--token-spacing-3)] py-[var(--token-spacing-2)] text-[length:var(--token-font-size-caption)] leading-[18px] text-shell-text bg-shell-input border border-shell-selected-text rounded-[var(--token-radius-md)] outline-none resize-y font-mono"
-              />
-              <div className="flex gap-[var(--token-spacing-2)] justify-end">
-                <button
-                  type="button"
-                  onClick={() => setSpecEditing(false)}
-                  className="px-[var(--token-spacing-3)] py-[var(--token-spacing-1)] text-[length:var(--token-font-size-caption)] text-shell-text-tertiary hover:text-shell-text-secondary rounded-[var(--token-radius-sm)] cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSpecSave}
-                  className="px-[var(--token-spacing-3)] py-[var(--token-spacing-1)] text-[length:var(--token-font-size-caption)] text-shell-bg bg-shell-selected-text hover:bg-[#6EE7A0] rounded-[var(--token-radius-sm)] font-medium cursor-pointer flex items-center gap-[4px]"
-                >
-                  <RiCheckLine size={12} />
-                  Save
-                </button>
-              </div>
-            </div>
-          ) : flow.specContent ? (
             <pre className="text-[length:var(--token-font-size-caption)] text-shell-text-secondary whitespace-pre-wrap bg-shell-input p-[var(--token-spacing-3)] rounded-[var(--token-radius-md)] max-h-[300px] overflow-y-auto">
               {flow.specContent}
             </pre>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setSpecDraft('')
-                setSpecEditing(true)
-              }}
-              className="w-full py-[var(--token-spacing-3)] border border-dashed border-shell-border rounded-[var(--token-radius-md)] text-[length:var(--token-font-size-body-sm)] text-shell-text-tertiary hover:text-shell-text-secondary hover:border-shell-active transition-colors cursor-pointer"
-            >
-              + Add spec
-            </button>
-          )}
-        </div>
-
-        {/* Flow Status */}
-        <div className="mt-[var(--token-spacing-lg)] pt-[var(--token-spacing-lg)] border-t border-shell-border">
-          <p className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary uppercase tracking-wider mb-[var(--token-spacing-2)]">
-            Status
-          </p>
-          <div className="flex gap-[var(--token-spacing-1)]">
-            {([
-              { value: 'draft' as FlowTag, label: 'Draft', color: 'bg-[#FBBF24]' },
-              { value: 'approved' as FlowTag, label: 'Approved', color: 'bg-[#4ADE80]' },
-              { value: 'in-production' as FlowTag, label: 'In Prod', color: 'bg-[#60A5FA]' },
-            ]).map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => handleFlowTagChange(opt.value)}
-                className={`
-                  flex items-center gap-[4px] px-[var(--token-spacing-2)] py-[3px]
-                  rounded-[var(--token-radius-full)] text-[length:var(--token-font-size-caption)] font-medium
-                  transition-colors cursor-pointer border
-                  ${flowTag === opt.value
-                    ? 'border-shell-selected-text bg-shell-selected-text/10 text-shell-text'
-                    : 'border-shell-border text-shell-text-tertiary hover:border-shell-active hover:text-shell-text-secondary'
-                  }
-                `}
-              >
-                <div className={`w-[6px] h-[6px] rounded-full ${opt.color}`} />
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Versions */}
-        {onSaveVersion && (
-          <div className="mt-[var(--token-spacing-lg)] pt-[var(--token-spacing-lg)] border-t border-shell-border">
-            <div className="flex items-center justify-between mb-[var(--token-spacing-2)]">
-              <p className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary uppercase tracking-wider flex items-center gap-[4px]">
-                <RiHistoryLine size={11} />
-                Versions
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowVersionDialog(true)}
-                className="text-[length:var(--token-font-size-caption)] text-shell-selected-text hover:text-[#6EE7A0] font-medium cursor-pointer flex items-center gap-[4px]"
-              >
-                <RiSaveLine size={11} />
-                Save
-              </button>
-            </div>
-
-            {versions.length === 0 ? (
-              <p className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary">
-                No versions saved yet
-              </p>
-            ) : (
-              <div className="flex flex-col gap-[var(--token-spacing-2)] max-h-[300px] overflow-y-auto">
-                {[...versions].reverse().map((v) => {
-                  const isEditing = editingVersionId === v.id
-                  return (
-                    <div
-                      key={v.id}
-                      className="py-[var(--token-spacing-1)] border-b border-shell-border last:border-b-0"
-                    >
-                      {isEditing ? (
-                        <div className="flex flex-col gap-[var(--token-spacing-1)]">
-                          <input
-                            type="text"
-                            value={editVersionDraft.version}
-                            onChange={(e) => setEditVersionDraft((d) => ({ ...d, version: e.target.value }))}
-                            className="w-full px-[var(--token-spacing-2)] py-[2px] text-[length:var(--token-font-size-caption)] text-shell-text bg-shell-input border border-shell-selected-text rounded-[var(--token-radius-sm)] outline-none font-mono"
-                            autoFocus
-                          />
-                          <textarea
-                            value={editVersionDraft.description}
-                            onChange={(e) => setEditVersionDraft((d) => ({ ...d, description: e.target.value }))}
-                            rows={2}
-                            className="w-full px-[var(--token-spacing-2)] py-[2px] text-[length:var(--token-font-size-caption)] text-shell-text bg-shell-input border border-shell-selected-text rounded-[var(--token-radius-sm)] outline-none resize-y"
-                          />
-                          <div className="flex gap-[var(--token-spacing-1)] justify-end">
-                            <button
-                              type="button"
-                              onClick={() => setEditingVersionId(null)}
-                              className="px-[var(--token-spacing-2)] py-[1px] text-[length:var(--token-font-size-caption)] text-shell-text-tertiary hover:text-shell-text-secondary cursor-pointer"
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleSaveEditVersion}
-                              className="px-[var(--token-spacing-2)] py-[1px] text-[length:var(--token-font-size-caption)] text-shell-selected-text hover:text-[#6EE7A0] font-medium cursor-pointer flex items-center gap-[2px]"
-                            >
-                              <RiCheckLine size={12} />
-                              Save
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-[var(--token-spacing-1)]">
-                            <span className="text-[length:var(--token-font-size-caption)] font-mono font-medium text-shell-selected-text">
-                              v{v.version}
-                            </span>
-                            <span className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary">
-                              {new Date(v.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <p className="text-[length:var(--token-font-size-caption)] text-shell-text-secondary truncate">
-                            {v.description}
-                          </p>
-                          <div className="flex items-center gap-[var(--token-spacing-2)] mt-[2px]">
-                            {onViewVersion && (
-                              <button
-                                type="button"
-                                onClick={() => onViewVersion(v)}
-                                className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary hover:text-shell-text cursor-pointer"
-                              >
-                                Preview
-                              </button>
-                            )}
-                            {onRestoreVersion && (
-                              <button
-                                type="button"
-                                onClick={() => onRestoreVersion(v)}
-                                className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary hover:text-shell-selected-text cursor-pointer flex items-center gap-[2px]"
-                              >
-                                <RiArrowGoBackLine size={10} />
-                                Restore
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => handleStartEditVersion(v)}
-                              className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary hover:text-shell-text cursor-pointer flex items-center gap-[2px]"
-                            >
-                              <RiPencilLine size={10} />
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteVersion(v.id)}
-                              className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary hover:text-error cursor-pointer flex items-center gap-[2px] ml-auto"
-                            >
-                              <RiDeleteBinLine size={10} />
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
           </div>
         )}
-      </div>
 
-      {showVersionDialog && onSaveVersion && (
-        <SaveVersionDialog
-          suggestedVersion={suggestedVersion}
-          currentScreenIds={flow.screens.map(s => s.id)}
-          onClose={() => setShowVersionDialog(false)}
-          onSave={(version, description, screenIds) => {
-            onSaveVersion(version, description, screenIds)
-            setShowVersionDialog(false)
-          }}
-        />
-      )}
+      </div>
     </aside>
   )
 }

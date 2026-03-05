@@ -25,7 +25,7 @@ export default function TabBar({
     <nav
       data-component="TabBar"
       className={`
-        flex items-end justify-around
+        flex items-end justify-around shrink-0
         px-[var(--token-spacing-sm)] pb-[var(--safe-area-bottom,0px)]
         bg-surface-primary border-t border-border-default
         ${className}

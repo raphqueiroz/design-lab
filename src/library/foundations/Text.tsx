@@ -13,7 +13,7 @@ export interface TextProps {
 
 const variantStyles: Record<TypographyVariant, string> = {
   display:
-    'text-[length:var(--token-font-size-display)] leading-[var(--token-line-height-display)] font-semibold',
+    'text-[length:var(--token-font-size-display)] leading-[var(--token-line-height-display)] font-semibold tracking-tight',
   'heading-lg':
     'text-[length:var(--token-font-size-heading-lg)] leading-[var(--token-line-height-heading-lg)] font-semibold',
   'heading-md':

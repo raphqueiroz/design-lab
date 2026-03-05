@@ -1,5 +1,5 @@
 import { registerFlow } from '../../pages/simulator/flowRegistry'
-import { saveFlowGraph } from '../../pages/simulator/flowGraphStore'
+import { bootstrapFlowGraph } from '../../pages/simulator/flowGraphStore'
 import type { FlowNodeData } from '../../pages/simulator/flowGraph.types'
 import { registerPage } from '../../pages/gallery/pageRegistry'
 import Screen1_AmountEntry from './Screen1_AmountEntry'
@@ -187,5 +187,5 @@ registerFlow({
     { id: 'e-ref-ach', source: 'n-tap-usd', target: 'n-ref-ach', sourceHandle: 'bottom', targetHandle: 'top' },
   ]
 
-  saveFlowGraph('deposit-pix-v2', nodes, edges)
+  bootstrapFlowGraph('deposit-pix-v2', nodes, edges)
 }

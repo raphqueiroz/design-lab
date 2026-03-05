@@ -133,7 +133,7 @@ export default function FeatureLayout({
         </div>
 
         {/* Content — 24px padding on mobile */}
-        <div className="px-[var(--token-spacing-6)] pt-[var(--token-spacing-6)] flex flex-col gap-[var(--token-spacing-4)]">
+        <div className="px-[var(--token-spacing-6)] pt-[var(--token-spacing-6)] pb-[40px] flex flex-col gap-[var(--token-spacing-4)]">
           {rest}
         </div>
       </div>

@@ -2,15 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { RiAddLine } from '@remixicon/react'
 
-/* Force page registrations */
-import '../flows/deposit-v2'
-import '../flows/deposit-ach'
-import '../flows/noah-registration'
-import '../flows/perks'
-import '../flows/withdrawal'
-import '../flows/invest-earn'
-import '../flows/caixinha-dolar'
-import '../flows/dashboard'
+/* Auto-discover all flow registrations */
+import.meta.glob('../flows/*/index.ts', { eager: true })
 
 import AppHeader from '../components/AppHeader'
 import PageGalleryCanvas from './gallery/PageGalleryCanvas'

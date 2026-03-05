@@ -5,6 +5,7 @@ export interface SegmentedControlProps {
   segments: string[]
   activeIndex: number
   onChange: (index: number) => void
+  variant?: 'default' | 'pill'
   className?: string
 }
 
@@ -12,8 +13,40 @@ export default function SegmentedControl({
   segments,
   activeIndex,
   onChange,
+  variant = 'default',
   className = '',
 }: SegmentedControlProps) {
+  if (variant === 'pill') {
+    return (
+      <div
+        data-component="SegmentedControl"
+        className={`flex gap-[var(--token-spacing-2)] ${className}`}
+      >
+        {segments.map((seg, i) => (
+          <button
+            key={seg}
+            type="button"
+            onClick={() => onChange(i)}
+            className={`
+              relative px-[16px] py-[8px] rounded-[31px]
+              text-[length:var(--token-font-size-body)] leading-[var(--token-line-height-body)] font-semibold
+              tracking-[0.175px] cursor-pointer text-content-primary
+            `}
+          >
+            {i === activeIndex && (
+              <motion.span
+                layoutId={`pill-bg-${className}`}
+                className="absolute inset-0 bg-surface-secondary rounded-[31px]"
+                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+              />
+            )}
+            <span className="relative z-10">{seg}</span>
+          </button>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div
       data-component="SegmentedControl"

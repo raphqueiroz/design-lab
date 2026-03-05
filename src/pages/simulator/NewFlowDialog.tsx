@@ -1,22 +1,31 @@
 import { useState } from 'react'
 import { RiCloseLine } from '@remixicon/react'
 import { getAllDomains } from './flowRegistry'
+import { getGroupsForDomain } from './flowGroupStore'
 
 interface NewFlowDialogProps {
   onClose: () => void
-  onCreate: (name: string, domain: string, description: string) => void
+  onCreate: (name: string, domain: string, description: string, groupId?: string) => void
 }
 
 export default function NewFlowDialog({ onClose, onCreate }: NewFlowDialogProps) {
   const [name, setName] = useState('')
   const [domain, setDomain] = useState('')
   const [description, setDescription] = useState('')
+  const [groupId, setGroupId] = useState('')
   const domains = getAllDomains()
+
+  const groups = domain ? getGroupsForDomain(domain) : []
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim() || !domain.trim()) return
-    onCreate(name.trim(), domain.trim(), description.trim())
+    onCreate(name.trim(), domain.trim(), description.trim(), groupId || undefined)
+  }
+
+  const handleDomainChange = (newDomain: string) => {
+    setDomain(newDomain)
+    setGroupId('') // reset group when domain changes
   }
 
   return (
@@ -71,7 +80,7 @@ export default function NewFlowDialog({ onClose, onCreate }: NewFlowDialogProps)
             </label>
             <select
               value={domain}
-              onChange={(e) => setDomain(e.target.value)}
+              onChange={(e) => handleDomainChange(e.target.value)}
               className="w-full px-[var(--token-spacing-3)] py-[var(--token-spacing-2)] text-[length:var(--token-font-size-body-sm)] text-shell-text bg-shell-input border border-shell-border rounded-[var(--token-radius-sm)] outline-none focus:border-shell-selected-text"
             >
               <option value="">Select a domain...</option>
@@ -80,6 +89,24 @@ export default function NewFlowDialog({ onClose, onCreate }: NewFlowDialogProps)
               ))}
             </select>
           </div>
+
+          {groups.length > 0 && (
+            <div>
+              <label className="block text-[length:var(--token-font-size-caption)] text-shell-text-tertiary uppercase tracking-wider mb-[var(--token-spacing-1)]">
+                Group
+              </label>
+              <select
+                value={groupId}
+                onChange={(e) => setGroupId(e.target.value)}
+                className="w-full px-[var(--token-spacing-3)] py-[var(--token-spacing-2)] text-[length:var(--token-font-size-body-sm)] text-shell-text bg-shell-input border border-shell-border rounded-[var(--token-radius-sm)] outline-none focus:border-shell-selected-text"
+              >
+                <option value="">No group</option>
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-[length:var(--token-font-size-caption)] text-shell-text-tertiary uppercase tracking-wider mb-[var(--token-spacing-1)]">

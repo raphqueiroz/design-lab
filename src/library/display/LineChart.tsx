@@ -1,13 +1,25 @@
-import { useEffect, useRef } from 'react'
-import { createChart, type UTCTimestamp } from 'lightweight-charts'
+import { useEffect, useRef, useCallback } from 'react'
+import { createChart, type UTCTimestamp, type MouseEventParams } from 'lightweight-charts'
 import { registerComponent } from '../registry'
 
+export interface LineChartDataPoint {
+  time: string
+  value: number
+}
+
+export interface LineChartCrosshairData {
+  time: string
+  value: number
+}
+
 interface LineChartProps {
-  data: { time: string; value: number }[]
+  data: LineChartDataPoint[]
   height?: number
-  variant?: 'baseline' | 'area'
+  variant?: 'line' | 'baseline' | 'area'
   showPriceScale?: boolean
   showTimeScale?: boolean
+  /** Called when the user touches/hovers the chart. Null when released. */
+  onCrosshairMove?: (point: LineChartCrosshairData | null) => void
   className?: string
 }
 
@@ -34,20 +46,45 @@ function hexToRgba(hex: string, alpha: number): string {
 export default function LineChart({
   data,
   height = 200,
-  variant = 'baseline',
+  variant = 'line',
   showPriceScale = false,
   showTimeScale = false,
+  onCrosshairMove,
   className,
 }: LineChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<ReturnType<typeof createChart> | null>(null)
+  const onCrosshairMoveRef = useRef(onCrosshairMove)
+  onCrosshairMoveRef.current = onCrosshairMove
+
+  const handleCrosshair = useCallback((param: MouseEventParams) => {
+    if (!onCrosshairMoveRef.current) return
+
+    if (!param.time || !param.seriesData?.size) {
+      onCrosshairMoveRef.current(null)
+      return
+    }
+
+    const entry = param.seriesData.values().next().value as { value?: number } | undefined
+    if (entry?.value != null) {
+      const ts = param.time as number
+      const date = new Date(ts * 1000)
+      onCrosshairMoveRef.current({
+        time: date.toISOString().split('T')[0],
+        value: entry.value,
+      })
+    }
+  }, [])
 
   useEffect(() => {
     if (!containerRef.current || !data.length) return
 
     const positive = resolveToken('--color-content-number-positive', '#10B981')
     const negative = resolveToken('--color-content-number-negative', '#F87171')
-    const areaColor = resolveToken('--color-feedback-success', '#10B981')
+    const lineColor = resolveToken('--color-feedback-success', '#10B981')
+    const crosshairColor = resolveToken('--color-content-tertiary', '#9CA3AF')
+
+    const hasCrosshair = !!onCrosshairMoveRef.current
 
     const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
@@ -58,9 +95,22 @@ export default function LineChart({
       timeScale: { visible: showTimeScale, borderVisible: false },
       handleScroll: false,
       handleScale: false,
-      crosshair: { vertLine: { visible: false }, horzLine: { visible: false } },
+      crosshair: {
+        vertLine: {
+          visible: hasCrosshair,
+          color: crosshairColor,
+          width: 1,
+          style: 0, // solid
+          labelVisible: false,
+        },
+        horzLine: { visible: false },
+      },
     })
     chartRef.current = chart
+
+    if (hasCrosshair) {
+      chart.subscribeCrosshairMove(handleCrosshair)
+    }
 
     const timestamps = data.map((d) => ({
       time: (new Date(d.time).getTime() / 1000) as UTCTimestamp,
@@ -76,14 +126,32 @@ export default function LineChart({
         bottomLineColor: negative,
         bottomFillColor1: hexToRgba(negative, 0.05),
         bottomFillColor2: hexToRgba(negative, 0.28),
+        lastValueVisible: false,
+        priceLineVisible: false,
+      })
+      series.setData(timestamps)
+    } else if (variant === 'area') {
+      const series = chart.addAreaSeries({
+        lineColor: lineColor,
+        topColor: hexToRgba(lineColor, 0.28),
+        bottomColor: hexToRgba(lineColor, 0.02),
+        lineWidth: 2,
+        lastValueVisible: false,
+        priceLineVisible: false,
       })
       series.setData(timestamps)
     } else {
-      const series = chart.addAreaSeries({
-        lineColor: areaColor,
-        topColor: hexToRgba(areaColor, 0.28),
-        bottomColor: hexToRgba(areaColor, 0.02),
+      // 'line' — no fill, just the line
+      const series = chart.addLineSeries({
+        color: lineColor,
         lineWidth: 2,
+        lastValueVisible: false,
+        priceLineVisible: false,
+        crosshairMarkerVisible: hasCrosshair,
+        crosshairMarkerRadius: 5,
+        crosshairMarkerBackgroundColor: lineColor,
+        crosshairMarkerBorderColor: '#FFFFFF',
+        crosshairMarkerBorderWidth: 2,
       })
       series.setData(timestamps)
     }
@@ -102,7 +170,7 @@ export default function LineChart({
       window.removeEventListener('resize', handleResize)
       chart.remove()
     }
-  }, [data, height, variant, showPriceScale, showTimeScale])
+  }, [data, height, variant, showPriceScale, showTimeScale, handleCrosshair])
 
   return <div ref={containerRef} className={className} />
 }
@@ -113,7 +181,7 @@ registerComponent({
   description:
     'Time-series line/area chart for price history, portfolio value, and yield curves. Uses lightweight-charts.',
   component: LineChart,
-  variants: ['baseline', 'area'],
+  variants: ['line', 'baseline', 'area'],
   props: [
     {
       name: 'data',
@@ -130,11 +198,11 @@ registerComponent({
     },
     {
       name: 'variant',
-      type: "'baseline' | 'area'",
+      type: "'line' | 'baseline' | 'area'",
       required: false,
-      defaultValue: 'baseline',
+      defaultValue: 'line',
       description:
-        'baseline = dual-color (green above first value, red below). area = single-color fill.',
+        'line = no fill (default). baseline = dual-color (green/red). area = single-color fill.',
     },
     {
       name: 'showPriceScale',
@@ -149,6 +217,12 @@ registerComponent({
       required: false,
       defaultValue: 'false',
       description: 'Show the bottom time axis.',
+    },
+    {
+      name: 'onCrosshairMove',
+      type: '(point: { time: string; value: number } | null) => void',
+      required: false,
+      description: 'Called on touch/hover with the data point, or null when released.',
     },
     {
       name: 'className',

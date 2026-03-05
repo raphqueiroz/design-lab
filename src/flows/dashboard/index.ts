@@ -1,6 +1,6 @@
 import { registerFlow } from '../../pages/simulator/flowRegistry'
 import { registerPage } from '../../pages/gallery/pageRegistry'
-import { saveFlowGraph } from '../../pages/simulator/flowGraphStore'
+import { bootstrapFlowGraph } from '../../pages/simulator/flowGraphStore'
 import type { FlowNodeData } from '../../pages/simulator/flowGraph.types'
 import Screen1_Dashboard from './Screen1_Dashboard'
 
@@ -52,22 +52,43 @@ registerFlow({
   screens: screenDefs.map((s) => ({ ...s, pageId: s.id })),
 })
 
-// Bootstrap graph: tapping Depositar navigates to deposit-pix-v2
+// Bootstrap graph: dashboard hub with all linked flow connections
 {
-  const x = 300
-  const xR = 600
   const ROW = 120
+  const x = 300
+  const xL = 0
+  const xR = 600
 
   const nodes = [
+    // Row 0: Dashboard screen
     { id: 'n-dashboard', type: 'screen', position: { x, y: 0 }, data: { label: 'Dashboard', screenId: 'dashboard-main', nodeType: 'screen', pageId: 'dashboard-main' } as FlowNodeData },
-    { id: 'n-tap-deposit', type: 'action', position: { x: xR, y: 0 }, data: { label: 'Tap Depositar', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'ShortcutButton: Depositar' } as FlowNodeData },
-    { id: 'n-ref-deposit', type: 'flow-reference', position: { x: xR, y: ROW }, data: { label: 'Deposit via PIX', screenId: null, nodeType: 'flow-reference', targetFlowId: 'deposit-pix-v2' } as FlowNodeData },
+
+    // Row 1: Action nodes for quick actions
+    { id: 'n-tap-deposit', type: 'action', position: { x: xL, y: ROW }, data: { label: 'Tap Depositar', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'ShortcutButton: Depositar' } as FlowNodeData },
+    { id: 'n-tap-receive', type: 'action', position: { x, y: ROW }, data: { label: 'Tap Receber', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'ShortcutButton: Receber' } as FlowNodeData },
+    { id: 'n-tap-caixinha', type: 'action', position: { x: xR, y: ROW }, data: { label: 'Tap Caixinha do Dólar', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Card: Caixinha do Dólar' } as FlowNodeData },
+
+    // Row 2: Flow reference nodes
+    { id: 'n-ref-deposit', type: 'flow-reference', position: { x: xL, y: ROW * 2 }, data: { label: 'Deposit via PIX', screenId: null, nodeType: 'flow-reference', targetFlowId: 'deposit-pix-v2' } as FlowNodeData },
+    { id: 'n-ref-perks', type: 'flow-reference', position: { x, y: ROW * 2 }, data: { label: 'Perks & Benefits', screenId: null, nodeType: 'flow-reference', targetFlowId: 'perks-benefits' } as FlowNodeData },
+    { id: 'n-ref-caixinha', type: 'flow-reference', position: { x: xR, y: ROW * 2 }, data: { label: 'Caixinha do Dólar', screenId: null, nodeType: 'flow-reference', targetFlowId: 'caixinha-dolar' } as FlowNodeData },
+
+    // Row 3: Pending task overlay
+    { id: 'n-pending-sheet', type: 'overlay', position: { x: xL, y: ROW * 3 }, data: { label: 'Pending Tasks', screenId: null, nodeType: 'overlay', overlayType: 'bottom-sheet', parentScreenNodeId: 'n-dashboard', description: 'Shows pending tasks like KYC verification' } as FlowNodeData },
   ]
 
   const edges = [
-    { id: 'e-dash-deposit', source: 'n-dashboard', target: 'n-tap-deposit', sourceHandle: 'right-source', targetHandle: 'left-target' },
-    { id: 'e-deposit-ref', source: 'n-tap-deposit', target: 'n-ref-deposit', sourceHandle: 'bottom', targetHandle: 'top' },
+    // Dashboard → action nodes
+    { id: 'e-1', source: 'n-dashboard', target: 'n-tap-deposit', sourceHandle: 'left-source', targetHandle: 'right-target' },
+    { id: 'e-2', source: 'n-dashboard', target: 'n-tap-receive', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-3', source: 'n-dashboard', target: 'n-tap-caixinha', sourceHandle: 'right-source', targetHandle: 'left-target' },
+    // Action → flow references
+    { id: 'e-4', source: 'n-tap-deposit', target: 'n-ref-deposit', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-5', source: 'n-tap-receive', target: 'n-ref-perks', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-6', source: 'n-tap-caixinha', target: 'n-ref-caixinha', sourceHandle: 'bottom', targetHandle: 'top' },
+    // Pending tasks overlay
+    { id: 'e-pending', source: 'n-dashboard', target: 'n-pending-sheet', sourceHandle: 'left-source', targetHandle: 'right-target' },
   ]
 
-  saveFlowGraph('dashboard', nodes, edges)
+  bootstrapFlowGraph('dashboard', nodes, edges)
 }

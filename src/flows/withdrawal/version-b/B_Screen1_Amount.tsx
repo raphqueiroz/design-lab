@@ -75,6 +75,7 @@ export default function B_Screen1_Amount({ onNext, onBack }: FlowScreenProps) {
           value={displayUsd}
           onChange={handleUsdChange}
           tokenIcon={USD_ICON}
+          currencySymbol="US$"
         />
 
         <Divider />
@@ -84,6 +85,7 @@ export default function B_Screen1_Amount({ onNext, onBack }: FlowScreenProps) {
           value={displayBrl}
           onChange={handleBrlChange}
           tokenIcon={BRL_ICON}
+          currencySymbol="R$"
         />
 
         <ListItem

@@ -6,13 +6,13 @@
  */
 
 import { getFlowGraph, saveFlowGraph } from './flowGraphStore'
-import { setScreenOverride } from './flowStore'
 import { updateScreenInFlow } from './dynamicFlowStore'
 import type { FlowNodeData } from './flowGraph.types'
 
 /**
  * Sync a node label change to the corresponding screen title.
  * Called from FlowCanvas when a user edits a node's label.
+ * Only works for dynamic flows (static flow titles are code-defined).
  */
 export function syncNodeLabelToScreen(
   flowId: string,
@@ -22,8 +22,6 @@ export function syncNodeLabelToScreen(
 ): void {
   if (isDynamic) {
     updateScreenInFlow(flowId, screenId, { title: newLabel })
-  } else {
-    setScreenOverride(flowId, screenId, 'title', newLabel)
   }
 }
 

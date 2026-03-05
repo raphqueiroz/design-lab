@@ -1,8 +1,8 @@
 import type { ComponentType } from 'react'
 import type { PageStateDefinition } from '../gallery/pageRegistry'
-import { getFlowOverrides } from './flowStore'
 import { getDynamicFlows, type DynamicFlowDef } from './dynamicFlowStore'
 import { createPlaceholderComponent } from '../../flows/PlaceholderScreen'
+import { supabase, isSupabaseConnected } from '../../lib/supabase'
 
 export interface InteractiveElement {
   id: string          // e.g. 'btn-continue'
@@ -87,19 +87,170 @@ export interface Flow {
 
 const flows = new Map<string, Flow>()
 
+// ── Metadata overrides: persist name/description/domain changes for hardcoded flows ──
+
+const OVERRIDES_KEY = 'picnic-design-lab:flow-meta-overrides'
+
+type FlowMetaOverride = { name?: string; description?: string; domain?: string }
+
+function readOverrides(): Record<string, FlowMetaOverride> {
+  try {
+    const raw = localStorage.getItem(OVERRIDES_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeOverrides(overrides: Record<string, FlowMetaOverride>): void {
+  localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides))
+}
+
+function saveOverride(id: string, updates: FlowMetaOverride): void {
+  const all = readOverrides()
+  all[id] = { ...all[id], ...updates }
+  writeOverrides(all)
+
+  // Sync to Supabase
+  if (isSupabaseConnected()) {
+    const merged = all[id]
+    supabase!.from('flow_overrides').upsert(
+      {
+        flow_id: id,
+        name: merged.name ?? null,
+        description: merged.description ?? null,
+        domain: merged.domain ?? null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'flow_id' },
+    ).then(({ error }) => {
+      if (error) console.error('[flowRegistry] Supabase upsert failed:', error.message)
+    })
+  }
+}
+
+/** Hydrate flow meta overrides from Supabase → localStorage. */
+export async function hydrateFlowMetaOverridesFromSupabase(): Promise<boolean> {
+  if (!isSupabaseConnected()) return false
+
+  try {
+    const { data, error } = await supabase!.from('flow_overrides').select('*')
+    if (error) return false
+
+    const rows = data ?? []
+    if (rows.length === 0) return false
+
+    const all = readOverrides()
+    for (const row of rows) {
+      const override: FlowMetaOverride = {}
+      if (row.name != null) override.name = row.name
+      if (row.description != null) override.description = row.description
+      if (row.domain != null) override.domain = row.domain
+      all[row.flow_id] = override
+    }
+    writeOverrides(all)
+
+    // Re-apply overrides to already-registered flows
+    for (const [id, override] of Object.entries(all)) {
+      const flow = flows.get(id)
+      if (flow && !flow.isDynamic) {
+        const patched = { ...flow }
+        if (override.name !== undefined) patched.name = override.name
+        if (override.description !== undefined) patched.description = override.description
+        if (override.domain !== undefined) patched.domain = override.domain
+        flows.set(id, patched)
+      }
+    }
+
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Get all flow meta overrides (for pushAllToSupabase). */
+export function getAllFlowMetaOverrides(): Record<string, FlowMetaOverride> {
+  return readOverrides()
+}
+
+// ── Tombstone: deleted flow IDs persisted across reloads ──
+
+const DELETED_KEY = 'picnic-design-lab:deleted-flows'
+
+function readDeletedFlows(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DELETED_KEY)
+    return raw ? new Set(JSON.parse(raw)) : new Set()
+  } catch {
+    return new Set()
+  }
+}
+
+function writeDeletedFlows(ids: Set<string>): void {
+  localStorage.setItem(DELETED_KEY, JSON.stringify([...ids]))
+}
+
+export function isFlowDeleted(flowId: string): boolean {
+  return readDeletedFlows().has(flowId)
+}
+
+export function markFlowDeleted(flowId: string): void {
+  const deleted = readDeletedFlows()
+  deleted.add(flowId)
+  writeDeletedFlows(deleted)
+}
+
+export function unmarkFlowDeleted(flowId: string): void {
+  const deleted = readDeletedFlows()
+  deleted.delete(flowId)
+  writeDeletedFlows(deleted)
+}
+
 export function registerFlow(flow: Flow): void {
+  if (readDeletedFlows().has(flow.id)) return // user deleted this flow — don't re-register
   if (import.meta.env.DEV && flows.has(flow.id)) {
     throw new Error(`[flowRegistry] Duplicate flow ID: "${flow.id}"`)
   }
-  flows.set(flow.id, flow)
+  // Apply persisted metadata overrides (name, description, domain)
+  const override = readOverrides()[flow.id]
+  if (override) {
+    const patched = { ...flow }
+    if (override.name !== undefined) patched.name = override.name
+    if (override.description !== undefined) patched.description = override.description
+    if (override.domain !== undefined) patched.domain = override.domain
+    flows.set(flow.id, patched)
+  } else {
+    flows.set(flow.id, flow)
+  }
 }
 
 export function unregisterFlow(id: string): void {
   flows.delete(id)
 }
 
+/** Update mutable fields on a registered flow (name, description, domain). Persists for both dynamic and hardcoded flows. */
+export function updateFlowMeta(id: string, updates: { name?: string; description?: string; domain?: string }): void {
+  const flow = flows.get(id)
+  if (!flow) return
+  const updated = { ...flow }
+  if (updates.name !== undefined) updated.name = updates.name
+  if (updates.description !== undefined) updated.description = updates.description
+  if (updates.domain !== undefined) updated.domain = updates.domain
+  flows.set(id, updated)
+  // Persist overrides for hardcoded flows (dynamic flows are persisted by their own store)
+  if (!flow.isDynamic) {
+    saveOverride(id, updates)
+  }
+}
+
 /** Register a dynamic flow from the dynamicFlowStore data model. */
 export function registerDynamicFlow(def: DynamicFlowDef): void {
+  // Warn on collision with a non-dynamic (hardcoded) flow
+  const existing = flows.get(def.id)
+  if (existing && !existing.isDynamic) {
+    console.warn(`[flowRegistry] Dynamic flow "${def.name}" (${def.id}) collides with hardcoded flow "${existing.name}". Skipping.`)
+    return
+  }
   const flow: Flow = {
     id: def.id,
     name: def.name,
@@ -136,42 +287,12 @@ export function refreshDynamicFlow(id: string): void {
   }
 }
 
-/** Returns the flow with localStorage overrides merged in. */
 export function getFlow(id: string): Flow | undefined {
-  const base = flows.get(id)
-  if (!base) return undefined
-
-  const overrides = getFlowOverrides(id)
-  const screens = base.screens.map((s) => {
-    const so = overrides.screens?.[s.id]
-    return {
-      ...s,
-      title: so?.title ?? s.title,
-      description: so?.description ?? s.description,
-    }
-  })
-
-  return {
-    ...base,
-    name: overrides.name ?? base.name,
-    description: overrides.description ?? base.description,
-    specContent: overrides.spec ?? base.specContent,
-    screens,
-  }
-}
-
-/** Returns base flow without overrides (for reset comparisons). */
-export function getBaseFlow(id: string): Flow | undefined {
   return flows.get(id)
 }
 
 export function getAllFlows(): Flow[] {
   return Array.from(flows.keys()).map((id) => getFlow(id)!)
-}
-
-/** @deprecated Use getFlowsByDomain() instead */
-export function getFlowsByArea(): Record<string, Flow[]> {
-  return getFlowsByDomain()
 }
 
 export function getFlowsByDomain(): Record<string, Flow[]> {

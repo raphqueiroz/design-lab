@@ -59,8 +59,8 @@ export function HubActions({ onDeposit, onWithdraw, onElementTap }: HubActionsPr
         label="Depositar"
         variant="primary"
         onPress={() => {
-          onElementTap?.('ShortcutButton: Depositar')
-          onDeposit()
+          const resolved = onElementTap?.('ShortcutButton: Depositar')
+          if (!resolved) onDeposit()
         }}
       />
       <ShortcutButton
@@ -68,8 +68,8 @@ export function HubActions({ onDeposit, onWithdraw, onElementTap }: HubActionsPr
         label="Resgatar"
         variant="secondary"
         onPress={() => {
-          onElementTap?.('ShortcutButton: Resgatar')
-          onWithdraw()
+          const resolved = onElementTap?.('ShortcutButton: Resgatar')
+          if (!resolved) onWithdraw()
         }}
       />
     </Stack>

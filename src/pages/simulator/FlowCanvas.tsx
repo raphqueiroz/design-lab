@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ReactFlow,
   Background,
   MiniMap,
+  SelectionMode,
   useNodesState,
   useEdgesState,
   addEdge,
@@ -17,32 +18,25 @@ import {
 import '@xyflow/react/dist/style.css'
 
 import type { Flow } from './flowRegistry'
-import { refreshDynamicFlow } from './flowRegistry'
+import { refreshDynamicFlow, updateFlowMeta, getFlowsLinkingTo } from './flowRegistry'
 import { getFlowGraph, saveFlowGraph } from './flowGraphStore'
 import { autoGenerateFlowGraph } from './flowGraphAutoGen'
 import { alignNodes } from './alignNodes'
-import { addScreenToFlow } from './dynamicFlowStore'
-import { saveVersion, type FlowVersion } from './flowVersionStore'
+import { addScreenToFlow, updateScreenInFlow, getDynamicFlow, saveDynamicFlow } from './dynamicFlowStore'
 import { nodeTypes } from './nodes'
 import type { FlowNodeType, FlowNodeData } from './flowGraph.types'
 import { syncNodeLabelToScreen } from './flowGraphSync'
 import FloatingCanvasToolbar from './FloatingCanvasToolbar'
 import FlowViewAnnotationsPanel from './FlowViewAnnotationsPanel'
+import InsertableEdge from './InsertableEdge'
 import HelperLines from './HelperLines'
 import { getHelperLines, type HelperLineResult } from './getHelperLines'
-import { recalculateEdgeHandles } from './resolveEdgeHandles'
 
 interface FlowCanvasProps {
   flow: Flow
   onNavigateToScreen: (screenId: string) => void
   onNavigateToFlow?: (flowId: string) => void
   onFlowChanged?: () => void
-  versions?: FlowVersion[]
-  suggestedVersion?: string
-  onVersionsChanged?: () => void
-  onViewVersion?: (versionEntry: FlowVersion) => void
-  onRestoreVersion?: (versionEntry: FlowVersion) => void
-  graphOverride?: { nodes: Node[], edges: Edge[] } | null
 }
 
 interface UndoState {
@@ -52,11 +46,14 @@ interface UndoState {
 
 const MAX_UNDO = 50
 
-function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowChanged, versions: versionsProp = [], suggestedVersion: suggestedVerProp = '1.0', onVersionsChanged, onViewVersion: onViewVersionProp, onRestoreVersion: onRestoreVersionProp, graphOverride }: FlowCanvasProps) {
+const edgeTypes = { insertable: InsertableEdge }
+
+function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowChanged }: FlowCanvasProps) {
   const [nodes, setNodes, applyNodeChanges] = useNodesState<Node>([] as Node[])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([] as Edge[])
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
   const [helperLines, setHelperLines] = useState<HelperLineResult>({})
+  const [spacePressed, setSpacePressed] = useState(false)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
   const initializedRef = useRef<string | null>(null)
 
@@ -116,22 +113,6 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
     setUndoCount(0)
     setRedoCount(0)
   }, [flow.id, flow, setNodes, setEdges])
-
-  // Apply graphOverride when viewing a version, or reload own graph when clearing
-  useEffect(() => {
-    if (graphOverride) {
-      setNodes(graphOverride.nodes as Node[])
-      setEdges(graphOverride.edges as Edge[])
-      setSelectedNode(null)
-    } else if (initializedRef.current === flow.id) {
-      // Version cleared — reload the flow's own persisted graph
-      const existing = getFlowGraph(flow.id)
-      if (existing) {
-        setNodes(existing.nodes as Node[])
-        setEdges(existing.edges as Edge[])
-      }
-    }
-  }, [graphOverride, flow.id, setNodes, setEdges])
 
   // Debounced save
   const scheduleSave = useCallback(() => {
@@ -231,13 +212,8 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
   }, [])
 
   const handleNodeDragStop = useCallback(() => {
-    // Recalculate edge handles based on new node positions
-    setNodes((currentNodes) => {
-      setEdges((currentEdges) => recalculateEdgeHandles(currentNodes, currentEdges) as Edge[])
-      return currentNodes
-    })
     scheduleSave()
-  }, [setNodes, setEdges, scheduleSave])
+  }, [scheduleSave])
 
   // Toolbar: Add node
   const handleAddNode = useCallback(
@@ -254,6 +230,7 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
         'api-call': 'API Call',
         delay: 'Delay',
         note: 'Note',
+        'entry-point': 'Entry Points',
       }
 
       // For dynamic flows, creating a screen node also creates a linked screen
@@ -271,6 +248,10 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
       }
 
       setNodes((currentNodes) => {
+        // Only one entry-point node per flow
+        if (nodeType === 'entry-point' && currentNodes.some((n) => (n.data as FlowNodeData).nodeType === 'entry-point')) {
+          return currentNodes
+        }
         setEdges((currentEdges) => {
           pushUndo(currentNodes, currentEdges)
           return currentEdges
@@ -286,6 +267,81 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
           id: nodeId,
           type: nodeType,
           position: { x: 300, y: maxY + 200 },
+          data: nodeData,
+        }
+        return [...currentNodes, newNode]
+      })
+      scheduleSave()
+    },
+    [setNodes, setEdges, scheduleSave, pushUndo, flow.id, flow.isDynamic, onFlowChanged],
+  )
+
+  // Insert node on edge
+  const handleInsertNodeOnEdge = useCallback(
+    (edgeId: string, nodeType: FlowNodeType, position: { x: number; y: number }) => {
+      const nodeId = `node-${Date.now()}`
+      const labels: Record<FlowNodeType, string> = {
+        screen: 'New Screen', page: 'New Page', decision: 'Decision',
+        error: 'Error State', 'flow-reference': 'Flow Reference',
+        action: 'User Action', overlay: 'Overlay', 'api-call': 'API Call',
+        delay: 'Delay', note: 'Note', 'entry-point': 'Entry Points',
+      }
+
+      let linkedScreenId: string | null = null
+      if (nodeType === 'screen' && flow.isDynamic) {
+        linkedScreenId = `screen-${Date.now()}`
+        addScreenToFlow(flow.id, {
+          id: linkedScreenId,
+          title: labels[nodeType],
+          description: '',
+          componentsUsed: [],
+        })
+        refreshDynamicFlow(flow.id)
+        onFlowChanged?.()
+      }
+
+      const nodeData: FlowNodeData = {
+        label: labels[nodeType],
+        screenId: linkedScreenId,
+        nodeType,
+        description: '',
+      }
+
+      setNodes((currentNodes) => {
+        // Only one entry-point node per flow
+        if (nodeType === 'entry-point' && currentNodes.some((n) => (n.data as FlowNodeData).nodeType === 'entry-point')) {
+          return currentNodes
+        }
+        setEdges((currentEdges) => {
+          pushUndo(currentNodes, currentEdges)
+          const edge = currentEdges.find((e) => e.id === edgeId)
+          if (!edge) return currentEdges
+
+          // Remove old edge, create two new edges: source→new, new→target
+          const newEdges = currentEdges.filter((e) => e.id !== edgeId)
+          newEdges.push({
+            id: `${edge.source}->${nodeId}`,
+            source: edge.source,
+            target: nodeId,
+            sourceHandle: edge.sourceHandle,
+            targetHandle: 'top',
+            type: 'insertable',
+          })
+          newEdges.push({
+            id: `${nodeId}->${edge.target}`,
+            source: nodeId,
+            target: edge.target,
+            sourceHandle: 'bottom',
+            targetHandle: edge.targetHandle,
+            type: 'insertable',
+          })
+          return newEdges
+        })
+
+        const newNode: Node = {
+          id: nodeId,
+          type: nodeType,
+          position: { x: position.x, y: position.y },
           data: nodeData,
         }
         return [...currentNodes, newNode]
@@ -372,11 +428,35 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
       } else if (e.key === 'n' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
         handleAddNode('note')
+      } else if (e.key === 'p' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        handleAddNode('entry-point')
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [handleUndo, handleRedo, handleAddNode])
+
+  // Space key: toggle lasso selection mode
+  useEffect(() => {
+    const onDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !e.repeat) {
+        const tag = (e.target as HTMLElement).tagName
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return
+        e.preventDefault()
+        setSpacePressed(true)
+      }
+    }
+    const onUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') setSpacePressed(false)
+    }
+    window.addEventListener('keydown', onDown)
+    window.addEventListener('keyup', onUp)
+    return () => {
+      window.removeEventListener('keydown', onDown)
+      window.removeEventListener('keyup', onUp)
+    }
+  }, [])
 
   // Align nodes: reposition all nodes in a centered layered layout
   const handleAlignNodes = useCallback(() => {
@@ -400,11 +480,18 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
   // Annotations panel: update node data fields
   const handleNodeUpdate = useCallback(
     (nodeId: string, updates: Record<string, unknown>) => {
-      // Sync label changes to the linked screen title
-      if (updates.label) {
-        const nodeData = nodes.find((n) => n.id === nodeId)?.data as FlowNodeData | undefined
-        if (nodeData?.screenId) {
-          syncNodeLabelToScreen(flow.id, nodeData.screenId, updates.label as string, !!flow.isDynamic)
+      // Sync label/description changes to the linked dynamic screen
+      if (updates.label || 'description' in updates) {
+        const nd = nodes.find((n) => n.id === nodeId)?.data as FlowNodeData | undefined
+        if (nd?.screenId) {
+          if (updates.label) {
+            syncNodeLabelToScreen(flow.id, nd.screenId, updates.label as string, !!flow.isDynamic)
+          }
+          if ('description' in updates && flow.isDynamic) {
+            updateScreenInFlow(flow.id, nd.screenId, { description: (updates.description as string) ?? '' })
+            refreshDynamicFlow(flow.id)
+            onFlowChanged?.()
+          }
         }
       }
 
@@ -448,7 +535,63 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
       })
       scheduleSave()
     },
-    [setNodes, scheduleSave, nodes, flow.id, flow.isDynamic],
+    [setNodes, scheduleSave, nodes, flow.id, flow.isDynamic, onFlowChanged],
+  )
+
+  // Update edge label (for decision edges)
+  const handleEdgeLabelChange = useCallback(
+    (edgeId: string, label: string) => {
+      setEdges((currentEdges) =>
+        currentEdges.map((e) =>
+          e.id === edgeId ? { ...e, label } : e,
+        ),
+      )
+      scheduleSave()
+    },
+    [setEdges, scheduleSave],
+  )
+
+  // Update flow name/description
+  const handleFlowMetaUpdate = useCallback(
+    (updates: { name?: string; description?: string }) => {
+      updateFlowMeta(flow.id, updates)
+      // Persist for dynamic flows
+      const dynFlow = getDynamicFlow(flow.id)
+      if (dynFlow) {
+        if (updates.name !== undefined) dynFlow.name = updates.name
+        if (updates.description !== undefined) dynFlow.description = updates.description
+        saveDynamicFlow(dynFlow)
+      }
+      onFlowChanged?.()
+    },
+    [flow.id, onFlowChanged],
+  )
+
+  // Update screen description directly (from annotations panel)
+  const handleScreenDescriptionUpdate = useCallback(
+    (screenId: string, description: string) => {
+      if (flow.isDynamic) {
+        updateScreenInFlow(flow.id, screenId, { description })
+        refreshDynamicFlow(flow.id)
+        onFlowChanged?.()
+      }
+      // Also update the graph node description to keep them in sync
+      setNodes((nds) => {
+        const node = nds.find((n) => (n.data as FlowNodeData).screenId === screenId)
+        if (!node) return nds
+        return nds.map((n) =>
+          n.id === node.id ? { ...n, data: { ...n.data, description } } : n,
+        )
+      })
+      setSelectedNode((prev) => {
+        if (!prev) return prev
+        const nd = prev.data as FlowNodeData
+        if (nd.screenId !== screenId) return prev
+        return { ...prev, data: { ...prev.data, description } }
+      })
+      scheduleSave()
+    },
+    [flow.id, flow.isDynamic, setNodes, scheduleSave, onFlowChanged],
   )
 
   // Open in prototype
@@ -459,49 +602,56 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
     }
   }, [selectedNode, onNavigateToScreen])
 
-  // Version management (state is lifted to SimulatorPage, received via props)
-  const handleSaveVersion = useCallback(
-    (version: string, description: string, screenIds?: string[]) => {
-      setNodes((currentNodes) => {
-        setEdges((currentEdges) => {
-          saveVersion(flow.id, version, description, currentNodes, currentEdges, screenIds)
-          onVersionsChanged?.()
-          return currentEdges
-        })
-        return currentNodes
-      })
-    },
-    [flow.id, setNodes, setEdges, onVersionsChanged],
-  )
+  // Enrich entry-point nodes with auto-computed data
+  const enrichedNodes = useMemo(() => {
+    return nodes.map((n) => {
+      const d = n.data as FlowNodeData
+      if (d.nodeType !== 'entry-point') return n
+      return {
+        ...n,
+        data: {
+          ...d,
+          autoEntryPoints: flow.entryPoints ?? [],
+          linkedFromFlows: getFlowsLinkingTo(flow.id).map((f) => ({ id: f.id, name: f.name })),
+        },
+      }
+    })
+  }, [nodes, flow])
 
-  // Preview: non-destructive, in-memory only — never persists
-  const handleViewVersion = useCallback(
-    (versionEntry: FlowVersion) => {
-      onViewVersionProp?.(versionEntry)
-    },
-    [onViewVersionProp],
-  )
+  // Enrich edges with insert callback, insertable type, and decision-node styling
+  const enrichedEdges = useMemo(() => {
+    const nodeMap = new Map(nodes.map((n) => [n.id, n]))
+    return edges.map((e) => {
+      const sourceNode = nodeMap.get(e.source)
+      const targetNode = nodeMap.get(e.target)
+      const sourceType = (sourceNode?.data as FlowNodeData | undefined)?.nodeType
+      const targetType = (targetNode?.data as FlowNodeData | undefined)?.nodeType
+      const isDecisionEdge = sourceType === 'decision' || targetType === 'decision'
 
-  // Restore: explicitly copies version graph → live graph (persisted)
-  const handleRestoreVersion = useCallback(
-    (versionEntry: FlowVersion) => {
-      pushUndo(nodes, edges)
-      setNodes(versionEntry.nodes as Node[])
-      setEdges(versionEntry.edges as Edge[])
-      saveFlowGraph(flow.id, versionEntry.nodes, versionEntry.edges)
-      setSelectedNode(null)
-      onRestoreVersionProp?.(versionEntry)
-    },
-    [flow.id, nodes, edges, setNodes, setEdges, pushUndo, onRestoreVersionProp],
-  )
+      return {
+        ...e,
+        type: e.type || 'insertable',
+        data: {
+          ...e.data,
+          onInsertNode: handleInsertNodeOnEdge,
+          onEdgeLabelChange: handleEdgeLabelChange,
+          isDecisionEdge,
+        },
+        ...(isDecisionEdge ? {
+          style: { stroke: '#FBBF24', strokeWidth: 2 },
+          label: e.label || '',
+        } : {}),
+      }
+    })
+  }, [edges, nodes, handleInsertNodeOnEdge, handleEdgeLabelChange])
 
   return (
     <div className="flex-1 flex overflow-hidden">
       <div className="flex-1 flex flex-col overflow-hidden relative">
         <div className="flex-1 relative">
           <ReactFlow
-            nodes={nodes}
-            edges={edges}
+            nodes={enrichedNodes}
+            edges={enrichedEdges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={handleConnect}
@@ -514,13 +664,17 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
             onPaneClick={handlePaneClick}
             onNodeDragStop={handleNodeDragStop}
             nodeTypes={nodeTypes}
+            selectionOnDrag={spacePressed}
+            selectionMode={SelectionMode.Partial}
+            panOnDrag={!spacePressed}
             snapToGrid
             snapGrid={[20, 20]}
             fitView
             fitViewOptions={{ padding: 0.3 }}
             proOptions={{ hideAttribution: true }}
+            edgeTypes={edgeTypes}
             defaultEdgeOptions={{
-              type: 'smoothstep',
+              type: 'insertable',
               style: { stroke: '#4ADE80', strokeWidth: 2 },
             }}
           >
@@ -544,6 +698,7 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
                   case 'api-call': return '#22D3EE'
                   case 'delay': return '#FB923C'
                   case 'note': return '#78716C'
+                  case 'entry-point': return '#F472B6'
                   default: return '#6B6B6B'
                 }
               }}
@@ -568,13 +723,9 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
         edges={edges}
         onOpenInPrototype={handleOpenInPrototype}
         onNodeUpdate={handleNodeUpdate}
+        onScreenDescriptionUpdate={handleScreenDescriptionUpdate}
         onAlignNodes={handleAlignNodes}
-        versions={versionsProp}
-        suggestedVersion={suggestedVerProp}
-        onSaveVersion={handleSaveVersion}
-        onViewVersion={handleViewVersion}
-        onRestoreVersion={handleRestoreVersion}
-        onVersionsChanged={onVersionsChanged}
+        onFlowMetaUpdate={handleFlowMetaUpdate}
       />
     </div>
   )

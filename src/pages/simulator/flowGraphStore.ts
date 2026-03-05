@@ -9,6 +9,7 @@
 import type { Node, Edge } from '@xyflow/react'
 import { supabase, isSupabaseConnected } from '../../lib/supabase'
 import type { FlowGraph } from './flowGraph.types'
+import { isFlowDeleted } from './flowRegistry'
 
 const STORAGE_KEY = 'picnic-design-lab:flow-graphs'
 
@@ -29,6 +30,19 @@ function writeAllGraphs(data: Record<string, FlowGraph>): void {
 
 // ── Public API ──
 
+/**
+ * Bootstrap a flow graph from code defaults — only writes if no existing
+ * graph is found in localStorage. Safe for module-scope calls.
+ * Does NOT write to Supabase (hydration handles remote state).
+ */
+export function bootstrapFlowGraph(flowId: string, nodes: Node[], edges: Edge[]): void {
+  if (isFlowDeleted(flowId)) return // user deleted this flow — don't recreate
+  const existing = readAllGraphs()
+  if (existing[flowId]) return // user has edits — don't overwrite
+  existing[flowId] = { flowId, nodes, edges, updatedAt: new Date().toISOString() }
+  writeAllGraphs(existing)
+}
+
 export function getFlowGraph(flowId: string): FlowGraph | null {
   return readAllGraphs()[flowId] ?? null
 }
@@ -47,7 +61,7 @@ export async function saveFlowGraph(
 
   // Supabase (async)
   if (isSupabaseConnected()) {
-    await supabase!.from('flow_graphs').upsert(
+    const { error } = await supabase!.from('flow_graphs').upsert(
       {
         flow_id: flowId,
         nodes: JSON.stringify(nodes),
@@ -56,6 +70,7 @@ export async function saveFlowGraph(
       },
       { onConflict: 'flow_id' },
     )
+    if (error) console.error('[flowGraphStore] Supabase upsert failed:', error.message)
   }
 }
 
@@ -81,7 +96,7 @@ export async function hydrateGraphsFromSupabase(): Promise<boolean> {
     const rows = data ?? []
     if (rows.length === 0) return false // nothing in Supabase yet — keep localStorage
 
-    const all: Record<string, FlowGraph> = {}
+    const all = readAllGraphs()
     for (const row of rows) {
       all[row.flow_id] = {
         flowId: row.flow_id,

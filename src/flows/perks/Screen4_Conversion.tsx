@@ -29,6 +29,7 @@ export default function Screen4_Conversion({ onNext, onBack }: FlowScreenProps) 
           label="Valor em BRL"
           value={value}
           onChange={setValue}
+          currencySymbol="R$"
           helperText="Mín R$ 10,00 · Máx R$ 100.000,00"
         />
 

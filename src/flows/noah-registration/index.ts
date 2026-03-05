@@ -1,5 +1,5 @@
 import { registerFlow } from '../../pages/simulator/flowRegistry'
-import { getFlowGraph, saveFlowGraph } from '../../pages/simulator/flowGraphStore'
+import { bootstrapFlowGraph } from '../../pages/simulator/flowGraphStore'
 import type { FlowNodeData } from '../../pages/simulator/flowGraph.types'
 import { registerPage } from '../../pages/gallery/pageRegistry'
 import Screen1_FirstAccess from './Screen1_FirstAccess'
@@ -36,23 +36,28 @@ registerFlow({
   level: 2,
   linkedFlows: ['deposit-ach'],
   entryPoints: ['settings-bank-account', 'deposit-method-selector'],
+
   screens: screenDefs.map((s) => ({ ...s, pageId: s.id })),
 })
 
-// Bootstrap demo graph
-if (!getFlowGraph('noah-registration')) {
-  const x = 300
+// Bootstrap flow graph
+{
   const ROW = 120
+  const x = 300
 
   const nodes = [
-    { id: 'n-first-access', type: 'screen', position: { x, y: 0 }, data: { label: 'First Access', screenId: 'noah-registration-first-access', nodeType: 'screen', pageId: 'noah-registration-first-access' } as FlowNodeData },
-    // Flow reference to deposit-ach after activation
-    { id: 'n-ref-deposit', type: 'flow-reference', position: { x, y: ROW }, data: { label: 'Deposit via ACH/Wire', screenId: null, nodeType: 'flow-reference', targetFlowId: 'deposit-ach' } as FlowNodeData },
+    // Row 0: First Access screen
+    { id: 'n-first-access', type: 'screen', position: { x, y: 0 }, data: { label: 'First Access', screenId: 'noah-registration-first-access', nodeType: 'screen', pageId: 'noah-registration-first-access', description: 'Onboarding screen for US bank account feature' } as FlowNodeData },
+    // Row 1: Action — user taps activate
+    { id: 'n-tap-activate', type: 'action', position: { x, y: ROW }, data: { label: 'Tap Ativar minha conta em USD', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Button: Ativar minha conta em USD' } as FlowNodeData },
+    // Row 2: Flow reference to deposit-ach
+    { id: 'n-ref-deposit', type: 'flow-reference', position: { x, y: ROW * 2 }, data: { label: 'Deposit via ACH/Wire', screenId: null, nodeType: 'flow-reference', targetFlowId: 'deposit-ach' } as FlowNodeData },
   ]
 
   const edges = [
-    { id: 'e-activate', source: 'n-first-access', target: 'n-ref-deposit', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-1', source: 'n-first-access', target: 'n-tap-activate', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-2', source: 'n-tap-activate', target: 'n-ref-deposit', sourceHandle: 'bottom', targetHandle: 'top' },
   ]
 
-  saveFlowGraph('noah-registration', nodes, edges)
+  bootstrapFlowGraph('noah-registration', nodes, edges)
 }

@@ -9,7 +9,7 @@ function ErrorNode({ data, selected }: NodeProps) {
   return (
     <div
       className={`
-        w-[180px] rounded-[var(--token-radius-md)] border-2 overflow-hidden
+        w-[200px] rounded-[var(--token-radius-md)] border-2 overflow-hidden
         transition-colors duration-[var(--token-transition-fast)]
         ${selected
           ? 'border-[#F87171] shadow-[0_0_0_2px_rgba(248,113,113,0.3)]'

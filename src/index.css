@@ -122,7 +122,7 @@
   --shadow-lg: var(--token-shadow-lg);
 
   /* Font Family */
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-sans: "Inter var", "Inter", system-ui, -apple-system, sans-serif;
 
   /* Shell — Dark app chrome (Figma-like) */
   --color-shell-bg: #1E1E1E;
@@ -152,6 +152,12 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: 'ss01' 1, 'ss03' 1, 'cv05' 1, 'cv10' 1, 'calt' 1, 'liga' 1;
+    font-variation-settings: 'opsz' 20;
+  }
+
+  input, textarea, button, select {
+    font-family: inherit;
+    font-feature-settings: inherit;
   }
 
   body {

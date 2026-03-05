@@ -25,14 +25,13 @@ export default function B_Screen2_Hub({ onNext, onBack, onElementTap }: FlowScre
   const [tabIndex, setTabIndex] = useState(0)
 
   const handleDeposit = () => {
-    onElementTap?.('ShortcutButton: Depositar')
-    onNext()
+    const resolved = onElementTap?.('ShortcutButton: Depositar')
+    if (!resolved) onNext()
   }
 
   const handleWithdraw = () => {
-    onElementTap?.('ShortcutButton: Resgatar')
-    // In a real flow, we'd route to withdraw. For the prototype, onNext goes to next screen
-    onNext()
+    const resolved = onElementTap?.('ShortcutButton: Resgatar')
+    if (!resolved) onNext()
   }
 
   return (

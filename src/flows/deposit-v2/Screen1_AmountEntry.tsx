@@ -129,6 +129,7 @@ export default function Screen1_AmountEntry({ onNext, onBack, onElementTap, onSt
           value={displayUsd}
           onChange={handleUsdChange}
           tokenIcon={USD_ICON}
+          currencySymbol="US$"
         />
 
         <Divider />
@@ -138,6 +139,7 @@ export default function Screen1_AmountEntry({ onNext, onBack, onElementTap, onSt
           value={displayBrl}
           onChange={handleBrlChange}
           tokenIcon={BRL_ICON}
+          currencySymbol="R$"
         />
 
         <ListItem

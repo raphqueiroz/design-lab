@@ -28,14 +28,14 @@ export default function C_Screen1_Portfolio({ onNext, onBack, onElementTap }: Fl
 
   const handleDeposit = () => {
     setDetailSheetOpen(false)
-    onElementTap?.('ShortcutButton: Depositar')
-    onNext()
+    const resolved = onElementTap?.('ShortcutButton: Depositar')
+    if (!resolved) onNext()
   }
 
   const handleWithdraw = () => {
     setDetailSheetOpen(false)
-    onElementTap?.('ShortcutButton: Resgatar')
-    onNext()
+    const resolved = onElementTap?.('ShortcutButton: Resgatar')
+    if (!resolved) onNext()
   }
 
   return (

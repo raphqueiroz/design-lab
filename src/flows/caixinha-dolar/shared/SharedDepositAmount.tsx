@@ -70,7 +70,7 @@ export default function SharedDepositAmount({ onNext, onBack }: FlowScreenProps)
         )}
 
         <Stack gap="none">
-          <CurrencyInput label="Valor do depósito" value={usdValue} onChange={setUsdValue} tokenIcon={USD_ICON} />
+          <CurrencyInput label="Valor do depósito" value={usdValue} onChange={setUsdValue} tokenIcon={USD_ICON} currencySymbol="US$" />
 
           {isPix && (
             <>

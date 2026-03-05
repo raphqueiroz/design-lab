@@ -90,7 +90,7 @@ Use `<Stack>` gap presets instead of manual spacing:
 
 | Component | When to use | Key props |
 |-----------|-------------|-----------|
-| **DataList** | Key-value rows for transaction details, settings, summaries. | `data` (array of `{ label, value, secondaryValue?, info?, copyable?, breakdown? }`) |
+| **DataList** | Key-value rows for transaction details, settings, summaries. Two variants: `horizontal` (label left, value right — default) and `vertical` (label top, value below, optional action right). Vertical supports side-by-side items via array entries. | `data` (`(DataListItem \| DataListItem[])[]`), `variant` (`horizontal`/`vertical`). Item fields: `label`, `value`, `secondaryValue?`, `info?`, `copyable?`, `breakdown?`, `action?` (ReactNode) |
 | **ListItem** | Any row-based layout: navigation, settings, asset lists. | `title`, `subtitle`, `left`, `right`, `trailing`, `onPress`, `inverted` |
 | **Card** | Container for grouped content. | `variant` (`elevated`/`flat`), `pressable`, `onPress`, `children` |
 | **Banner** | Contextual alerts, tips, warnings. | `title`, `description`, `variant` (`neutral`/`success`/`warning`/`critical`), `collapsable`, `dismissible`, `linkText`, `onLinkPress` |
@@ -186,6 +186,33 @@ BaseLayout
   └── (no StickyFooter — selection navigates directly)
 ```
 
+```tsx
+export default function Screen_SelectAccount({ onBack, onElementTap, onNext }: FlowScreenProps) {
+  const handleSelect = (label: string) => {
+    const handled = onElementTap?.(`ListItem: ${label}`)
+    if (!handled) onNext()
+  }
+
+  return (
+    <BaseLayout>
+      <Header title="Escolha a conta" onBack={onBack} />
+      <Stack gap="none">
+        {ACCOUNTS.map((a) => (
+          <ListItem
+            key={a.id}
+            title={a.name}
+            subtitle={a.description}
+            left={<Avatar src={a.icon} size="md" />}
+            right={<Text variant="body-sm" color="content-secondary">{a.balance}</Text>}
+            onPress={() => handleSelect(a.name)}
+          />
+        ))}
+      </Stack>
+    </BaseLayout>
+  )
+}
+```
+
 ### 4.4 Form / Input Screen
 
 ```
@@ -210,6 +237,36 @@ BaseLayout
        └── Button (primary CTA)
 ```
 
+```tsx
+export default function Screen_Review({ onNext, onBack, onElementTap }: FlowScreenProps) {
+  return (
+    <BaseLayout>
+      <Header title="Revise seu depósito" onBack={onBack} />
+      <Stack gap="none">
+        <GroupHeader text="Detalhes da transação" />
+        <DataList
+          data={[
+            { label: 'Você paga', value: 'R$ 545,83' },
+            { label: 'Você recebe', value: 'US$ 100,00' },
+            { label: 'Taxa', value: 'Grátis' },
+            { label: 'Prazo', value: '5 minutos' },
+          ]}
+        />
+      </Stack>
+      <Banner variant="success" title="Benefício aplicado: sem taxas" />
+      <StickyFooter>
+        <Button fullWidth onPress={() => {
+          const handled = onElementTap?.('Button: Confirmar')
+          if (!handled) onNext()
+        }}>
+          Confirmar
+        </Button>
+      </StickyFooter>
+    </BaseLayout>
+  )
+}
+```
+
 ### 4.6 Payment Instruction Screen
 
 ```
@@ -227,6 +284,51 @@ BaseLayout
        └── Stack gap="sm" (primary + ghost buttons)
 ```
 
+```tsx
+export default function Screen_Payment({ onNext, onBack }: FlowScreenProps) {
+  const [showToast, setShowToast] = useState(false)
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(PIX_CODE)
+    setShowToast(true)
+    setTimeout(() => setShowToast(false), 3000)
+  }, [])
+
+  return (
+    <BaseLayout>
+      <Header title="Pague com Pix" onBack={onBack} />
+      <Banner variant="warning" title="Pague de uma conta em seu nome" />
+      <Text variant="body-md" color="content-secondary">
+        Copie o código abaixo e use Pix Copia e Cola no app do seu banco.
+      </Text>
+      <ListItem
+        title={`${PIX_CODE.substring(0, 30)}...`}
+        right={<IconButton variant="small" icon={<RiFileCopyLine size={16} />} onPress={handleCopy} />}
+        trailing={null}
+      />
+      <Stack direction="row" align="between">
+        <Countdown seconds={280} />
+        <Button variant="secondary" size="sm" onPress={() => setShowQrSheet(true)}>Ver QR Code</Button>
+      </Stack>
+      <Stack gap="none">
+        <GroupHeader text="Dados para pagamento" />
+        <DataList data={[
+          { label: 'Você paga', value: 'R$ 545,83' },
+          { label: 'Você recebe', value: 'US$ 100,00' },
+        ]} />
+      </Stack>
+      <Toast variant="success" message="Código copiado!" visible={showToast} />
+      <StickyFooter>
+        <Stack gap="sm">
+          <Button fullWidth onPress={handleCopy}>Copiar código</Button>
+          <Button variant="ghost" fullWidth onPress={onNext}>Cancelar</Button>
+        </Stack>
+      </StickyFooter>
+    </BaseLayout>
+  )
+}
+```
+
 ### 4.7 Processing / Loading Screen
 
 Use the `LoadingScreen` component instead of building custom loading layouts:
@@ -236,6 +338,20 @@ LoadingScreen
   ├── Lottie animation (full-width, centered)
   ├── Step messages (vertical ticker animation)
   └── ProgressBar (auto-advancing)
+```
+
+```tsx
+const STEPS = [
+  { title: 'Processando pagamento...', progress: 20 },
+  { title: 'Convertendo moeda', progress: 60 },
+  { title: 'Pronto!', progress: 100 },
+]
+
+export default function Screen_Processing({ onNext }: FlowScreenProps) {
+  return (
+    <LoadingScreen steps={STEPS} autoAdvance autoAdvanceInterval={1500} onComplete={onNext} />
+  )
+}
 ```
 
 ### 4.8 Success / Confirmation Screen
@@ -251,6 +367,33 @@ FeedbackLayout (onClose)
   ├── GroupHeader + DataList (transaction summary)
   └── StickyFooter
        └── Button ("Entendi" / "Done")
+```
+
+```tsx
+export default function Screen_Success({ onBack }: FlowScreenProps) {
+  return (
+    <FeedbackLayout onClose={onBack}>
+      <Stack gap="sm">
+        <Text variant="display">Sucesso!</Text>
+        <Text variant="body-md" color="content-secondary">
+          Seu saldo ficará disponível em alguns minutos.
+        </Text>
+      </Stack>
+      <Banner variant="neutral" title="Você economizou R$20.71" />
+      <Stack gap="none">
+        <GroupHeader text="Dados do depósito" />
+        <DataList data={[
+          { label: 'Você pagou', value: 'R$ 545,83' },
+          { label: 'Você recebeu', value: 'US$ 100' },
+          { label: 'Conversão', value: 'US$ 1 ⇄ R$ 5,43' },
+        ]} />
+      </Stack>
+      <StickyFooter>
+        <Button fullWidth onPress={onBack}>Entendi</Button>
+      </StickyFooter>
+    </FeedbackLayout>
+  )
+}
 ```
 
 ### 4.9 Currency Entry with Async Calculation
@@ -269,6 +412,59 @@ BaseLayout
        └── Button (disabled until calcState === 'ready')
 ```
 
+```tsx
+type CalcState = 'idle' | 'loading' | 'ready'
+
+export default function Screen_Amount({ onNext, onBack, onElementTap, onStateChange }: FlowScreenProps) {
+  const { initialCalcState } = useScreenData<{ initialCalcState?: CalcState }>()
+  const [amount, setAmount] = useState('')
+  const [calcState, setCalcState] = useState<CalcState>(initialCalcState ?? 'idle')
+
+  // Report state to player UI
+  useEffect(() => { onStateChange?.(calcState) }, [calcState, onStateChange])
+
+  // Simulate async calc
+  useEffect(() => {
+    const isValid = parseInt(amount || '0', 10) / 100 >= 1
+    if (isValid) {
+      setCalcState('loading')
+      const t = setTimeout(() => setCalcState('ready'), 1200)
+      return () => clearTimeout(t)
+    }
+    setCalcState('idle')
+  }, [amount])
+
+  return (
+    <BaseLayout>
+      <Header title="" onClose={onBack} />
+      <Stack gap="none">
+        <CurrencyInput label="Receba" value={amount} onChange={setAmount} tokenIcon={USD_ICON} />
+        <Divider />
+        <CurrencyInput label="Pague" value={derivedBrl} onChange={handleBrlChange} tokenIcon={BRL_ICON} />
+        <ListItem title="Você paga em" subtitle="Real Brasileiro" inverted
+          right={<Button variant="secondary" size="sm" onPress={() => setSheetOpen(true)}>Mudar</Button>}
+          trailing={null} />
+      </Stack>
+
+      {calcState === 'loading' && <Stack gap="none"><DataListSkeleton rows={4} /><BannerSkeleton /></Stack>}
+      {calcState === 'ready' && (
+        <Stack gap="none">
+          <DataList data={[{ label: 'Taxa', value: 'Grátis' }, { label: 'Prazo', value: '5 min' }]} />
+          <Banner variant="success" title="Sem taxas aplicadas" />
+        </Stack>
+      )}
+
+      <StickyFooter>
+        <Button fullWidth disabled={calcState !== 'ready'} onPress={() => {
+          const handled = onElementTap?.('Button: Continuar')
+          if (!handled) onNext()
+        }}>Continuar</Button>
+      </StickyFooter>
+    </BaseLayout>
+  )
+}
+```
+
 ### 4.10 Feature Introduction Screen
 
 Use the `FeatureLayout` component for pages that introduce a new feature with a hero image:
@@ -283,6 +479,45 @@ FeatureLayout (imageSrc, onClose, imageOverlay=Badge)
   └── StickyFooter
        └── Button (primary CTA)
 ```
+
+### 4.11 Screen States (for Prototype Player)
+
+Screens can declare multiple **states** so reviewers can preview all variations without triggering interactions. The system has three parts:
+
+**1. Declare `states[]` in screenDefs (index.ts):**
+
+```tsx
+{
+  id: 'flow-screen-1',
+  title: 'Amount Entry',
+  component: Screen1,
+  states: [
+    { id: 'default', name: 'Empty', description: 'No amount entered', isDefault: true, data: {} },
+    { id: 'loading', name: 'Calculating', description: 'Conversion in progress', data: { initialCalcState: 'loading', initialAmount: '10000' } },
+    { id: 'ready', name: 'Ready', description: 'Calc complete, CTA enabled', data: { initialCalcState: 'ready', initialAmount: '10000' } },
+  ],
+}
+```
+
+**2. Read state data with `useScreenData<T>()` (in screen component):**
+
+```tsx
+const { initialCalcState, initialAmount } = useScreenData<{ initialCalcState?: CalcState; initialAmount?: string }>()
+const [calcState, setCalcState] = useState<CalcState>(initialCalcState ?? 'idle')
+const [amount, setAmount] = useState(initialAmount ?? '')
+```
+
+The player injects the `data` object from the active state into `ScreenDataContext`. When no state is selected, `useScreenData()` returns `{}`.
+
+**3. Report state changes with `onStateChange` (for player state pills):**
+
+```tsx
+useEffect(() => {
+  onStateChange?.(calcState)  // Updates the player's state pill UI
+}, [calcState, onStateChange])
+```
+
+This lets the player highlight which state is currently active as the user interacts with the screen.
 
 ---
 
@@ -304,7 +539,7 @@ FeatureLayout (imageSrc, onClose, imageOverlay=Badge)
 | **Selection** | `RadioGroup` (2-5 options) or `Select` (dropdown) | RadioGroup for visible choices |
 | **Currency conversion** | `CurrencyInput` + `Divider` + `CurrencyInput` + `ListItem` + `BottomSheet` + `DataList` + `Banner` | Bilateral correlation between inputs; payment method selector in BottomSheet; DataListSkeleton/BannerSkeleton during loading |
 
-### CTA hierarchy (one primary per screen)
+### CTA hierarchy (one accent per screen)
 
 1. **Primary action**: `<Button variant="primary">` — one per screen, in StickyFooter
 2. **Secondary action**: `<Button variant="secondary">` — alongside or below primary
@@ -312,6 +547,8 @@ FeatureLayout (imageSrc, onClose, imageOverlay=Badge)
 4. **Ghost / text action**: `<Button variant="ghost">` — tertiary, underlined text style
 5. **Inline link**: `<Link>` — inline within text content
 6. **Icon action**: `<IconButton>` — toolbar, close buttons, compact controls
+
+**Accent color is a scarce resource.** Only ONE element per screen should use the accent/primary color to direct user attention. ShortcutButtons, secondary CTAs, and other interactive elements must use secondary/neutral styling. Repeating hi-contrast accent color dilutes its directional power.
 
 ### Typography via Text component
 
@@ -358,6 +595,23 @@ const handleCopy = useCallback(() => {
 - Use `Header onClose` or `FeedbackLayout onClose`
 - Never build custom close button wrappers with raw divs
 
+**Toggle feedback with Toast:**
+When a Toggle changes state, always show a Toast confirming the result. Never let a toggle change silently.
+```tsx
+const handleToggle = (checked: boolean) => {
+  setEnabled(checked)
+  setShowToast(true)
+  setToastMessage(checked ? 'Notificações ativadas' : 'Notificações desativadas')
+  setTimeout(() => setShowToast(false), 3000)
+}
+```
+
+**Disabled state for unavailable actions:**
+If a ShortcutButton or action has no destination or is contextually unavailable (e.g., "Block" on an already-blocked card), render it as `disabled`. Never show an active-looking button that goes nowhere.
+
+**Screen states must mirror real-world conditions:**
+Every screen should have states for each meaningful product condition. Don't show contradictory UI — an "Activate" button on an already-active entity is wrong. Define states in `screenDefs` (see Section 4.11) so each condition shows the correct actions and content.
+
 ---
 
 ## 6. Anti-Patterns — DO NOT
@@ -376,6 +630,11 @@ const handleCopy = useCallback(() => {
 8. **Build custom toggle/checkbox UI** — use `Toggle`, `Checkbox`.
 9. **Use inline `style` for positioning** — compose layout with `BaseLayout`, `Stack`, `Section`, `StickyFooter`.
 10. **Create one-off display patterns inline** — if a pattern is needed and no component exists, create a reusable component in `src/library/`.
+15. **Use accent color on multiple elements per screen** — only ONE element gets accent/primary color. All other interactions use secondary/neutral styling.
+16. **Show contradictory UI states** — an "Activate" button on an active entity, a "Block" button that goes nowhere. States must match real-world product logic.
+17. **Let toggles change silently** — every Toggle interaction needs Toast feedback confirming the new state.
+18. **Link different actions to the same destination** — each interactive element must have its own correct, unique target screen or flow.
+19. **Show active-looking buttons with no destination** — if an action is unavailable or unlinked, use `disabled` state.
 
 ---
 
@@ -600,6 +859,8 @@ src/flows/deposit-v2/
 > **Screen parts (`.parts.tsx`) must NEVER be imported by other screens or pages.**
 >
 > If you need similar UI in another screen, that's the signal to extract a proper library component.
+>
+> **Exception: flow versions.** When a flow has layout variants (`version-a/`, `version-b/`), version-b may import shared parts from version-a's `.parts.tsx`. These are the same flow with different layouts, not different screens.
 
 **Enforcement layers:**
 1. **File convention** — `.parts.tsx` suffix signals "do not reuse"

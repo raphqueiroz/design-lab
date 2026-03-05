@@ -20,13 +20,13 @@ export default function D_Screen1_CaixinhaList({ onNext, onBack, onElementTap }:
   const totalYield = caixinhas.reduce((sum, c) => sum + c.yieldToday, 0)
 
   const handleTapCaixinha = (id: string) => {
-    onElementTap?.(`ListItem: ${id}`)
-    onNext()
+    const resolved = onElementTap?.(`ListItem: ${id}`)
+    if (!resolved) onNext()
   }
 
   const handleCreate = () => {
-    onElementTap?.('Button: Nova Caixinha')
-    onNext()
+    const resolved = onElementTap?.('Button: Nova Caixinha')
+    if (!resolved) onNext()
   }
 
   return (

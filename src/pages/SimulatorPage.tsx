@@ -1,31 +1,25 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { RiComputerLine, RiGitBranchLine, RiArrowLeftLine } from '@remixicon/react'
-import type { Node, Edge } from '@xyflow/react'
+import { RiComputerLine, RiGitBranchLine } from '@remixicon/react'
 
-/* Force flow registrations */
-import '../flows/deposit-v2'
-import '../flows/deposit-ach'
-import '../flows/noah-registration'
-import '../flows/perks'
-import '../flows/withdrawal'
-import '../flows/invest-earn'
-import '../flows/caixinha-dolar'
-import '../flows/dashboard'
+/* Auto-discover all flow registrations */
+import.meta.glob('../flows/*/index.ts', { eager: true })
 
 import AppHeader from '../components/AppHeader'
 import FlowSidebar from './simulator/FlowSidebar'
 import FlowPlayer from './simulator/FlowPlayer'
 import FlowCanvas from './simulator/FlowCanvas'
 import { getAllFlows, getFlow, hydrateDynamicFlows } from './simulator/flowRegistry'
-import { getVersions, suggestNextVersion, setActiveVersion, type FlowVersion } from './simulator/flowVersionStore'
-import { saveFlowGraph } from './simulator/flowGraphStore'
-import { subscribeToChanges } from './simulator/flowStore'
 import { subscribeToGraphChanges } from './simulator/flowGraphStore'
-import { subscribeToVersionChanges } from './simulator/flowVersionStore'
 import { subscribeToDynamicFlowChanges } from './simulator/dynamicFlowStore'
-import { syncAll, markSynced } from '../lib/syncStore'
+import { seedDefaultGroups } from './simulator/flowGroupStore'
+import { syncAll, markSynced, pushAllToSupabase } from '../lib/syncStore'
+
+// Expose push function for console use
+if (typeof window !== 'undefined') {
+  (window as unknown as Record<string, unknown>).__pushToSupabase = pushAllToSupabase
+}
 
 type ViewMode = 'flow' | 'prototype'
 
@@ -66,52 +60,11 @@ export default function SimulatorPage() {
   const [, setVersion] = useState(0)
   const [targetScreenId, setTargetScreenId] = useState<string | null>(null)
 
-  // Version management (shared between FlowCanvas and FlowPlayer)
-  const [versionTick, setVersionTick] = useState(0)
-  const versions = useMemo(() => selectedFlowId ? getVersions(selectedFlowId) : [], [selectedFlowId, versionTick])
-  const suggestedVer = useMemo(() => selectedFlowId ? suggestNextVersion(selectedFlowId) : '1.0', [selectedFlowId, versionTick])
-  const [activeVersionGraph, setActiveVersionGraph] = useState<{ nodes: Node[], edges: Edge[] } | null>(null)
-
-  const refreshVersions = useCallback(() => setVersionTick((t) => t + 1), [])
-
-  const handleViewVersion = useCallback((versionEntry: FlowVersion) => {
-    // Set this version as active (filters screens if it has screenIds)
-    setActiveVersion(versionEntry.flowId, versionEntry.id)
-    // Share the version's graph with both views
-    setActiveVersionGraph({ nodes: versionEntry.nodes, edges: versionEntry.edges })
-    setVersion((v) => v + 1) // force re-render to pick up filtered screens
-  }, [])
-
-  const handleClearVersion = useCallback(() => {
-    if (selectedFlowId) {
-      setActiveVersion(selectedFlowId, null)
-    }
-    setActiveVersionGraph(null)
-    setVersion((v) => v + 1)
-  }, [selectedFlowId])
-
-  const handleRestoreVersion = useCallback((versionEntry: FlowVersion) => {
-    // Copy version graph → live graph (persisted)
-    saveFlowGraph(versionEntry.flowId, versionEntry.nodes, versionEntry.edges)
-    // Clear preview state
-    setActiveVersion(versionEntry.flowId, null)
-    setActiveVersionGraph(null)
-    setVersion((v) => v + 1)
-  }, [])
-
   useEffect(() => {
     hydrateDynamicFlows()
+    seedDefaultGroups()
     setVersion((v) => v + 1)
   }, [])
-
-  // Clear version state when switching flows
-  useEffect(() => {
-    setActiveVersionGraph(null)
-    if (selectedFlowId) {
-      setActiveVersion(selectedFlowId, null)
-    }
-  }, [selectedFlowId])
-
 
   const handleSynced = useCallback(() => {
     hydrateDynamicFlows()
@@ -125,18 +78,14 @@ export default function SimulatorPage() {
         setVersion((v) => v + 1)
       }
     })
-    const unsubFlows = subscribeToChanges(() => { markSynced(); setVersion((v) => v + 1) })
     const unsubGraphs = subscribeToGraphChanges(() => { markSynced(); setVersion((v) => v + 1) })
-    const unsubVersions = subscribeToVersionChanges(() => { markSynced(); setVersion((v) => v + 1) })
     const unsubDynFlows = subscribeToDynamicFlowChanges(() => {
       markSynced()
       hydrateDynamicFlows()
       setVersion((v) => v + 1)
     })
     return () => {
-      unsubFlows?.()
       unsubGraphs?.()
-      unsubVersions?.()
       unsubDynFlows?.()
     }
   }, [])
@@ -213,32 +162,10 @@ export default function SimulatorPage() {
         <FlowSidebar selectedFlowId={selectedFlowId} onSelect={setSelectedFlowId} onFlowCreated={() => setVersion((v) => v + 1)} onFlowDeleted={() => setVersion((v) => v + 1)} />
         {selectedFlowId && selectedFlow ? (
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Version banner */}
-            {activeVersionGraph && (
-              <div className="flex items-center gap-[var(--token-spacing-2)] px-[var(--token-spacing-md)] py-[var(--token-spacing-1)] bg-[#60A5FA]/10 border-b border-[#60A5FA]/30 shrink-0">
-                <span className="text-[length:var(--token-font-size-caption)] text-[#60A5FA] font-medium">
-                  Previewing version — read only
-                </span>
-                <button
-                  type="button"
-                  onClick={handleClearVersion}
-                  className="text-[length:var(--token-font-size-caption)] text-[#60A5FA] hover:text-[#93C5FD] font-medium cursor-pointer flex items-center gap-[2px] ml-auto"
-                >
-                  <RiArrowLeftLine size={11} />
-                  Back to current
-                </button>
-              </div>
-            )}
             {viewMode === 'prototype' ? (
               <FlowPlayer
                 flowId={selectedFlowId}
                 initialScreenId={targetScreenId}
-                versions={versions}
-                suggestedVersion={suggestedVer}
-                onVersionsChanged={refreshVersions}
-                onViewVersion={handleViewVersion}
-                onRestoreVersion={handleRestoreVersion}
-                graphOverride={activeVersionGraph}
                 onNavigateToFlow={handleNavigateToFlow}
               />
             ) : (
@@ -247,12 +174,6 @@ export default function SimulatorPage() {
                 onNavigateToScreen={handleNavigateToScreen}
                 onNavigateToFlow={handleNavigateToFlow}
                 onFlowChanged={() => setVersion((v) => v + 1)}
-                versions={versions}
-                suggestedVersion={suggestedVer}
-                onVersionsChanged={refreshVersions}
-                onViewVersion={handleViewVersion}
-                onRestoreVersion={handleRestoreVersion}
-                graphOverride={activeVersionGraph}
               />
             )}
           </div>

@@ -71,7 +71,7 @@ export default function A_Screen1_Hub({ onNext, onBack, onElementTap }: FlowScre
         {/* Deposit BottomSheet */}
         <BottomSheet open={depositSheetOpen} onClose={() => setDepositSheetOpen(false)} title="Depositar">
           <Stack gap="default">
-            <CurrencyInput label="Valor" value={depositValue} onChange={setDepositValue} tokenIcon={USD_ICON} />
+            <CurrencyInput label="Valor" value={depositValue} onChange={setDepositValue} tokenIcon={USD_ICON} currencySymbol="US$" />
 
             <ListItem
               title="Fonte"
@@ -164,7 +164,7 @@ export default function A_Screen1_Hub({ onNext, onBack, onElementTap }: FlowScre
       {/* Deposit BottomSheet */}
       <BottomSheet open={depositSheetOpen} onClose={() => setDepositSheetOpen(false)} title="Depositar">
         <Stack gap="default">
-          <CurrencyInput label="Valor" value={depositValue} onChange={setDepositValue} tokenIcon={USD_ICON} />
+          <CurrencyInput label="Valor" value={depositValue} onChange={setDepositValue} tokenIcon={USD_ICON} currencySymbol="US$" />
 
           <ListItem
             title="Fonte"
@@ -193,6 +193,7 @@ export default function A_Screen1_Hub({ onNext, onBack, onElementTap }: FlowScre
             value={rawDigitsFromAmount(MOCK_BALANCE)}
             onChange={() => {}}
             tokenIcon={USD_ICON}
+            currencySymbol="US$"
           />
 
           <Stack direction="row" gap="sm">

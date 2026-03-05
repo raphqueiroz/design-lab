@@ -3,13 +3,11 @@ import { AnimatePresence, motion } from 'framer-motion'
 import {
   RiArrowLeftSLine, RiArrowRightSLine, RiRefreshLine,
   RiSmartphoneLine, RiComputerLine,
-  RiHomeLine, RiWalletLine, RiArrowLeftRightLine,
+  RiHomeLine, RiBankCardLine,
   RiLineChartLine, RiGiftLine,
 } from '@remixicon/react'
-import type { Node, Edge } from '@xyflow/react'
 import { getFlow } from './flowRegistry'
 import { ScreenDataProvider } from '../../lib/ScreenDataContext'
-import { saveVersion, type FlowVersion } from './flowVersionStore'
 import { getFlowGraph } from './flowGraphStore'
 import { deriveNavigationPath, getNextScreenOptions, getOverlaysForScreen, resolveScreenElementTarget, resolveOverlayElementTarget } from './flowGraphNavigation'
 import type { FlowNodeData } from './flowGraph.types'
@@ -26,26 +24,19 @@ import Text from '../../library/foundations/Text'
 type DeviceMode = 'phone' | 'desktop'
 
 const navItems = [
-  { id: 'home', label: 'Home', icon: <RiHomeLine size={20} /> },
-  { id: 'wallet', label: 'Wallet', icon: <RiWalletLine size={20} /> },
-  { id: 'swap', label: 'Swap', icon: <RiArrowLeftRightLine size={20} /> },
-  { id: 'invest', label: 'Invest', icon: <RiLineChartLine size={20} /> },
-  { id: 'perks', label: 'Perks', icon: <RiGiftLine size={20} /> },
+  { id: 'home', label: 'Início', icon: <RiHomeLine size={20} /> },
+  { id: 'cards', label: 'Cartão', icon: <RiBankCardLine size={20} /> },
+  { id: 'invest', label: 'Caixinha', icon: <RiLineChartLine size={20} /> },
+  { id: 'perks', label: 'Benefícios', icon: <RiGiftLine size={20} /> },
 ]
 
 interface FlowPlayerProps {
   flowId: string
   initialScreenId?: string | null
-  versions?: FlowVersion[]
-  suggestedVersion?: string
-  onVersionsChanged?: () => void
-  onViewVersion?: (versionEntry: FlowVersion) => void
-  onRestoreVersion?: (versionEntry: FlowVersion) => void
-  graphOverride?: { nodes: Node[], edges: Edge[] } | null
   onNavigateToFlow?: (flowId: string) => void
 }
 
-export default function FlowPlayer({ flowId, initialScreenId, versions = [], suggestedVersion = '1.0', onVersionsChanged, onViewVersion, onRestoreVersion, graphOverride, onNavigateToFlow }: FlowPlayerProps) {
+export default function FlowPlayer({ flowId, initialScreenId, onNavigateToFlow }: FlowPlayerProps) {
   const [currentNodeId, setCurrentNodeId] = useState<string | null>(null)
   const [navHistory, setNavHistory] = useState<string[]>([])
   const [direction, setDirection] = useState(1)
@@ -59,12 +50,11 @@ export default function FlowPlayer({ flowId, initialScreenId, versions = [], sug
   // Re-read flow from registry + localStorage on each render / edit
   const flow = getFlow(flowId)
 
-  // Resolve the graph: use override (version) or load from store
+  // Resolve the graph from store
   const graph = useMemo(() => {
-    if (graphOverride) return graphOverride
     const stored = getFlowGraph(flowId)
     return stored ? { nodes: stored.nodes, edges: stored.edges } : null
-  }, [flowId, graphOverride, editVersion]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [flowId, editVersion]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Derive the linear navigation path from the graph
   const navPath = useMemo(() => {
@@ -111,9 +101,17 @@ export default function FlowPlayer({ flowId, initialScreenId, versions = [], sug
   }, [currentNodeId])
 
   // Called by screen components to report internal state changes (e.g. idle → loading → ready)
+  // Only update the pill selection if the reported state ID exists in the screen's state definitions;
+  // otherwise it's an internal state (e.g. loading) that shouldn't affect pill selection.
   const handleScreenStateChange = useCallback((stateId: string) => {
-    setLocalActiveStateId(stateId)
-  }, [])
+    const screen = flow.screens.find(s => {
+      const step = navPath[currentStepIndex]
+      return step && s.id === step.screenId
+    })
+    if (!screen?.states || screen.states.some(s => s.id === stateId)) {
+      setLocalActiveStateId(stateId)
+    }
+  }, [flow.screens, navPath, currentStepIndex])
 
   // Overlays connected to the current screen node
   const screenOverlays = useMemo(() => {
@@ -232,28 +230,6 @@ export default function FlowPlayer({ flowId, initialScreenId, versions = [], sug
   const handleFlowEdited = useCallback(() => {
     setEditVersion((v) => v + 1)
   }, [])
-
-  const handleSaveVersion = useCallback(
-    (version: string, description: string, screenIds?: string[]) => {
-      const g = getFlowGraph(flowId)
-      if (g) {
-        saveVersion(flowId, version, description, g.nodes, g.edges, screenIds)
-        onVersionsChanged?.()
-      }
-    },
-    [flowId, onVersionsChanged],
-  )
-
-  const handleViewVersion = useCallback(
-    (versionEntry: FlowVersion) => {
-      onViewVersion?.(versionEntry)
-      // Reset to first screen when switching versions
-      setDirection(-1)
-      setCurrentNodeId(null)
-      setNavHistory([])
-    },
-    [onViewVersion],
-  )
 
   if (!flow) {
     return (
@@ -488,12 +464,6 @@ export default function FlowPlayer({ flowId, initialScreenId, versions = [], sug
         currentScreen={current}
         screenIndex={currentStepIndex}
         onFlowEdited={handleFlowEdited}
-        versions={versions}
-        suggestedVersion={suggestedVersion}
-        onSaveVersion={handleSaveVersion}
-        onViewVersion={handleViewVersion}
-        onRestoreVersion={onRestoreVersion}
-        onVersionsChanged={onVersionsChanged}
       />
     </div>
   )

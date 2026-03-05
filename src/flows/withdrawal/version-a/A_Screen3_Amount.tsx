@@ -40,13 +40,14 @@ export default function A_Screen3_Amount({ onNext, onBack }: FlowScreenProps) {
     <BaseLayout>
       <Header title="Valor do saque" onBack={onBack} />
 
-      <CurrencyInput label="Você envia" value={usdValue} onChange={setUsdValue} tokenIcon={USD_ICON} />
+      <CurrencyInput label="Você envia" value={usdValue} onChange={setUsdValue} tokenIcon={USD_ICON} currencySymbol="US$" />
 
       <CurrencyInput
         label="Destinatário recebe"
         value={brlDisplay}
         onChange={() => {}}
         tokenIcon={BRL_ICON}
+        currencySymbol="R$"
         readOnly
       />
 

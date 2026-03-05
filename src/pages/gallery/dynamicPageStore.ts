@@ -40,13 +40,13 @@ export function getDynamicPage(id: string): DynamicPageDef | null {
   return readAll()[id] ?? null
 }
 
-export function saveDynamicPage(page: DynamicPageDef): void {
+export async function saveDynamicPage(page: DynamicPageDef): Promise<void> {
   const all = readAll()
   all[page.id] = page
   writeAll(all)
 
   if (isSupabaseConnected()) {
-    supabase!.from('dynamic_pages').upsert(
+    const { error } = await supabase!.from('dynamic_pages').upsert(
       {
         id: page.id,
         name: page.name,
@@ -57,16 +57,18 @@ export function saveDynamicPage(page: DynamicPageDef): void {
       },
       { onConflict: 'id' },
     )
+    if (error) console.error('[dynamicPageStore] Supabase upsert failed:', error.message)
   }
 }
 
-export function deleteDynamicPage(id: string): void {
+export async function deleteDynamicPage(id: string): Promise<void> {
   const all = readAll()
   delete all[id]
   writeAll(all)
 
   if (isSupabaseConnected()) {
-    supabase!.from('dynamic_pages').delete().eq('id', id)
+    const { error } = await supabase!.from('dynamic_pages').delete().eq('id', id)
+    if (error) console.error('[dynamicPageStore] Supabase delete failed:', error.message)
   }
 }
 

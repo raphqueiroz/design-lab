@@ -1,4 +1,5 @@
 import type { Flow } from './flowRegistry'
+import { getFlowsLinkingTo } from './flowRegistry'
 import type { FlowGraph, FlowGraphNode, FlowGraphEdge } from './flowGraph.types'
 import { resolveEdgeHandles } from './resolveEdgeHandles'
 
@@ -62,7 +63,7 @@ export function autoGenerateFlowGraph(flow: Flow): FlowGraph {
       id: actionNodeId,
       type: 'action' as const,
       position: {
-        x: screenNode.position.x + 250,
+        x: screenNode.position.x - 240,
         y: screenNode.position.y,
       },
       data: {
@@ -77,8 +78,8 @@ export function autoGenerateFlowGraph(flow: Flow): FlowGraph {
       id: overlayNodeId,
       type: 'overlay' as const,
       position: {
-        x: screenNode.position.x + 250,
-        y: screenNode.position.y + 120,
+        x: screenNode.position.x - 480,
+        y: screenNode.position.y,
       },
       data: {
         label: `${screen.title} Sheet`,
@@ -120,6 +121,42 @@ export function autoGenerateFlowGraph(flow: Flow): FlowGraph {
         labelBgStyle: { fill: '#2C2C2C', fillOpacity: 0.9 },
       },
     )
+  }
+
+  // Prepend entry-point node if flow has entry points or is linked from other flows
+  const hasEntryPoints = (flow.entryPoints ?? []).length > 0
+  const hasLinkedFrom = getFlowsLinkingTo(flow.id).length > 0
+  if (hasEntryPoints || hasLinkedFrom) {
+    const entryNodeId = `entry-point-${flow.id}`
+    const firstScreenNode = nodes[0]
+    const entryY = firstScreenNode ? firstScreenNode.position.y - (NODE_HEIGHT + VERTICAL_GAP) : 0
+    const entryNode: FlowGraphNode = {
+      id: entryNodeId,
+      type: 'entry-point' as const,
+      position: { x: 300, y: entryY },
+      data: {
+        label: 'Entry Points',
+        screenId: null,
+        nodeType: 'entry-point' as const,
+      },
+    }
+    nodes.unshift(entryNode)
+
+    if (firstScreenNode) {
+      const handles = resolveEdgeHandles(entryNode, firstScreenNode)
+      edges.unshift({
+        id: `edge-entry-to-${firstScreenNode.id}`,
+        source: entryNodeId,
+        target: firstScreenNode.id,
+        sourceHandle: handles.sourceHandle,
+        targetHandle: handles.targetHandle,
+        type: 'smoothstep',
+        animated: false,
+        style: { stroke: '#F472B6', strokeWidth: 2 },
+        labelStyle: { fill: '#A0A0A0', fontSize: 11 },
+        labelBgStyle: { fill: '#2C2C2C', fillOpacity: 0.9 },
+      })
+    }
   }
 
   return {

@@ -21,7 +21,7 @@ export default function SharedWithdrawAmount({ onNext, onBack }: FlowScreenProps
       <Header title="Resgatar" onBack={onBack} />
 
       <Stack gap="default">
-        <CurrencyInput label="Valor do resgate" value={value} onChange={setValue} tokenIcon={USD_ICON} />
+        <CurrencyInput label="Valor do resgate" value={value} onChange={setValue} tokenIcon={USD_ICON} currencySymbol="US$" />
 
         <Stack direction="row" gap="sm">
           {WITHDRAW_QUICK_PICKS.map((pick) => (

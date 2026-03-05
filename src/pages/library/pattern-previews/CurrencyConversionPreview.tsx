@@ -108,6 +108,7 @@ export default function CurrencyConversionPreview() {
           value={displayUsd}
           onChange={handleUsdChange}
           tokenIcon={USD_ICON}
+          currencySymbol="US$"
         />
 
         <Divider />
@@ -117,6 +118,7 @@ export default function CurrencyConversionPreview() {
           value={displayBrl}
           onChange={handleBrlChange}
           tokenIcon={BRL_ICON}
+          currencySymbol="R$"
         />
 
         <ListItem
