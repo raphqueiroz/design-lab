@@ -1,8 +1,8 @@
 import { RiComputerLine, RiGitBranchLine, RiErrorWarningLine, RiExternalLinkLine, RiCursorLine, RiStackLine, RiArrowGoBackLine, RiArrowGoForwardLine, RiServerLine, RiTimerLine, RiStickyNoteLine, RiLoginBoxLine } from '@remixicon/react'
-import type { FlowNodeType } from './flowGraph.types'
+import type { CreatableNodeType } from './flowGraph.types'
 
 interface FloatingCanvasToolbarProps {
-  onAddNode: (type: FlowNodeType) => void
+  onAddNode: (type: CreatableNodeType) => void
   onUndo?: () => void
   onRedo?: () => void
   canUndo?: boolean

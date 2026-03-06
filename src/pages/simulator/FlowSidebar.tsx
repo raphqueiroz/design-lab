@@ -2,18 +2,22 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   RiAddLine, RiArrowDownSLine, RiArrowRightSLine, RiDeleteBinLine,
   RiPencilLine, RiCheckLine, RiCloseLine, RiFolderAddLine, RiFileCopyLine,
+  RiExpandUpDownLine, RiCollapseDiagonalLine, RiArchiveLine, RiInboxUnarchiveLine,
 } from '@remixicon/react'
 import { getFlow, getFlowsByDomain, getAllDomains, getDomain, registerDynamicFlow, unregisterFlow, markFlowDeleted, updateFlowMeta, type Flow } from './flowRegistry'
 import { saveDynamicFlow, deleteDynamicFlow, getDynamicFlow, type DynamicFlowDef } from './dynamicFlowStore'
 import { getFlowGraph, saveFlowGraph, deleteFlowGraph } from './flowGraphStore'
 import {
   getGroupsForDomain, getFlowIdsInGroup, getMembershipForFlow,
-  createGroup, deleteGroup, renameGroup, setGroupCollapsed,
+  createGroup, deleteGroup, renameGroup, setGroupCollapsed, getGroup,
   assignFlowToGroup, removeFlowFromGroup, reorderFlowsInGroup,
   reorderGroupsInDomain, subscribeToGroupChanges, type FlowGroup,
+  archiveFlow, unarchiveFlow, archiveGroup, unarchiveGroup,
+  isFlowArchived, isGroupArchived, getArchivedFlowIds, getArchivedGroupIds,
+  getUngroupedFlowOrder, setUngroupedFlowOrder, addToUngroupedOrder,
 } from './flowGroupStore'
 import NewFlowDialog from './NewFlowDialog'
-import { slugify, uniqueId } from '../../lib/slugify'
+import { uniqueId } from '../../lib/slugify'
 
 interface FlowSidebarProps {
   selectedFlowId: string | null
@@ -27,6 +31,94 @@ interface FlowSidebarProps {
 type DragState =
   | { kind: 'flow'; flowId: string; sourceDomainId: string; sourceGroupId: string | null }
   | { kind: 'group'; groupId: string; sourceDomainId: string }
+
+function ArchiveSection({
+  selectedFlowId: _selectedFlowId,
+  onSelect: _onSelect,
+  renderFlowItem,
+  renderGroupHeader,
+}: {
+  selectedFlowId: string | null
+  onSelect: (flowId: string) => void
+  renderFlowItem: (flow: Flow, groupId: string | null, domainId: string, archiveMode: 'archive' | 'unarchive') => React.ReactNode
+  renderGroupHeader: (group: FlowGroup, flowCount: number, domainId: string, archiveMode: 'archive' | 'unarchive') => React.ReactNode
+}) {
+  const [collapsed, setCollapsed] = useState(true)
+
+  const archivedFlowIds = getArchivedFlowIds()
+  const archivedGroupIds = getArchivedGroupIds()
+
+  if (archivedFlowIds.length === 0 && archivedGroupIds.length === 0) return null
+
+  // Resolve archived groups and their flows
+  const archivedGroups: FlowGroup[] = []
+  const flowsInArchivedGroups = new Set<string>()
+
+  for (const gid of archivedGroupIds) {
+    const group = getGroup(gid)
+    if (group) {
+      archivedGroups.push(group)
+      for (const fid of getFlowIdsInGroup(gid)) {
+        flowsInArchivedGroups.add(fid)
+      }
+    }
+  }
+
+  // Ungrouped archived flows (not in any archived group)
+  const ungroupedArchivedFlows: Flow[] = []
+  for (const fid of archivedFlowIds) {
+    if (flowsInArchivedGroups.has(fid)) continue
+    const flow = getFlow(fid)
+    if (flow) ungroupedArchivedFlows.push(flow)
+  }
+
+  const totalCount = archivedFlowIds.length
+  const ChevronIcon = collapsed ? RiArrowRightSLine : RiArrowDownSLine
+
+  return (
+    <div className="border-t border-shell-border mt-[var(--token-spacing-1)]">
+      <button
+        type="button"
+        onClick={() => setCollapsed(!collapsed)}
+        className="flex items-center gap-[var(--token-spacing-1)] w-full px-[var(--token-spacing-md)] py-[var(--token-spacing-1)] text-[length:var(--token-font-size-caption)] font-medium text-shell-text-tertiary/60 uppercase tracking-wider hover:text-shell-text-tertiary transition-colors cursor-pointer"
+      >
+        <ChevronIcon size={14} className="shrink-0" />
+        <span className="flex-1 text-left">Archive</span>
+        <span className="text-[length:10px] tabular-nums">{totalCount}</span>
+      </button>
+      {!collapsed && (
+        <div className="opacity-60">
+          {/* Ungrouped archived flows */}
+          {ungroupedArchivedFlows.map((flow) =>
+            renderFlowItem(flow, null, flow.domain, 'unarchive')
+          )}
+
+          {/* Archived groups */}
+          {archivedGroups.map((group) => {
+            const flowIds = getFlowIdsInGroup(group.id)
+            const groupFlows: Flow[] = []
+            for (const fid of flowIds) {
+              const flow = getFlow(fid)
+              if (flow) groupFlows.push(flow)
+            }
+            return (
+              <div key={group.id}>
+                {renderGroupHeader(group, groupFlows.length, group.domainId, 'unarchive')}
+                {!group.collapsed && groupFlows.length > 0 && (
+                  <div className="ml-[calc(var(--token-spacing-md)+18px)] border-l border-shell-border">
+                    {groupFlows.map((flow) =>
+                      renderFlowItem(flow, group.id, flow.domain, 'unarchive')
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, onFlowDeleted }: FlowSidebarProps) {
   const [showNewDialog, setShowNewDialog] = useState(false)
@@ -58,6 +150,28 @@ export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, o
     if (!orderedDomainIds.includes(key)) orderedDomainIds.push(key)
   }
 
+  // Start with all domains collapsed, except the one containing the selected flow
+  const seededRef = useRef(false)
+  useEffect(() => {
+    if (!seededRef.current && orderedDomainIds.length > 0) {
+      seededRef.current = true
+      const selectedFlow = selectedFlowId ? getFlow(selectedFlowId) : null
+      const initialCollapsed = new Set(orderedDomainIds)
+      if (selectedFlow) initialCollapsed.delete(selectedFlow.domain)
+      setCollapsedDomains(initialCollapsed)
+    }
+  }, [orderedDomainIds.length, selectedFlowId])
+
+  const allCollapsed = orderedDomainIds.length > 0 && orderedDomainIds.every((id) => collapsedDomains.has(id))
+
+  const toggleCollapseAll = () => {
+    if (allCollapsed) {
+      setCollapsedDomains(new Set())
+    } else {
+      setCollapsedDomains(new Set(orderedDomainIds))
+    }
+  }
+
   const toggleCollapse = (domainId: string) => {
     setCollapsedDomains((prev) => {
       const next = new Set(prev)
@@ -67,11 +181,10 @@ export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, o
     })
   }
 
-  const handleCreateFlow = (name: string, domain: string, description: string, groupId?: string) => {
-    const id = uniqueId('flow-' + slugify(name), (id) => !!getFlow(id) || !!getDynamicFlow(id))
+  const handleCreateFlow = (slug: string, domain: string, description: string, groupId?: string) => {
     const def: DynamicFlowDef = {
-      id,
-      name,
+      id: slug,
+      name: slug,
       domain,
       description,
       screens: [],
@@ -79,10 +192,10 @@ export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, o
     saveDynamicFlow(def)
     registerDynamicFlow(def)
     if (groupId) {
-      assignFlowToGroup(id, groupId)
+      assignFlowToGroup(slug, groupId)
     }
     setShowNewDialog(false)
-    onSelect(id)
+    onSelect(slug)
     onFlowCreated?.()
   }
 
@@ -103,10 +216,10 @@ export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, o
     const source = getFlow(flowId)
     if (!source) return
 
-    const newId = uniqueId('flow-' + slugify(source.name), (id) => !!getFlow(id) || !!getDynamicFlow(id))
+    const newId = uniqueId(flowId + '-copy', (id) => !!getFlow(id) || !!getDynamicFlow(id))
     const def: DynamicFlowDef = {
       id: newId,
-      name: `${source.name} (copy)`,
+      name: newId,
       domain: source.domain,
       description: source.description,
       screens: source.screens.map((s) => ({
@@ -249,8 +362,10 @@ export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, o
       if (dragState.sourceDomainId !== domainId) {
         moveFlowToDomain(dragState.flowId, domainId)
       } else {
-        removeFlowFromGroup(dragState.flowId)
+        removeFlowFromGroup(dragState.flowId, domainId)
       }
+      // Append to ungrouped order for the target domain
+      addToUngroupedOrder(domainId, dragState.flowId)
     }
     // Dropping a group onto ungrouped zone is a no-op
 
@@ -277,8 +392,14 @@ export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, o
       filtered.splice(targetIdx >= 0 ? targetIdx : filtered.length, 0, dragState.flowId)
       reorderFlowsInGroup(targetGroupId, filtered)
     } else {
-      // Dropping onto an ungrouped flow — just ungroup
-      removeFlowFromGroup(dragState.flowId)
+      // Dropping onto an ungrouped flow — ungroup and insert before target
+      removeFlowFromGroup(dragState.flowId, domainId)
+      // Build new order: insert dragged flow before target
+      const currentOrder = getUngroupedFlowOrder(domainId)
+      const filtered = currentOrder.filter((id) => id !== dragState.flowId)
+      const targetIdx = filtered.indexOf(targetFlowId)
+      filtered.splice(targetIdx >= 0 ? targetIdx : filtered.length, 0, dragState.flowId)
+      setUngroupedFlowOrder(domainId, filtered)
     }
     setDragState(null)
     setDropTarget(null)
@@ -298,7 +419,7 @@ export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, o
 
   // ── Render helpers ──
 
-  const renderFlowItem = (flow: Flow, groupId: string | null, domainId: string) => {
+  const renderFlowItem = (flow: Flow, groupId: string | null, domainId: string, archiveMode: 'archive' | 'unarchive' = 'archive') => {
     const isConfirmingDelete = confirmDeleteId === flow.id
     const isSelected = selectedFlowId === flow.id
     const pageCount = flow.screens.length
@@ -333,7 +454,7 @@ export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, o
             }
           `}
         >
-          {flow.name}
+          <span className="font-mono">{flow.id}</span>
           <span className={`block text-[length:var(--token-font-size-caption)] ${isSelected ? 'text-shell-selected-text/60' : 'text-shell-text-tertiary'}`}>
             {pageCount} page{pageCount !== 1 ? 's' : ''}
           </span>
@@ -341,22 +462,43 @@ export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, o
         {/* Action buttons — visible on hover */}
         {!isConfirmingDelete && (
           <div className="absolute right-[var(--token-spacing-2)] top-1/2 -translate-y-1/2 items-center gap-[2px] hidden group-hover:flex">
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); handleDuplicateFlow(flow.id) }}
-              className="w-[20px] h-[20px] flex items-center justify-center rounded-[var(--token-radius-sm)] text-shell-text-tertiary hover:text-shell-selected-text hover:bg-shell-hover transition-colors cursor-pointer"
-              title="Duplicate flow"
-            >
-              <RiFileCopyLine size={12} />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(flow.id) }}
-              className="w-[20px] h-[20px] flex items-center justify-center rounded-[var(--token-radius-sm)] text-shell-text-tertiary hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
-              title="Delete flow"
-            >
-              <RiDeleteBinLine size={12} />
-            </button>
+            {archiveMode === 'archive' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); archiveFlow(flow.id, domainId) }}
+                  className="w-[20px] h-[20px] flex items-center justify-center rounded-[var(--token-radius-sm)] text-shell-text-tertiary hover:text-shell-selected-text hover:bg-shell-hover transition-colors cursor-pointer"
+                  title="Archive flow"
+                >
+                  <RiArchiveLine size={12} />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleDuplicateFlow(flow.id) }}
+                  className="w-[20px] h-[20px] flex items-center justify-center rounded-[var(--token-radius-sm)] text-shell-text-tertiary hover:text-shell-selected-text hover:bg-shell-hover transition-colors cursor-pointer"
+                  title="Duplicate flow"
+                >
+                  <RiFileCopyLine size={12} />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(flow.id) }}
+                  className="w-[20px] h-[20px] flex items-center justify-center rounded-[var(--token-radius-sm)] text-shell-text-tertiary hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
+                  title="Delete flow"
+                >
+                  <RiDeleteBinLine size={12} />
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); unarchiveFlow(flow.id) }}
+                className="w-[20px] h-[20px] flex items-center justify-center rounded-[var(--token-radius-sm)] text-shell-text-tertiary hover:text-shell-selected-text hover:bg-shell-hover transition-colors cursor-pointer"
+                title="Unarchive flow"
+              >
+                <RiInboxUnarchiveLine size={12} />
+              </button>
+            )}
           </div>
         )}
         {/* Inline delete confirmation */}
@@ -385,7 +527,7 @@ export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, o
     )
   }
 
-  const renderGroupHeader = (group: FlowGroup, flowCount: number, domainId: string) => {
+  const renderGroupHeader = (group: FlowGroup, flowCount: number, domainId: string, archiveMode: 'archive' | 'unarchive' = 'archive') => {
     const isCollapsed = group.collapsed
     const ChevronIcon = isCollapsed ? RiArrowRightSLine : RiArrowDownSLine
     const isRenaming = renamingGroupId === group.id
@@ -441,22 +583,43 @@ export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, o
                 <span className="text-[length:10px] text-shell-text-tertiary tabular-nums shrink-0">{flowCount}</span>
               </button>
               <div className="hidden group-hover/grp:flex items-center gap-[var(--token-spacing-1)]">
-                <button
-                  type="button"
-                  onClick={() => { setRenamingGroupId(group.id); setRenameValue(group.name) }}
-                  className="w-[16px] h-[16px] flex items-center justify-center text-shell-text-tertiary hover:text-shell-text cursor-pointer"
-                  title="Rename group"
-                >
-                  <RiPencilLine size={10} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmDeleteGroupId(group.id)}
-                  className="w-[16px] h-[16px] flex items-center justify-center text-shell-text-tertiary hover:text-error cursor-pointer"
-                  title="Delete group"
-                >
-                  <RiDeleteBinLine size={10} />
-                </button>
+                {archiveMode === 'archive' ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => archiveGroup(group.id)}
+                      className="w-[16px] h-[16px] flex items-center justify-center text-shell-text-tertiary hover:text-shell-text cursor-pointer"
+                      title="Archive group"
+                    >
+                      <RiArchiveLine size={10} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setRenamingGroupId(group.id); setRenameValue(group.name) }}
+                      className="w-[16px] h-[16px] flex items-center justify-center text-shell-text-tertiary hover:text-shell-text cursor-pointer"
+                      title="Rename group"
+                    >
+                      <RiPencilLine size={10} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteGroupId(group.id)}
+                      className="w-[16px] h-[16px] flex items-center justify-center text-shell-text-tertiary hover:text-error cursor-pointer"
+                      title="Delete group"
+                    >
+                      <RiDeleteBinLine size={10} />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => unarchiveGroup(group.id)}
+                    className="w-[16px] h-[16px] flex items-center justify-center text-shell-text-tertiary hover:text-shell-text cursor-pointer"
+                    title="Unarchive group"
+                  >
+                    <RiInboxUnarchiveLine size={10} />
+                  </button>
+                )}
               </div>
             </>
           )}
@@ -497,6 +660,14 @@ export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, o
           <div className="flex items-center gap-[var(--token-spacing-1)]">
             <button
               type="button"
+              onClick={toggleCollapseAll}
+              title={allCollapsed ? 'Expand all' : 'Collapse all'}
+              className="w-[24px] h-[24px] flex items-center justify-center rounded-[var(--token-radius-sm)] text-shell-text-tertiary hover:text-shell-selected-text hover:bg-shell-hover transition-colors cursor-pointer"
+            >
+              {allCollapsed ? <RiExpandUpDownLine size={14} /> : <RiCollapseDiagonalLine size={14} />}
+            </button>
+            <button
+              type="button"
               onClick={() => setShowNewDialog(true)}
               title="New Flow"
               className="w-[24px] h-[24px] flex items-center justify-center rounded-[var(--token-radius-sm)] text-shell-text-tertiary hover:text-shell-selected-text hover:bg-shell-hover transition-colors cursor-pointer"
@@ -520,8 +691,8 @@ export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, o
             const ChevronIcon = isCollapsed ? RiArrowRightSLine : RiArrowDownSLine
             const domainFlows = grouped[domainId] ?? []
 
-            // Split flows into grouped and ungrouped
-            const groups = getGroupsForDomain(domainId)
+            // Split flows into grouped and ungrouped (excluding archived)
+            const groups = getGroupsForDomain(domainId).filter((g) => !isGroupArchived(g.id))
             const groupedFlowIds = new Set<string>()
             const groupFlowMap = new Map<string, Flow[]>()
 
@@ -529,6 +700,7 @@ export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, o
               const flowIds = getFlowIdsInGroup(group.id)
               const flows: Flow[] = []
               for (const fid of flowIds) {
+                if (isFlowArchived(fid)) continue
                 const flow = domainFlows.find((f) => f.id === fid)
                 if (flow) {
                   flows.push(flow)
@@ -538,8 +710,16 @@ export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, o
               groupFlowMap.set(group.id, flows)
             }
 
-            const ungroupedFlows = domainFlows.filter((f) => !groupedFlowIds.has(f.id))
-            const totalCount = domainFlows.length
+            const ungroupedFlowsUnsorted = domainFlows.filter((f) => !groupedFlowIds.has(f.id) && !isFlowArchived(f.id))
+            const persistedOrder = getUngroupedFlowOrder(domainId)
+            const orderIndex = new Map(persistedOrder.map((id, i) => [id, i]))
+            const ungroupedFlows = ungroupedFlowsUnsorted.sort((a, b) => {
+              const ai = orderIndex.get(a.id) ?? Infinity
+              const bi = orderIndex.get(b.id) ?? Infinity
+              return ai - bi
+            })
+            const activeFlows = domainFlows.filter((f) => !isFlowArchived(f.id))
+            const totalCount = activeFlows.length
 
             const isUngroupedDropTarget = dropTarget?.type === 'ungrouped' && dropTarget.id === domainId
 
@@ -650,6 +830,14 @@ export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, o
             )
           })}
         </div>
+
+        {/* Archive section */}
+        <ArchiveSection
+          selectedFlowId={selectedFlowId}
+          onSelect={onSelect}
+          renderFlowItem={renderFlowItem}
+          renderGroupHeader={renderGroupHeader}
+        />
 
         {/* New flow button at bottom */}
         <div className="p-[var(--token-spacing-2)] border-t border-shell-border">

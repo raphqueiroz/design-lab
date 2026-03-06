@@ -33,7 +33,7 @@ export default function FlowMapPage() {
       position: { x: 0, y: 0 },
       data: {
         flowId: flow.id,
-        label: flow.name,
+        label: flow.id,
         domain: flow.domain,
         screenCount: flow.screens.length,
         entryPoints: flow.entryPoints,

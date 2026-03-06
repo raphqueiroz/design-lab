@@ -59,7 +59,7 @@ function EntryPointNode({ data, selected }: NodeProps) {
             key={`link-${f.id}`}
             className="px-[var(--token-spacing-2)] py-[1px] bg-[#60A5FA]/15 text-[#60A5FA] rounded-[var(--token-radius-full)] text-[length:var(--token-font-size-caption)]"
           >
-            {f.name}
+            <span className="font-mono">{f.id}</span>
           </span>
         ))}
 

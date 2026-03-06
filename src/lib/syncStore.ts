@@ -9,7 +9,6 @@ import { supabase, isSupabaseConnected } from './supabase'
 import { hydrateGraphsFromSupabase } from '../pages/simulator/flowGraphStore'
 import { hydrateDynamicFlowsFromSupabase, getDynamicFlows } from '../pages/simulator/dynamicFlowStore'
 import { hydrateFlowGroupsFromSupabase } from '../pages/simulator/flowGroupStore'
-import { hydrateFlowMetaOverridesFromSupabase, getAllFlowMetaOverrides } from '../pages/simulator/flowRegistry'
 import { hydratePageOverridesFromSupabase } from '../pages/gallery/pageStore'
 import { hydrateDynamicPagesFromSupabase, getDynamicPages } from '../pages/gallery/dynamicPageStore'
 import { hydrateTokensFromSupabase } from '../lib/tokenStore'
@@ -51,7 +50,6 @@ export async function syncAll(): Promise<boolean> {
       hydrateGraphsFromSupabase(),
       hydrateDynamicFlowsFromSupabase(),
       hydrateFlowGroupsFromSupabase(),
-      hydrateFlowMetaOverridesFromSupabase(),
       hydratePageOverridesFromSupabase(),
       hydrateDynamicPagesFromSupabase(),
       hydrateTokensFromSupabase(),
@@ -154,23 +152,7 @@ export async function pushAllToSupabase(): Promise<boolean> {
       if (error) errors.push(`dynamic_pages/${page.id}: ${error.message}`)
     }
 
-    // 5. Flow meta overrides (name, description, domain changes for hardcoded flows)
-    const flowMetaOverrides = getAllFlowMetaOverrides()
-    for (const [flowId, data] of Object.entries(flowMetaOverrides)) {
-      const { error } = await supabase.from('flow_overrides').upsert(
-        {
-          flow_id: flowId,
-          name: data.name ?? null,
-          description: data.description ?? null,
-          domain: data.domain ?? null,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'flow_id' },
-      )
-      if (error) errors.push(`flow_overrides/${flowId}: ${error.message}`)
-    }
-
-    // 6. Page overrides
+    // 5. Page overrides
     const overridesRaw = localStorage.getItem('picnic-design-lab:page-overrides')
     if (overridesRaw) {
       const overrides = JSON.parse(overridesRaw) as Record<string, { name?: string; description?: string }>
@@ -188,7 +170,7 @@ export async function pushAllToSupabase(): Promise<boolean> {
       }
     }
 
-    // 7. Token overrides
+    // 6. Token overrides
     const tokensRaw = localStorage.getItem('picnic-design-lab:token-overrides')
     if (tokensRaw) {
       const tokens = JSON.parse(tokensRaw) as Record<string, string>

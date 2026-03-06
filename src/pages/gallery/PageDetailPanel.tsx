@@ -165,9 +165,6 @@ export default function PageDetailPanel({ page, selectedNode, onPageChanged }: P
               <span className="text-[length:var(--token-font-size-caption)] font-semibold uppercase tracking-wider">
                 Page
               </span>
-              {page.isDynamic && (
-                <span className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary">(dynamic)</span>
-              )}
             </div>
           </div>
 

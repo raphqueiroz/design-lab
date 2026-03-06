@@ -12,17 +12,13 @@ import type { FlowNodeData } from './flowGraph.types'
 /**
  * Sync a node label change to the corresponding screen title.
  * Called from FlowCanvas when a user edits a node's label.
- * Only works for dynamic flows (static flow titles are code-defined).
  */
 export function syncNodeLabelToScreen(
   flowId: string,
   screenId: string,
   newLabel: string,
-  isDynamic: boolean,
 ): void {
-  if (isDynamic) {
-    updateScreenInFlow(flowId, screenId, { title: newLabel })
-  }
+  updateScreenInFlow(flowId, screenId, { title: newLabel })
 }
 
 /**

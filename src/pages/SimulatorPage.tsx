@@ -11,9 +11,10 @@ import FlowSidebar from './simulator/FlowSidebar'
 import FlowPlayer from './simulator/FlowPlayer'
 import FlowCanvas from './simulator/FlowCanvas'
 import { getAllFlows, getFlow, hydrateDynamicFlows } from './simulator/flowRegistry'
+import { migrateHardcodedFlows, migrateStaleScreenPaths } from './simulator/flowMigration'
 import { subscribeToGraphChanges } from './simulator/flowGraphStore'
 import { subscribeToDynamicFlowChanges } from './simulator/dynamicFlowStore'
-import { seedDefaultGroups } from './simulator/flowGroupStore'
+import { seedDefaultGroups, migrateV1Flows } from './simulator/flowGroupStore'
 import { syncAll, markSynced, pushAllToSupabase } from '../lib/syncStore'
 
 // Expose push function for console use
@@ -61,8 +62,11 @@ export default function SimulatorPage() {
   const [targetScreenId, setTargetScreenId] = useState<string | null>(null)
 
   useEffect(() => {
+    migrateHardcodedFlows()
+    migrateStaleScreenPaths()
     hydrateDynamicFlows()
     seedDefaultGroups()
+    migrateV1Flows()
     setVersion((v) => v + 1)
   }, [])
 
@@ -150,8 +154,8 @@ export default function SimulatorPage() {
         {/* Flow name (right side) */}
         <div className="flex-1 flex items-center justify-end min-w-0">
           {selectedFlow && (
-            <span className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary">
-              {selectedFlow.name}
+            <span className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary font-mono">
+              {selectedFlow.id}
             </span>
           )}
         </div>

@@ -105,7 +105,7 @@ registerFlow({
   level: 1,
   linkedFlows: ['savings-withdraw', 'savings-deposit'],
   entryPoints: ['tab-bar', 'dashboard'],
-  screens: versionAScreens.map((s) => ({ ...s, pageId: s.id })),
+  screens: [...versionAScreens, versionBScreens[0]].map((s) => ({ ...s, pageId: s.id })),
 })
 
 registerFlow({
@@ -162,6 +162,15 @@ registerFlow({
     { id: 'n-note-goal', type: 'note', position: { x: xFar, y: ROW * 3 },
       data: { label: 'Goal Screen', screenId: null, nodeType: 'note',
               description: 'Future: goal creation/editing screen.' } as FlowNodeData },
+
+    // Version B hub (alternate layout)
+    { id: 'n-hub-b', type: 'screen', position: { x: -400, y: 0 },
+      data: { label: 'Hub (Image)', screenId: 'savings-manage-b-hub', nodeType: 'screen',
+              pageId: 'savings-manage-b-hub', description: 'Savings hub with hero image header' } as FlowNodeData },
+
+    { id: 'n-note-alt', type: 'note', position: { x: -400, y: ROW },
+      data: { label: 'Version B alternate', screenId: null, nodeType: 'note',
+              description: 'Alternate hub layout with hero image instead of chart. Same actions and destinations.' } as FlowNodeData },
   ]
 
   const edges = [
@@ -175,9 +184,11 @@ registerFlow({
     { id: 'e-6', source: 'n-tap-adicionar', target: 'n-ref-deposit', sourceHandle: 'bottom', targetHandle: 'top' },
     { id: 'e-meta-note', source: 'n-tap-criar-meta', target: 'n-note-goal', sourceHandle: 'bottom', targetHandle: 'top' },
     { id: 'e-editar-note', source: 'n-tap-editar-meta', target: 'n-note-goal', sourceHandle: 'bottom', targetHandle: 'top' },
+    // Version B hub → note
+    { id: 'e-hub-b-note', source: 'n-hub-b', target: 'n-note-alt', sourceHandle: 'bottom', targetHandle: 'top' },
   ]
 
-  bootstrapFlowGraph('savings-manage', nodes, edges)
+  bootstrapFlowGraph('savings-manage', nodes, edges, 2)
 }
 
 // ── Register flow: Version C ──

@@ -3,6 +3,9 @@ import type { Node, Edge } from '@xyflow/react'
 /** The supported node types on the flow canvas */
 export type FlowNodeType = 'screen' | 'page' | 'decision' | 'error' | 'flow-reference' | 'action' | 'overlay' | 'api-call' | 'delay' | 'note' | 'entry-point'
 
+/** Node types that can be created by the user. Excludes legacy 'page' (alias for 'screen'). */
+export type CreatableNodeType = Exclude<FlowNodeType, 'page'>
+
 /** Action types for action nodes */
 export type ActionType = 'tap' | 'swipe' | 'input' | 'scroll' | 'long-press'
 
@@ -80,4 +83,6 @@ export interface FlowGraph {
   nodes: Node[]
   edges: Edge[]
   updatedAt: string
+  /** Code-defined version — when bumped, bootstrapFlowGraph overwrites localStorage */
+  graphVersion?: number
 }

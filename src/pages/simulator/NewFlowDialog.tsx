@@ -1,15 +1,22 @@
 import { useState } from 'react'
 import { RiCloseLine } from '@remixicon/react'
-import { getAllDomains } from './flowRegistry'
+import { getAllDomains, getFlow } from './flowRegistry'
+import { getDynamicFlow } from './dynamicFlowStore'
 import { getGroupsForDomain } from './flowGroupStore'
+
+const SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/
+
+function formatSlug(input: string): string {
+  return input.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-/, '')
+}
 
 interface NewFlowDialogProps {
   onClose: () => void
-  onCreate: (name: string, domain: string, description: string, groupId?: string) => void
+  onCreate: (slug: string, domain: string, description: string, groupId?: string) => void
 }
 
 export default function NewFlowDialog({ onClose, onCreate }: NewFlowDialogProps) {
-  const [name, setName] = useState('')
+  const [slug, setSlug] = useState('')
   const [domain, setDomain] = useState('')
   const [description, setDescription] = useState('')
   const [groupId, setGroupId] = useState('')
@@ -17,10 +24,23 @@ export default function NewFlowDialog({ onClose, onCreate }: NewFlowDialogProps)
 
   const groups = domain ? getGroupsForDomain(domain) : []
 
+  const slugError = (() => {
+    if (!slug) return null
+    if (!SLUG_REGEX.test(slug)) return 'Use lowercase letters, numbers, and hyphens only'
+    if (getFlow(slug) || getDynamicFlow(slug)) return 'This ID already exists'
+    return null
+  })()
+
+  const canSubmit = slug.trim() && domain.trim() && !slugError && SLUG_REGEX.test(slug)
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim() || !domain.trim()) return
-    onCreate(name.trim(), domain.trim(), description.trim(), groupId || undefined)
+    if (!canSubmit) return
+    onCreate(slug, domain.trim(), description.trim(), groupId || undefined)
+  }
+
+  const handleSlugChange = (value: string) => {
+    setSlug(formatSlug(value))
   }
 
   const handleDomainChange = (newDomain: string) => {
@@ -62,16 +82,23 @@ export default function NewFlowDialog({ onClose, onCreate }: NewFlowDialogProps)
         <div className="p-[var(--token-spacing-md)] flex flex-col gap-[var(--token-spacing-3)]">
           <div>
             <label className="block text-[length:var(--token-font-size-caption)] text-shell-text-tertiary uppercase tracking-wider mb-[var(--token-spacing-1)]">
-              Flow Name *
+              Flow ID *
             </label>
             <input
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Withdrawal via PIX"
+              value={slug}
+              onChange={(e) => handleSlugChange(e.target.value)}
+              placeholder="e.g. withdrawal-pix"
               autoFocus
-              className="w-full px-[var(--token-spacing-3)] py-[var(--token-spacing-2)] text-[length:var(--token-font-size-body-sm)] text-shell-text bg-shell-input border border-shell-border rounded-[var(--token-radius-sm)] outline-none focus:border-shell-selected-text"
+              className={`w-full px-[var(--token-spacing-3)] py-[var(--token-spacing-2)] text-[length:var(--token-font-size-body-sm)] text-shell-text bg-shell-input border rounded-[var(--token-radius-sm)] outline-none font-mono ${
+                slugError ? 'border-error focus:border-error' : 'border-shell-border focus:border-shell-selected-text'
+              }`}
             />
+            {slugError && (
+              <p className="mt-[var(--token-spacing-1)] text-[length:var(--token-font-size-caption)] text-error">
+                {slugError}
+              </p>
+            )}
           </div>
 
           <div>
@@ -133,7 +160,7 @@ export default function NewFlowDialog({ onClose, onCreate }: NewFlowDialogProps)
           </button>
           <button
             type="submit"
-            disabled={!name.trim() || !domain.trim()}
+            disabled={!canSubmit}
             className="px-[var(--token-spacing-4)] py-[var(--token-spacing-2)] text-[length:var(--token-font-size-body-sm)] text-shell-bg bg-shell-selected-text rounded-[var(--token-radius-sm)] font-medium cursor-pointer hover:bg-[#6EE7A0] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Create Flow

@@ -1,9 +1,11 @@
 /**
- * Persistence for user-created (dynamic) flows.
- * These flows use PlaceholderScreen components and are stored in localStorage.
+ * Persistence for all flows (unified model).
+ * Every flow — whether originally from index.ts or user-created — is stored here.
+ * Screen components are resolved at runtime via screenResolver.ts.
  */
 
 import { supabase, isSupabaseConnected } from '../../lib/supabase'
+import { updateScreenMeta } from './flowFileApi'
 
 const STORAGE_KEY = 'picnic-design-lab:dynamic-flows'
 
@@ -12,6 +14,14 @@ export interface DynamicScreen {
   title: string
   description: string
   componentsUsed: string[]
+  /** Relative path to the .tsx file, e.g. 'deposit-v2/Screen1_AmountEntry.tsx' */
+  filePath?: string
+  /** Reference to a standalone Page entity in the page registry */
+  pageId?: string
+  /** Screen state definitions (for the page gallery state switcher) */
+  states?: { id: string; name: string; description?: string; isDefault?: boolean; data?: Record<string, unknown> }[]
+  /** Interactive elements declared by the screen (for onElementTap matching) */
+  interactiveElements?: readonly { id: string; component: string; label: string }[]
 }
 
 export interface DynamicFlowDef {
@@ -21,6 +31,12 @@ export interface DynamicFlowDef {
   domain: string
   screens: DynamicScreen[]
   specContent?: string
+  /** Navigation level: 1 = shows TabBar, 2 = hides it. */
+  level?: 1 | 2
+  /** IDs of flows this flow navigates to */
+  linkedFlows?: string[]
+  /** Labels describing how users enter this flow */
+  entryPoints?: string[]
 }
 
 // ── localStorage layer ──
@@ -50,6 +66,9 @@ async function upsertFlowToSupabase(flow: DynamicFlowDef): Promise<void> {
       domain: flow.domain,
       screens: JSON.stringify(flow.screens),
       spec_content: flow.specContent ?? null,
+      level: flow.level ?? null,
+      linked_flows: flow.linkedFlows ? JSON.stringify(flow.linkedFlows) : null,
+      entry_points: flow.entryPoints ? JSON.stringify(flow.entryPoints) : null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'id' },
@@ -116,6 +135,36 @@ export function updateScreenInFlow(
   Object.assign(screen, updates)
   writeAll(all)
   upsertFlowToSupabase(flow)
+
+  // Auto-sync title/description to .tsx file comment block
+  if (screen.filePath && (updates.title || updates.description)) {
+    updateScreenMeta(screen.filePath, screen.title, screen.description)
+  }
+}
+
+// ── Rename ──
+
+export async function renameDynamicFlow(oldId: string, newId: string): Promise<void> {
+  const all = readAll()
+  const flow = all[oldId]
+  if (!flow) return
+
+  // Update the flow: new id, name = newId, update screen IDs
+  delete all[oldId]
+  flow.id = newId
+  flow.name = newId
+  flow.screens = flow.screens.map((s) => ({
+    ...s,
+    id: s.id.replace(oldId, newId),
+  }))
+  all[newId] = flow
+  writeAll(all)
+
+  // Supabase: delete old, upsert new
+  if (isSupabaseConnected()) {
+    await supabase!.from('dynamic_flows').delete().eq('id', oldId)
+  }
+  await upsertFlowToSupabase(flow)
 }
 
 // ── Supabase → localStorage hydration ──
@@ -139,6 +188,9 @@ export async function hydrateDynamicFlowsFromSupabase(): Promise<boolean> {
         domain: row.domain,
         screens: typeof row.screens === 'string' ? JSON.parse(row.screens) : row.screens,
         ...(row.spec_content ? { specContent: row.spec_content } : {}),
+        ...(row.level != null ? { level: row.level } : {}),
+        ...(row.linked_flows ? { linkedFlows: typeof row.linked_flows === 'string' ? JSON.parse(row.linked_flows) : row.linked_flows } : {}),
+        ...(row.entry_points ? { entryPoints: typeof row.entry_points === 'string' ? JSON.parse(row.entry_points) : row.entry_points } : {}),
       }
     }
     writeAll(all)

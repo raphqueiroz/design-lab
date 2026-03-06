@@ -13,12 +13,17 @@ import { subscribeToPageChanges } from './gallery/pageStore'
 import { saveDynamicPage, subscribeToDynamicPageChanges } from './gallery/dynamicPageStore'
 import { slugify, uniqueId } from '../lib/slugify'
 import { syncAll, markSynced } from '../lib/syncStore'
+import { migrateHardcodedFlows, migrateStaleScreenPaths } from './simulator/flowMigration'
+import { hydrateDynamicFlows } from './simulator/flowRegistry'
 
 export default function PageGalleryPage() {
   const [, setVersion] = useState(0)
   const [showNewDialog, setShowNewDialog] = useState(false)
 
   useEffect(() => {
+    migrateHardcodedFlows()
+    migrateStaleScreenPaths()
+    hydrateDynamicFlows()
     hydrateDynamicPages()
     setVersion((v) => v + 1)
   }, [])

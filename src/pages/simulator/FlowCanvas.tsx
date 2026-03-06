@@ -18,13 +18,16 @@ import {
 import '@xyflow/react/dist/style.css'
 
 import type { Flow } from './flowRegistry'
-import { refreshDynamicFlow, updateFlowMeta, getFlowsLinkingTo } from './flowRegistry'
+import { refreshDynamicFlow, updateFlowMeta, getFlowsLinkingTo, renameFlowIdCascade } from './flowRegistry'
 import { getFlowGraph, saveFlowGraph } from './flowGraphStore'
 import { autoGenerateFlowGraph } from './flowGraphAutoGen'
 import { alignNodes } from './alignNodes'
-import { addScreenToFlow, updateScreenInFlow, getDynamicFlow, saveDynamicFlow } from './dynamicFlowStore'
+import { addScreenToFlow, updateScreenInFlow, removeScreenFromFlow, getDynamicFlow, saveDynamicFlow, deleteDynamicFlow } from './dynamicFlowStore'
+import { createScreenFile, deleteScreenFile, writeFlowIndex } from './flowFileApi'
+import { generateFlowIndex, type FlowIndexDef } from './flowIndexGenerator'
+import { resolveFilePath } from './screenResolver'
 import { nodeTypes } from './nodes'
-import type { FlowNodeType, FlowNodeData } from './flowGraph.types'
+import type { FlowNodeType, CreatableNodeType, FlowNodeData } from './flowGraph.types'
 import { syncNodeLabelToScreen } from './flowGraphSync'
 import FloatingCanvasToolbar from './FloatingCanvasToolbar'
 import FlowViewAnnotationsPanel from './FlowViewAnnotationsPanel'
@@ -74,9 +77,32 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
     setRedoCount(0)
   }, [])
 
-  // Custom onNodesChange: intercept drag to compute alignment guides + snap
+  // Custom onNodesChange: intercept drag to compute alignment guides + snap,
+  // and intercept remove to clean up linked screen files.
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
+      // Handle screen node deletion: remove linked screen + .tsx file
+      const removes = changes.filter((c) => c.type === 'remove')
+      if (removes.length > 0) {
+        for (const change of removes) {
+          if (change.type !== 'remove') continue
+          const node = nodes.find((n) => n.id === change.id)
+          if (!node) continue
+          const nd = node.data as FlowNodeData
+          if ((nd.nodeType === 'screen' || nd.nodeType === 'page') && nd.screenId) {
+            // Find the screen's filePath before removing it
+            const dynFlow = getDynamicFlow(flow.id)
+            const dynScreen = dynFlow?.screens.find((s) => s.id === nd.screenId)
+            if (dynScreen?.filePath) {
+              deleteScreenFile(dynScreen.filePath)
+            }
+            removeScreenFromFlow(flow.id, nd.screenId)
+            refreshDynamicFlow(flow.id)
+            onFlowChanged?.()
+          }
+        }
+      }
+
       const hasDrag = changes.some((c) => c.type === 'position' && c.dragging)
       if (hasDrag) {
         const { lines, adjustedChanges } = getHelperLines(changes, nodes, edges)
@@ -89,7 +115,7 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
         applyNodeChanges(changes)
       }
     },
-    [nodes, edges, applyNodeChanges],
+    [nodes, edges, applyNodeChanges, flow.id, onFlowChanged],
   )
 
   // Load or auto-generate graph when flow changes
@@ -98,15 +124,37 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
     initializedRef.current = flow.id
 
     const existing = getFlowGraph(flow.id)
+    let graphNodes: Node[]
     if (existing) {
-      setNodes(existing.nodes as Node[])
+      graphNodes = existing.nodes as Node[]
+      setNodes(graphNodes)
       setEdges(existing.edges as Edge[])
     } else {
       const generated = autoGenerateFlowGraph(flow)
-      setNodes(generated.nodes as Node[])
+      graphNodes = generated.nodes as Node[]
+      setNodes(graphNodes)
       setEdges(generated.edges as Edge[])
       saveFlowGraph(flow.id, generated.nodes, generated.edges)
     }
+
+    // Reconcile: prune dynamic screens not referenced by any graph node
+    const dynFlow = getDynamicFlow(flow.id)
+    if (dynFlow) {
+      const referencedScreenIds = new Set(
+        graphNodes
+          .map((n) => (n.data as FlowNodeData).screenId)
+          .filter(Boolean),
+      )
+      const orphans = dynFlow.screens.filter((s) => !referencedScreenIds.has(s.id))
+      if (orphans.length > 0) {
+        for (const orphan of orphans) {
+          removeScreenFromFlow(flow.id, orphan.id)
+        }
+        refreshDynamicFlow(flow.id)
+        onFlowChanged?.()
+      }
+    }
+
     setSelectedNode(null)
     undoStackRef.current = []
     redoStackRef.current = []
@@ -217,11 +265,10 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
 
   // Toolbar: Add node
   const handleAddNode = useCallback(
-    (nodeType: FlowNodeType) => {
+    (nodeType: CreatableNodeType) => {
       const nodeId = `node-${Date.now()}`
-      const labels: Record<FlowNodeType, string> = {
+      const labels: Record<CreatableNodeType, string> = {
         screen: 'New Screen',
-        page: 'New Page',
         decision: 'Decision',
         error: 'Error State',
         'flow-reference': 'Flow Reference',
@@ -233,15 +280,24 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
         'entry-point': 'Entry Points',
       }
 
-      // For dynamic flows, creating a screen node also creates a linked screen
+      // Creating a screen node also creates a linked screen in the dynamic store + file on disk
       let linkedScreenId: string | null = null
-      if (nodeType === 'screen' && flow.isDynamic) {
+      if (nodeType === 'screen') {
         linkedScreenId = `screen-${Date.now()}`
+        const dynFlow = getDynamicFlow(flow.id)
+        const screenIndex = (dynFlow?.screens.length ?? flow.screens.length) + 1
         addScreenToFlow(flow.id, {
           id: linkedScreenId,
           title: labels[nodeType],
           description: '',
           componentsUsed: [],
+          pageId: linkedScreenId,
+        })
+        // Create scaffold file in dev mode (async, non-blocking)
+        createScreenFile(flow.id, screenIndex, labels[nodeType]).then((filePath) => {
+          if (filePath) {
+            updateScreenInFlow(flow.id, linkedScreenId!, { filePath })
+          }
         })
         refreshDynamicFlow(flow.id)
         onFlowChanged?.()
@@ -273,28 +329,36 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
       })
       scheduleSave()
     },
-    [setNodes, setEdges, scheduleSave, pushUndo, flow.id, flow.isDynamic, onFlowChanged],
+    [setNodes, setEdges, scheduleSave, pushUndo, flow.id, onFlowChanged],
   )
 
   // Insert node on edge
   const handleInsertNodeOnEdge = useCallback(
-    (edgeId: string, nodeType: FlowNodeType, position: { x: number; y: number }) => {
+    (edgeId: string, nodeType: CreatableNodeType, position: { x: number; y: number }) => {
       const nodeId = `node-${Date.now()}`
-      const labels: Record<FlowNodeType, string> = {
-        screen: 'New Screen', page: 'New Page', decision: 'Decision',
+      const labels: Record<CreatableNodeType, string> = {
+        screen: 'New Screen', decision: 'Decision',
         error: 'Error State', 'flow-reference': 'Flow Reference',
         action: 'User Action', overlay: 'Overlay', 'api-call': 'API Call',
         delay: 'Delay', note: 'Note', 'entry-point': 'Entry Points',
       }
 
       let linkedScreenId: string | null = null
-      if (nodeType === 'screen' && flow.isDynamic) {
+      if (nodeType === 'screen') {
         linkedScreenId = `screen-${Date.now()}`
+        const dynFlow = getDynamicFlow(flow.id)
+        const screenIndex = (dynFlow?.screens.length ?? flow.screens.length) + 1
         addScreenToFlow(flow.id, {
           id: linkedScreenId,
           title: labels[nodeType],
           description: '',
           componentsUsed: [],
+          pageId: linkedScreenId,
+        })
+        createScreenFile(flow.id, screenIndex, labels[nodeType]).then((filePath) => {
+          if (filePath) {
+            updateScreenInFlow(flow.id, linkedScreenId!, { filePath })
+          }
         })
         refreshDynamicFlow(flow.id)
         onFlowChanged?.()
@@ -348,7 +412,7 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
       })
       scheduleSave()
     },
-    [setNodes, setEdges, scheduleSave, pushUndo, flow.id, flow.isDynamic, onFlowChanged],
+    [setNodes, setEdges, scheduleSave, pushUndo, flow.id, onFlowChanged],
   )
 
   // Undo
@@ -485,13 +549,13 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
         const nd = nodes.find((n) => n.id === nodeId)?.data as FlowNodeData | undefined
         if (nd?.screenId) {
           if (updates.label) {
-            syncNodeLabelToScreen(flow.id, nd.screenId, updates.label as string, !!flow.isDynamic)
+            syncNodeLabelToScreen(flow.id, nd.screenId, updates.label as string)
           }
-          if ('description' in updates && flow.isDynamic) {
+          if ('description' in updates) {
             updateScreenInFlow(flow.id, nd.screenId, { description: (updates.description as string) ?? '' })
-            refreshDynamicFlow(flow.id)
-            onFlowChanged?.()
           }
+          refreshDynamicFlow(flow.id)
+          onFlowChanged?.()
         }
       }
 
@@ -535,7 +599,7 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
       })
       scheduleSave()
     },
-    [setNodes, scheduleSave, nodes, flow.id, flow.isDynamic, onFlowChanged],
+    [setNodes, scheduleSave, nodes, flow.id, onFlowChanged],
   )
 
   // Update edge label (for decision edges)
@@ -567,14 +631,77 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
     [flow.id, onFlowChanged],
   )
 
+  // Rename flow ID cascade
+  const handleRenameFlow = useCallback(
+    async (newId: string): Promise<boolean> => {
+      const ok = await renameFlowIdCascade(flow.id, newId)
+      if (ok) {
+        onNavigateToFlow?.(newId)
+        onFlowChanged?.()
+      }
+      return ok
+    },
+    [flow.id, onNavigateToFlow, onFlowChanged],
+  )
+
+  // Save to code: generate index.ts, write to disk
+  const handleSaveToCode = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
+    const graph = getFlowGraph(flow.id)
+    if (!graph) return { ok: false, error: 'No flow graph found' }
+
+    // Build FlowIndexDef from dynamic store or from in-memory Flow
+    const dynFlow = getDynamicFlow(flow.id)
+    const flowDef: FlowIndexDef = dynFlow ?? {
+      id: flow.id,
+      name: flow.name,
+      description: flow.description,
+      domain: flow.domain,
+      level: flow.level,
+      linkedFlows: flow.linkedFlows ? [...flow.linkedFlows] : undefined,
+      entryPoints: flow.entryPoints ? [...flow.entryPoints] : undefined,
+      screens: flow.screens.map((s) => ({
+        id: s.id,
+        title: s.title,
+        description: s.description,
+        componentsUsed: [...s.componentsUsed],
+        filePath: resolveFilePath(s.component) ?? undefined,
+        pageId: s.pageId,
+        states: s.states?.map((st) => ({ ...st })),
+        interactiveElements: s.interactiveElements
+          ? s.interactiveElements.map((ie) => ({ ...ie }))
+          : undefined,
+      })),
+    }
+
+    // Check all screens have file paths
+    const missingFiles = flowDef.screens.filter((s) => !s.filePath)
+    if (missingFiles.length > 0) {
+      return { ok: false, error: `${missingFiles.length} screen(s) have no file on disk` }
+    }
+
+    // Generate index.ts content
+    const content = generateFlowIndex({
+      flow: flowDef,
+      nodes: graph.nodes,
+      edges: graph.edges,
+    })
+
+    // Write to disk (force overwrite)
+    const result = await writeFlowIndex(flow.id, content, true)
+    if (!result) return { ok: false, error: 'Failed to write file (dev server unavailable)' }
+    if (!result.written) {
+      return { ok: false, error: result.reason ?? 'Unknown error' }
+    }
+
+    return { ok: true }
+  }, [flow])
+
   // Update screen description directly (from annotations panel)
   const handleScreenDescriptionUpdate = useCallback(
     (screenId: string, description: string) => {
-      if (flow.isDynamic) {
-        updateScreenInFlow(flow.id, screenId, { description })
-        refreshDynamicFlow(flow.id)
-        onFlowChanged?.()
-      }
+      updateScreenInFlow(flow.id, screenId, { description })
+      refreshDynamicFlow(flow.id)
+      onFlowChanged?.()
       // Also update the graph node description to keep them in sync
       setNodes((nds) => {
         const node = nds.find((n) => (n.data as FlowNodeData).screenId === screenId)
@@ -591,7 +718,7 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
       })
       scheduleSave()
     },
-    [flow.id, flow.isDynamic, setNodes, scheduleSave, onFlowChanged],
+    [flow.id, setNodes, scheduleSave, onFlowChanged],
   )
 
   // Open in prototype
@@ -689,7 +816,6 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
               nodeColor={(node) => {
                 switch (node.type) {
                   case 'screen': return '#4ADE80'
-                  case 'page': return '#4ADE80'
                   case 'decision': return '#FBBF24'
                   case 'error': return '#F87171'
                   case 'flow-reference': return '#60A5FA'
@@ -726,6 +852,8 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
         onScreenDescriptionUpdate={handleScreenDescriptionUpdate}
         onAlignNodes={handleAlignNodes}
         onFlowMetaUpdate={handleFlowMetaUpdate}
+        onRenameFlow={handleRenameFlow}
+        onSaveToCode={handleSaveToCode}
       />
     </div>
   )

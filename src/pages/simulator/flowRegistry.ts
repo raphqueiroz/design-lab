@@ -1,8 +1,11 @@
 import type { ComponentType } from 'react'
 import type { PageStateDefinition } from '../gallery/pageRegistry'
-import { getDynamicFlows, type DynamicFlowDef } from './dynamicFlowStore'
+import { getDynamicFlows, getDynamicFlow, saveDynamicFlow, renameDynamicFlow, type DynamicFlowDef } from './dynamicFlowStore'
 import { createPlaceholderComponent } from '../../flows/PlaceholderScreen'
-import { supabase, isSupabaseConnected } from '../../lib/supabase'
+import { resolveComponent } from './screenResolver'
+import { registerPage, getBasePage } from '../gallery/pageRegistry'
+import { getFlowGraph, saveFlowGraph as saveFlowGraphStore, renameFlowGraph, updateFlowReferencesInAllGraphs } from './flowGraphStore'
+import { renameFlowInGroups } from './flowGroupStore'
 
 export interface InteractiveElement {
   id: string          // e.g. 'btn-continue'
@@ -31,6 +34,10 @@ export interface FlowScreenProps {
   onElementTap?: (elementLabel: string) => boolean
   /** Called when the screen's internal state changes (e.g. idle → loading → ready). Reports the matching page state ID. */
   onStateChange?: (stateId: string) => void
+  /** Screen title from the flow definition — used by scaffold screens */
+  screenTitle?: string
+  /** Screen description from the flow definition — used by scaffold screens */
+  screenDescription?: string
 }
 
 // ── Domain system ──
@@ -76,7 +83,6 @@ export interface Flow {
   domain: string
   screens: FlowScreen[]
   specContent?: string
-  isDynamic?: boolean
   /** Navigation level for the flow. Level 1 shows TabBar (main tabs), level 2 hides it (deeper screens). Defaults to 1. */
   level?: 1 | 2
   /** IDs of flows this flow navigates to */
@@ -86,92 +92,6 @@ export interface Flow {
 }
 
 const flows = new Map<string, Flow>()
-
-// ── Metadata overrides: persist name/description/domain changes for hardcoded flows ──
-
-const OVERRIDES_KEY = 'picnic-design-lab:flow-meta-overrides'
-
-type FlowMetaOverride = { name?: string; description?: string; domain?: string }
-
-function readOverrides(): Record<string, FlowMetaOverride> {
-  try {
-    const raw = localStorage.getItem(OVERRIDES_KEY)
-    return raw ? JSON.parse(raw) : {}
-  } catch {
-    return {}
-  }
-}
-
-function writeOverrides(overrides: Record<string, FlowMetaOverride>): void {
-  localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides))
-}
-
-function saveOverride(id: string, updates: FlowMetaOverride): void {
-  const all = readOverrides()
-  all[id] = { ...all[id], ...updates }
-  writeOverrides(all)
-
-  // Sync to Supabase
-  if (isSupabaseConnected()) {
-    const merged = all[id]
-    supabase!.from('flow_overrides').upsert(
-      {
-        flow_id: id,
-        name: merged.name ?? null,
-        description: merged.description ?? null,
-        domain: merged.domain ?? null,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'flow_id' },
-    ).then(({ error }) => {
-      if (error) console.error('[flowRegistry] Supabase upsert failed:', error.message)
-    })
-  }
-}
-
-/** Hydrate flow meta overrides from Supabase → localStorage. */
-export async function hydrateFlowMetaOverridesFromSupabase(): Promise<boolean> {
-  if (!isSupabaseConnected()) return false
-
-  try {
-    const { data, error } = await supabase!.from('flow_overrides').select('*')
-    if (error) return false
-
-    const rows = data ?? []
-    if (rows.length === 0) return false
-
-    const all = readOverrides()
-    for (const row of rows) {
-      const override: FlowMetaOverride = {}
-      if (row.name != null) override.name = row.name
-      if (row.description != null) override.description = row.description
-      if (row.domain != null) override.domain = row.domain
-      all[row.flow_id] = override
-    }
-    writeOverrides(all)
-
-    // Re-apply overrides to already-registered flows
-    for (const [id, override] of Object.entries(all)) {
-      const flow = flows.get(id)
-      if (flow && !flow.isDynamic) {
-        const patched = { ...flow }
-        if (override.name !== undefined) patched.name = override.name
-        if (override.description !== undefined) patched.description = override.description
-        if (override.domain !== undefined) patched.domain = override.domain
-        flows.set(id, patched)
-      }
-    }
-
-    return true
-  } catch {
-    return false
-  }
-}
-
-/** Get all flow meta overrides (for pushAllToSupabase). */
-export function getAllFlowMetaOverrides(): Record<string, FlowMetaOverride> {
-  return readOverrides()
-}
 
 // ── Tombstone: deleted flow IDs persisted across reloads ──
 
@@ -206,29 +126,23 @@ export function unmarkFlowDeleted(flowId: string): void {
   writeDeletedFlows(deleted)
 }
 
+/**
+ * Register a flow from an index.ts file (seed).
+ * Always registers in memory. The dynamic store may overwrite later during hydration.
+ */
 export function registerFlow(flow: Flow): void {
-  if (readDeletedFlows().has(flow.id)) return // user deleted this flow — don't re-register
-  if (import.meta.env.DEV && flows.has(flow.id)) {
+  if (readDeletedFlows().has(flow.id)) return
+  if (import.meta.env.DEV && flows.has(flow.id) && !getDynamicFlow(flow.id)) {
     throw new Error(`[flowRegistry] Duplicate flow ID: "${flow.id}"`)
   }
-  // Apply persisted metadata overrides (name, description, domain)
-  const override = readOverrides()[flow.id]
-  if (override) {
-    const patched = { ...flow }
-    if (override.name !== undefined) patched.name = override.name
-    if (override.description !== undefined) patched.description = override.description
-    if (override.domain !== undefined) patched.domain = override.domain
-    flows.set(flow.id, patched)
-  } else {
-    flows.set(flow.id, flow)
-  }
+  flows.set(flow.id, flow)
 }
 
 export function unregisterFlow(id: string): void {
   flows.delete(id)
 }
 
-/** Update mutable fields on a registered flow (name, description, domain). Persists for both dynamic and hardcoded flows. */
+/** Update mutable fields on a registered flow (name, description, domain). Always persists to dynamic store. */
 export function updateFlowMeta(id: string, updates: { name?: string; description?: string; domain?: string }): void {
   const flow = flows.get(id)
   if (!flow) return
@@ -237,36 +151,63 @@ export function updateFlowMeta(id: string, updates: { name?: string; description
   if (updates.description !== undefined) updated.description = updates.description
   if (updates.domain !== undefined) updated.domain = updates.domain
   flows.set(id, updated)
-  // Persist overrides for hardcoded flows (dynamic flows are persisted by their own store)
-  if (!flow.isDynamic) {
-    saveOverride(id, updates)
-  }
 }
 
-/** Register a dynamic flow from the dynamicFlowStore data model. */
+/** Register a flow from the dynamic store data model, resolving components from disk. */
 export function registerDynamicFlow(def: DynamicFlowDef): void {
-  // Warn on collision with a non-dynamic (hardcoded) flow
-  const existing = flows.get(def.id)
-  if (existing && !existing.isDynamic) {
-    console.warn(`[flowRegistry] Dynamic flow "${def.name}" (${def.id}) collides with hardcoded flow "${existing.name}". Skipping.`)
-    return
+  // Preserve pageId and component from static registration when dynamic store lacks them
+  const existingFlow = flows.get(def.id)
+  const staticScreens = new Map<string, FlowScreen>()
+  if (existingFlow) {
+    for (const s of existingFlow.screens) {
+      staticScreens.set(s.id, s)
+    }
   }
+
   const flow: Flow = {
     id: def.id,
     name: def.name,
     description: def.description,
     domain: def.domain,
     specContent: def.specContent,
-    isDynamic: true,
-    screens: def.screens.map((s) => ({
-      id: s.id,
-      title: s.title,
-      description: s.description,
-      componentsUsed: s.componentsUsed,
-      component: createPlaceholderComponent(s.title, s.description),
-    })),
+    level: def.level,
+    linkedFlows: def.linkedFlows,
+    entryPoints: def.entryPoints,
+    screens: def.screens.map((s) => {
+      const staticScreen = staticScreens.get(s.id)
+      const resolved = resolveComponent(s.filePath)
+      const pageId = s.pageId ?? staticScreen?.pageId
+      // Fall back: file path → static flow screen → page registry (by pageId or screen id) → placeholder
+      const registeredPage = (pageId ? getBasePage(pageId) : undefined) ?? getBasePage(s.id)
+      const pageComponent = registeredPage?.component
+      return {
+        id: s.id,
+        title: s.title,
+        description: s.description,
+        componentsUsed: s.componentsUsed,
+        component: resolved ?? staticScreen?.component ?? pageComponent ?? createPlaceholderComponent(s.title, s.description),
+        pageId,
+        states: s.states as PageStateDefinition[] | undefined,
+        interactiveElements: s.interactiveElements,
+      }
+    }),
   }
   flows.set(flow.id, flow)
+
+  // Register pages for screens that have a pageId (skip if already registered)
+  for (const s of flow.screens) {
+    if (s.pageId && !getBasePage(s.pageId)) {
+      registerPage({
+        id: s.pageId,
+        name: s.title,
+        description: s.description,
+        area: def.domain,
+        componentsUsed: [...s.componentsUsed],
+        component: s.component,
+        states: s.states,
+      })
+    }
+  }
 }
 
 /** Hydrate all dynamic flows from localStorage into the registry. */
@@ -279,7 +220,6 @@ export function hydrateDynamicFlows(): void {
 
 /** Re-register a single dynamic flow (after adding/removing screens). */
 export function refreshDynamicFlow(id: string): void {
-  // Re-read from localStorage and re-register
   const dynamicFlows = getDynamicFlows()
   const def = dynamicFlows.find((f) => f.id === id)
   if (def) {
@@ -319,4 +259,96 @@ export function getFlowsLinkingTo(flowId: string): Flow[] {
   return getAllFlows().filter(
     (f) => f.linkedFlows?.includes(flowId),
   )
+}
+
+// ── Duplicate flow with specific ID ──
+
+export function duplicateFlowWithId(sourceId: string, targetId: string, targetDomain?: string): boolean {
+  const source = flows.get(sourceId)
+  if (!source) return false
+  if (flows.has(targetId) || getDynamicFlow(targetId)) return false
+
+  const def: DynamicFlowDef = {
+    id: targetId,
+    name: targetId,
+    domain: targetDomain ?? source.domain,
+    description: source.description,
+    screens: source.screens.map((s) => ({
+      id: s.id.replace(sourceId, targetId),
+      title: s.title,
+      description: s.description,
+      componentsUsed: [...s.componentsUsed],
+    })),
+  }
+  saveDynamicFlow(def)
+  registerDynamicFlow(def)
+
+  // Copy flow graph if one exists
+  const graph = getFlowGraph(sourceId)
+  if (graph) {
+    const screenIdMap = new Map(source.screens.map((s, i) => [s.id, def.screens[i].id]))
+    const newNodes = graph.nodes.map((n) => ({
+      ...n,
+      data: {
+        ...n.data,
+        ...(n.data.screenId && screenIdMap.has(n.data.screenId as string)
+          ? { screenId: screenIdMap.get(n.data.screenId as string) }
+          : {}),
+      },
+    }))
+    saveFlowGraphStore(targetId, newNodes, [...graph.edges])
+  }
+
+  return true
+}
+
+// ── Rename flow ID cascade ──
+
+const SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/
+
+export async function renameFlowIdCascade(oldId: string, newId: string): Promise<boolean> {
+  // 1. Validate format and uniqueness
+  if (!SLUG_REGEX.test(newId)) return false
+  if (flows.has(newId) || getDynamicFlow(newId)) return false
+  const oldFlow = flows.get(oldId)
+  if (!oldFlow) return false
+
+  // 2. Re-key in the in-memory flows Map
+  flows.delete(oldId)
+  const updatedFlow = { ...oldFlow, id: newId, name: newId }
+  flows.set(newId, updatedFlow)
+
+  // 3. Update linkedFlows arrays in OTHER flows that reference oldId
+  for (const [id, f] of flows.entries()) {
+    if (id === newId) continue
+    if (f.linkedFlows?.includes(oldId)) {
+      const updatedLinks = f.linkedFlows.map((lf) => lf === oldId ? newId : lf)
+      flows.set(id, { ...f, linkedFlows: updatedLinks })
+    }
+  }
+
+  // 4. Re-key in the dynamic flow store
+  await renameDynamicFlow(oldId, newId)
+
+  // 5. Mark old ID as deleted so the seed registerFlow() is skipped on reload
+  markFlowDeleted(oldId)
+
+  // 6. Re-key flow graph
+  await renameFlowGraph(oldId, newId)
+
+  // 7. Re-key group memberships
+  renameFlowInGroups(oldId, newId)
+
+  // 8. Update flow-reference nodes in ALL other flow graphs
+  updateFlowReferencesInAllGraphs(oldId, newId)
+
+  // 9. Update deleted flows set if present
+  const deleted = readDeletedFlows()
+  if (deleted.has(oldId)) {
+    deleted.delete(oldId)
+    deleted.add(newId)
+    writeDeletedFlows(deleted)
+  }
+
+  return true
 }

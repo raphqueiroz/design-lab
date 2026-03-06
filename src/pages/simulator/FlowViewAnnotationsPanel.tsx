@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { RiPencilLine, RiCheckLine, RiPlayLine, RiComputerLine, RiGitBranchLine, RiErrorWarningLine, RiExternalLinkLine, RiCursorLine, RiStackLine, RiRefreshLine, RiFileTextLine, RiServerLine, RiTimerLine, RiStickyNoteLine, RiLoginBoxLine, RiCloseLine, RiAddLine } from '@remixicon/react'
+import { RiPencilLine, RiCheckLine, RiPlayLine, RiComputerLine, RiGitBranchLine, RiErrorWarningLine, RiExternalLinkLine, RiCursorLine, RiStackLine, RiRefreshLine, RiFileTextLine, RiServerLine, RiTimerLine, RiStickyNoteLine, RiLoginBoxLine, RiCloseLine, RiAddLine, RiCodeSSlashLine } from '@remixicon/react'
 import type { Node, Edge } from '@xyflow/react'
 import type { Flow } from './flowRegistry'
-import { getAllFlows, getLinkedFlows, getFlowsLinkingTo } from './flowRegistry'
+import { getAllFlows, getFlow, getLinkedFlows, getFlowsLinkingTo } from './flowRegistry'
+import { getDynamicFlow } from './dynamicFlowStore'
 import type { FlowNodeData } from './flowGraph.types'
 import { findParentInteractiveNode } from './flowGraphNavigation'
 import { getPage } from '../gallery/pageRegistry'
@@ -18,6 +19,8 @@ interface FlowViewAnnotationsPanelProps {
   onScreenDescriptionUpdate?: (screenId: string, description: string) => void
   onAlignNodes?: () => void
   onFlowMetaUpdate?: (updates: { name?: string; description?: string }) => void
+  onRenameFlow?: (newId: string) => Promise<boolean>
+  onSaveToCode?: () => Promise<{ ok: boolean; error?: string }>
 }
 
 function EditableField({
@@ -115,6 +118,110 @@ function EditableField({
   )
 }
 
+const SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/
+
+function formatSlug(input: string): string {
+  return input.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-/, '')
+}
+
+function EditableSlug({
+  value,
+  onSave,
+  label,
+}: {
+  value: string
+  onSave: (val: string) => Promise<boolean>
+  label: string
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  const handleEdit = () => {
+    setDraft(value)
+    setError(null)
+    setEditing(true)
+  }
+
+  const validate = (slug: string): string | null => {
+    if (!slug) return 'Required'
+    if (!SLUG_REGEX.test(slug)) return 'Invalid format (use lowercase, numbers, hyphens)'
+    if (slug !== value && (getFlow(slug) || getDynamicFlow(slug))) return 'ID already exists'
+    return null
+  }
+
+  const handleSave = async () => {
+    const formatted = formatSlug(draft)
+    const err = validate(formatted)
+    if (err) { setError(err); return }
+    if (formatted === value) { setEditing(false); return }
+    setSaving(true)
+    const ok = await onSave(formatted)
+    setSaving(false)
+    if (ok) setEditing(false)
+    else setError('Rename failed')
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') { e.preventDefault(); handleSave() }
+    if (e.key === 'Escape') setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <div className="flex flex-col gap-[var(--token-spacing-1)]">
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => { setDraft(formatSlug(e.target.value)); setError(null) }}
+          onKeyDown={handleKeyDown}
+          autoFocus
+          className="w-full px-[var(--token-spacing-2)] py-[var(--token-spacing-1)] text-[length:var(--token-font-size-body-sm)] leading-[var(--token-line-height-body-sm)] text-shell-text bg-shell-input border border-shell-selected-text rounded-[var(--token-radius-sm)] outline-none font-mono"
+        />
+        {error && (
+          <p className="text-[length:var(--token-font-size-caption)] text-error">{error}</p>
+        )}
+        <div className="flex gap-[var(--token-spacing-1)] justify-end">
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="px-[var(--token-spacing-2)] py-[1px] text-[length:var(--token-font-size-caption)] text-shell-text-tertiary hover:text-shell-text-secondary cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="px-[var(--token-spacing-2)] py-[1px] text-[length:var(--token-font-size-caption)] text-shell-selected-text hover:text-[#6EE7A0] font-medium cursor-pointer flex items-center gap-[2px] disabled:opacity-40"
+          >
+            <RiCheckLine size={12} />
+            {saving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleEdit}
+      onKeyDown={(e) => { if (e.key === 'Enter') handleEdit() }}
+      title={`Click to edit ${label}`}
+      className="w-full text-left cursor-pointer flex items-start gap-[var(--token-spacing-1)] px-[var(--token-spacing-1)] py-[2px] -mx-[var(--token-spacing-1)] rounded-[var(--token-radius-sm)] hover:bg-shell-hover transition-colors border border-transparent hover:border-shell-border"
+    >
+      <span className="flex-1">{value}</span>
+      <RiPencilLine
+        size={12}
+        className="shrink-0 mt-[3px] text-shell-text-tertiary"
+      />
+    </div>
+  )
+}
+
 const nodeTypeConfig = {
   screen: { label: 'Screen', icon: RiComputerLine, color: 'text-shell-selected-text', description: '' },
   page: { label: 'Page', icon: RiComputerLine, color: 'text-shell-selected-text', description: '' },
@@ -195,9 +302,9 @@ function EntryPointSection({
             {linkedFrom.map((f) => (
               <span
                 key={f.id}
-                className="px-[var(--token-spacing-2)] py-[1px] bg-[#60A5FA]/15 text-[#60A5FA] rounded-[var(--token-radius-full)] text-[length:var(--token-font-size-caption)]"
+                className="px-[var(--token-spacing-2)] py-[1px] bg-[#60A5FA]/15 text-[#60A5FA] rounded-[var(--token-radius-full)] text-[length:var(--token-font-size-caption)] font-mono"
               >
-                {f.name}
+                {f.id}
               </span>
             ))}
           </div>
@@ -260,9 +367,13 @@ export default function FlowViewAnnotationsPanel({
   onScreenDescriptionUpdate,
   onAlignNodes,
   onFlowMetaUpdate,
+  onRenameFlow,
+  onSaveToCode,
 }: FlowViewAnnotationsPanelProps) {
   const navigate = useNavigate()
   const [confirmReset, setConfirmReset] = useState(false)
+  const [confirmSaveToCode, setConfirmSaveToCode] = useState(false)
+  const [saveToCodeResult, setSaveToCodeResult] = useState<string | null>(null)
 
   const handleLabelSave = useCallback(
     (label: string) => {
@@ -313,7 +424,7 @@ export default function FlowViewAnnotationsPanel({
                   onClick={() => navigate(`/flows?flow=${f.id}`)}
                   className="px-[var(--token-spacing-2)] py-[1px] bg-[#4ADE80]/15 text-[#4ADE80] rounded-[var(--token-radius-full)] text-[length:var(--token-font-size-caption)] hover:bg-[#4ADE80]/25 transition-colors cursor-pointer"
                 >
-                  {f.name}
+                  <span className="font-mono">{f.id}</span>
                 </button>
               ))}
             </div>
@@ -328,9 +439,9 @@ export default function FlowViewAnnotationsPanel({
                   key={f.id}
                   type="button"
                   onClick={() => navigate(`/flows?flow=${f.id}`)}
-                  className="px-[var(--token-spacing-2)] py-[1px] bg-[#60A5FA]/15 text-[#60A5FA] rounded-[var(--token-radius-full)] text-[length:var(--token-font-size-caption)] hover:bg-[#60A5FA]/25 transition-colors cursor-pointer"
+                  className="px-[var(--token-spacing-2)] py-[1px] bg-[#60A5FA]/15 text-[#60A5FA] rounded-[var(--token-radius-full)] text-[length:var(--token-font-size-caption)] hover:bg-[#60A5FA]/25 transition-colors cursor-pointer font-mono"
                 >
-                  {f.name}
+                  {f.id}
                 </button>
               ))}
             </div>
@@ -401,6 +512,65 @@ export default function FlowViewAnnotationsPanel({
           )}
         </div>
       )}
+
+      {/* Save to code */}
+      {onSaveToCode && import.meta.env.DEV && (() => {
+        return (
+          <div className="mt-[var(--token-spacing-2)]">
+            {saveToCodeResult ? (
+              <p className="text-[length:var(--token-font-size-caption)] text-center text-[#4ADE80] py-[var(--token-spacing-1)]">
+                {saveToCodeResult}
+              </p>
+            ) : confirmSaveToCode ? (
+              <div className="flex flex-col gap-[var(--token-spacing-2)]">
+                <p className="text-[length:var(--token-font-size-caption)] text-shell-text-secondary">
+                  Generate index.ts from this flow? The flow graph layout will be preserved.
+                </p>
+                <div className="flex gap-[var(--token-spacing-2)]">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmSaveToCode(false)}
+                    className="flex-1 py-[var(--token-spacing-1)] text-[length:var(--token-font-size-caption)] text-shell-text-tertiary hover:text-shell-text-secondary rounded-[var(--token-radius-sm)] cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const result = await onSaveToCode()
+                        if (result.ok) {
+                          setSaveToCodeResult('Saved! Reload to activate.')
+                        } else {
+                          setSaveToCodeResult(result.error ?? 'Failed')
+                        }
+                      } catch (err) {
+                        setSaveToCodeResult(err instanceof Error ? err.message : 'Unexpected error')
+                      } finally {
+                        setConfirmSaveToCode(false)
+                      }
+                    }}
+                    className="flex-1 py-[var(--token-spacing-1)] text-[length:var(--token-font-size-caption)] text-[#4ADE80] bg-[#4ADE80]/10 border border-[#4ADE80]/30 rounded-[var(--token-radius-sm)] font-medium hover:bg-[#4ADE80]/20 cursor-pointer flex items-center justify-center gap-[4px]"
+                  >
+                    <RiCodeSSlashLine size={11} />
+                    Save
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmSaveToCode(true)}
+                title="Generate index.ts from this flow"
+                className="w-full flex items-center justify-center gap-[4px] py-[var(--token-spacing-1)] text-[length:var(--token-font-size-caption)] text-shell-text-tertiary hover:text-[#4ADE80] rounded-[var(--token-radius-sm)] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-shell-text-tertiary"
+              >
+                <RiCodeSSlashLine size={11} />
+                Save to code
+              </button>
+            )}
+          </div>
+        )
+      })()}
     </div>
   )
 
@@ -429,24 +599,6 @@ export default function FlowViewAnnotationsPanel({
             {/* ── Screen / Page nodes ── */}
             {(nodeData.nodeType === 'screen' || nodeData.nodeType === 'page') && (
               <>
-                <div className="mb-[var(--token-spacing-lg)]">
-                  <p className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary uppercase tracking-wider mb-[var(--token-spacing-1)]">
-                    Link to Screen
-                  </p>
-                  <select
-                    value={nodeData.screenId ?? ''}
-                    onChange={(e) => {
-                      onNodeUpdate(selectedNode.id, { screenId: e.target.value || null })
-                    }}
-                    className="w-full px-[var(--token-spacing-2)] py-[var(--token-spacing-1)] text-[length:var(--token-font-size-body-sm)] text-shell-text bg-shell-input border border-shell-border rounded-[var(--token-radius-sm)] outline-none focus:border-shell-selected-text cursor-pointer"
-                  >
-                    <option value="">(Placeholder)</option>
-                    {flow.screens.map((s) => (
-                      <option key={s.id} value={s.id}>{s.title}</option>
-                    ))}
-                  </select>
-                </div>
-
                 {/* Active State selector */}
                 {(() => {
                   const pid = (nodeData as { pageId?: string }).pageId ?? (linkedScreen?.pageId)
@@ -615,7 +767,7 @@ export default function FlowViewAnnotationsPanel({
                 >
                   <option value="">(None)</option>
                   {getAllFlows().filter(f => f.id !== flow.id).map((f) => (
-                    <option key={f.id} value={f.id}>{f.name}</option>
+                    <option key={f.id} value={f.id}>{f.id}</option>
                   ))}
                 </select>
               </div>
@@ -738,18 +890,33 @@ export default function FlowViewAnnotationsPanel({
               </div>
             )}
 
-            {/* ── Description (always visible so users can add/edit) ── */}
+            {/* ── Description ── */}
+            {/* For screen/page nodes with a linked screen, show the screen description (syncs to .tsx).
+                For all other node types, show the graph node description. */}
             <div className="mb-[var(--token-spacing-lg)]">
               <p className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary uppercase tracking-wider mb-[var(--token-spacing-1)]">
                 Description
               </p>
               <div className="text-[length:var(--token-font-size-body-sm)] text-shell-text-secondary">
-                <EditableField
-                  value={nodeData.description ?? ''}
-                  onSave={handleDescriptionSave}
-                  multiline
-                  label="node description"
-                />
+                {linkedScreen && onScreenDescriptionUpdate ? (
+                  <EditableField
+                    value={linkedScreen.description ?? ''}
+                    onSave={(val) => onScreenDescriptionUpdate(linkedScreen.id, val)}
+                    multiline
+                    label="description"
+                  />
+                ) : linkedScreen ? (
+                  <p className="text-[length:var(--token-font-size-body-sm)] text-shell-text-secondary">
+                    {linkedScreen.description || '(no description)'}
+                  </p>
+                ) : (
+                  <EditableField
+                    value={nodeData.description ?? ''}
+                    onSave={handleDescriptionSave}
+                    multiline
+                    label="description"
+                  />
+                )}
               </div>
             </div>
 
@@ -767,27 +934,6 @@ export default function FlowViewAnnotationsPanel({
                   <div className="flex justify-between text-[length:var(--token-font-size-body-sm)]">
                     <span className="text-shell-text-secondary">Components</span>
                     <span className="text-shell-text">{linkedScreen.componentsUsed.length}</span>
-                  </div>
-                </div>
-
-                {/* Page Description — editable for dynamic flows */}
-                <div className="mt-[var(--token-spacing-3)]">
-                  <p className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary uppercase tracking-wider mb-[var(--token-spacing-1)]">
-                    Page Description
-                  </p>
-                  <div className="text-[length:var(--token-font-size-body-sm)] text-shell-text-secondary">
-                    {flow.isDynamic && onScreenDescriptionUpdate ? (
-                      <EditableField
-                        value={linkedScreen.description ?? ''}
-                        onSave={(val) => onScreenDescriptionUpdate(linkedScreen.id, val)}
-                        multiline
-                        label="page description"
-                      />
-                    ) : (
-                      <p className="text-[length:var(--token-font-size-body-sm)] text-shell-text-secondary">
-                        {linkedScreen.description || '(no description)'}
-                      </p>
-                    )}
                   </div>
                 </div>
               </div>
@@ -814,6 +960,35 @@ export default function FlowViewAnnotationsPanel({
               </div>
             )}
 
+            {/* Page states */}
+            {(() => {
+              const pid = (nodeData as { pageId?: string }).pageId ?? (linkedScreen?.pageId)
+              const page = pid ? getPage(pid) : null
+              if (!page?.states?.length) return null
+              return (
+                <div className="mb-[var(--token-spacing-lg)]">
+                  <p className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary uppercase tracking-wider mb-[var(--token-spacing-2)]">
+                    States
+                  </p>
+                  <div className="flex flex-wrap gap-[var(--token-spacing-1)]">
+                    {page.states.map((s) => (
+                      <span
+                        key={s.id}
+                        title={s.description}
+                        className={`px-[var(--token-spacing-2)] py-[1px] rounded-[var(--token-radius-full)] text-[length:var(--token-font-size-caption)] ${
+                          s.isDefault
+                            ? 'bg-shell-selected-text/15 text-shell-selected-text'
+                            : 'bg-shell-hover text-shell-text-secondary'
+                        }`}
+                      >
+                        {s.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
+
             {/* Open in Prototype button */}
             {nodeData.screenId && (
               <div className="flex flex-col gap-[var(--token-spacing-2)]">
@@ -838,14 +1013,6 @@ export default function FlowViewAnnotationsPanel({
               </div>
             )}
 
-            {/* Placeholder notice */}
-            {!nodeData.screenId && nodeData.nodeType === 'screen' && (
-              <div className="py-[var(--token-spacing-3)] px-[var(--token-spacing-3)] border border-dashed border-shell-border rounded-[var(--token-radius-md)] text-center">
-                <p className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary">
-                  This is a placeholder screen. Build the screen component and link it to see it in the prototype view.
-                </p>
-              </div>
-            )}
           </div>
         </>
       ) : (
@@ -853,14 +1020,13 @@ export default function FlowViewAnnotationsPanel({
         <>
           {/* Flow name + description */}
           <div className="p-[var(--token-spacing-md)]">
-            <div className="text-[length:var(--token-font-size-heading-sm)] font-semibold text-shell-text mb-[var(--token-spacing-1)]">
-              {onFlowMetaUpdate ? (
-                <EditableField value={flow.name} onSave={(val) => onFlowMetaUpdate({ name: val })} label="flow name" />
+            <div className="text-[length:var(--token-font-size-heading-sm)] font-semibold text-shell-text mb-[var(--token-spacing-1)] font-mono">
+              {onRenameFlow ? (
+                <EditableSlug value={flow.id} onSave={onRenameFlow} label="flow slug" />
               ) : (
-                <h2>{flow.name}</h2>
+                <h2>{flow.id}</h2>
               )}
             </div>
-            <p className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary mb-[var(--token-spacing-1)] font-mono select-all">{flow.id}</p>
             <div className="text-[length:var(--token-font-size-body-sm)] text-shell-text-secondary leading-[var(--token-line-height-body-sm)]">
               {onFlowMetaUpdate ? (
                 <EditableField value={flow.description ?? ''} onSave={(val) => onFlowMetaUpdate({ description: val })} multiline label="flow description" />

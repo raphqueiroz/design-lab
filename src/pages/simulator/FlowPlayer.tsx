@@ -328,7 +328,7 @@ export default function FlowPlayer({ flowId, initialScreenId, onNavigateToFlow }
         className="h-full"
       >
         <ScreenDataProvider data={stateData}>
-          <current.component onNext={goNext} onBack={goBack} overlays={screenOverlays} onOpenOverlay={setActiveOverlayId} onElementTap={handleElementTap} onStateChange={handleScreenStateChange} />
+          <current.component onNext={goNext} onBack={goBack} overlays={screenOverlays} onOpenOverlay={setActiveOverlayId} onElementTap={handleElementTap} onStateChange={handleScreenStateChange} screenTitle={current.title} screenDescription={current.description} />
         </ScreenDataProvider>
       </motion.div>
     </AnimatePresence>

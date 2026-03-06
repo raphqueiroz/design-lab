@@ -19,8 +19,6 @@ export interface Page {
   area: string
   componentsUsed: string[]
   component: ComponentType<FlowScreenProps>
-  isDynamic?: boolean
-  source?: 'static' | 'dynamic'
   states?: PageStateDefinition[]
 }
 
@@ -44,7 +42,6 @@ export function registerDynamicPage(def: DynamicPageDef): void {
     description: def.description,
     area: def.area,
     componentsUsed: def.componentsUsed,
-    isDynamic: true,
     component: createPlaceholderComponent(def.name, def.description),
   }
   pages.set(page.id, page)

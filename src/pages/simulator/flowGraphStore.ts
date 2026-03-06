@@ -31,15 +31,22 @@ function writeAllGraphs(data: Record<string, FlowGraph>): void {
 // ── Public API ──
 
 /**
- * Bootstrap a flow graph from code defaults — only writes if no existing
- * graph is found in localStorage. Safe for module-scope calls.
+ * Bootstrap a flow graph from code defaults.
+ * Only writes if no existing graph is found OR if graphVersion changed
+ * (indicating the code definition was updated).
  * Does NOT write to Supabase (hydration handles remote state).
  */
-export function bootstrapFlowGraph(flowId: string, nodes: Node[], edges: Edge[]): void {
+export function bootstrapFlowGraph(flowId: string, nodes: Node[], edges: Edge[], graphVersion?: number): void {
   if (isFlowDeleted(flowId)) return // user deleted this flow — don't recreate
   const existing = readAllGraphs()
-  if (existing[flowId]) return // user has edits — don't overwrite
-  existing[flowId] = { flowId, nodes, edges, updatedAt: new Date().toISOString() }
+  const current = existing[flowId]
+  if (current) {
+    // If no version provided, never overwrite (backwards compatible)
+    if (graphVersion == null) return
+    // If version matches or stored version is newer, keep user edits
+    if (current.graphVersion != null && current.graphVersion >= graphVersion) return
+  }
+  existing[flowId] = { flowId, nodes, edges, updatedAt: new Date().toISOString(), graphVersion }
   writeAllGraphs(existing)
 }
 
@@ -82,6 +89,72 @@ export async function deleteFlowGraph(flowId: string): Promise<void> {
   if (isSupabaseConnected()) {
     await supabase!.from('flow_graphs').delete().eq('flow_id', flowId)
   }
+}
+
+// ── Rename ──
+
+export async function renameFlowGraph(oldId: string, newId: string): Promise<void> {
+  const all = readAllGraphs()
+  const graph = all[oldId]
+  if (!graph) return
+
+  delete all[oldId]
+
+  // Update screenId/pageId in nodes that embed the old ID
+  const updatedNodes = graph.nodes.map((n) => ({
+    ...n,
+    data: {
+      ...n.data,
+      ...(typeof n.data.screenId === 'string' && (n.data.screenId as string).includes(oldId)
+        ? { screenId: (n.data.screenId as string).replace(oldId, newId) }
+        : {}),
+      ...(typeof n.data.pageId === 'string' && (n.data.pageId as string).includes(oldId)
+        ? { pageId: (n.data.pageId as string).replace(oldId, newId) }
+        : {}),
+    },
+  }))
+
+  all[newId] = { flowId: newId, nodes: updatedNodes, edges: graph.edges, updatedAt: new Date().toISOString() }
+  writeAllGraphs(all)
+
+  // Supabase: delete old, upsert new
+  if (isSupabaseConnected()) {
+    await supabase!.from('flow_graphs').delete().eq('flow_id', oldId)
+    await supabase!.from('flow_graphs').upsert(
+      {
+        flow_id: newId,
+        nodes: JSON.stringify(updatedNodes),
+        edges: JSON.stringify(graph.edges),
+        updated_at: all[newId].updatedAt,
+      },
+      { onConflict: 'flow_id' },
+    )
+  }
+}
+
+// ── Update flow-reference nodes across ALL graphs ──
+
+export function updateFlowReferencesInAllGraphs(oldFlowId: string, newFlowId: string): void {
+  const all = readAllGraphs()
+  let changed = false
+
+  for (const [graphFlowId, graph] of Object.entries(all)) {
+    if (graphFlowId === newFlowId) continue // skip the renamed flow itself
+    let graphChanged = false
+    const updatedNodes = graph.nodes.map((n) => {
+      if (n.data.nodeType === 'flow-reference' && n.data.targetFlowId === oldFlowId) {
+        graphChanged = true
+        return { ...n, data: { ...n.data, targetFlowId: newFlowId } }
+      }
+      return n
+    })
+    if (graphChanged) {
+      all[graphFlowId] = { ...graph, nodes: updatedNodes, updatedAt: new Date().toISOString() }
+      changed = true
+    }
+  }
+
+  if (changed) writeAllGraphs(all)
 }
 
 // ── Supabase → localStorage hydration ──

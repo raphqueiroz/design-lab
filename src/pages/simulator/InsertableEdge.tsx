@@ -8,9 +8,9 @@ import {
   RiCursorLine, RiComputerLine, RiGitBranchLine, RiErrorWarningLine,
   RiExternalLinkLine, RiStackLine, RiServerLine, RiTimerLine, RiLoginBoxLine,
 } from '@remixicon/react'
-import type { FlowNodeType } from './flowGraph.types'
+import type { CreatableNodeType } from './flowGraph.types'
 
-const nodeTypeOptions: { type: FlowNodeType; label: string; icon: typeof RiCursorLine; color: string }[] = [
+const nodeTypeOptions: { type: CreatableNodeType; label: string; icon: typeof RiCursorLine; color: string }[] = [
   { type: 'action', label: 'Action', icon: RiCursorLine, color: '#A78BFA' },
   { type: 'screen', label: 'Screen', icon: RiComputerLine, color: '#4ADE80' },
   { type: 'decision', label: 'Decision', icon: RiGitBranchLine, color: '#FBBF24' },
@@ -23,7 +23,7 @@ const nodeTypeOptions: { type: FlowNodeType; label: string; icon: typeof RiCurso
 ]
 
 interface InsertableEdgeData {
-  onInsertNode?: (edgeId: string, nodeType: FlowNodeType, position: { x: number; y: number }) => void
+  onInsertNode?: (edgeId: string, nodeType: CreatableNodeType, position: { x: number; y: number }) => void
   onEdgeLabelChange?: (edgeId: string, label: string) => void
   isDecisionEdge?: boolean
   [key: string]: unknown

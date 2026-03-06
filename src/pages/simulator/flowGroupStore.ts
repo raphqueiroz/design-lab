@@ -4,7 +4,7 @@
  */
 
 import { supabase, isSupabaseConnected } from '../../lib/supabase'
-import { getAllFlows } from './flowRegistry'
+import { getAllFlows, duplicateFlowWithId } from './flowRegistry'
 
 // ── Types ──
 
@@ -25,6 +25,9 @@ export interface FlowGroupMembership {
 interface FlowGroupState {
   groups: Record<string, FlowGroup>
   memberships: Record<string, FlowGroupMembership>  // keyed by flowId
+  archivedFlows: Record<string, string>    // flowId → original domainId
+  archivedGroups: Record<string, true>     // groupId → true
+  ungroupedOrder: Record<string, string[]> // domainId → ordered flowIds
 }
 
 // ── Storage ──
@@ -34,9 +37,14 @@ const STORAGE_KEY = 'picnic-design-lab:flow-groups'
 function readState(): FlowGroupState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : { groups: {}, memberships: {} }
+    const state = raw ? JSON.parse(raw) : { groups: {}, memberships: {} }
+    // Backwards compat: ensure archive fields exist
+    if (!state.archivedFlows) state.archivedFlows = {}
+    if (!state.archivedGroups) state.archivedGroups = {}
+    if (!state.ungroupedOrder) state.ungroupedOrder = {}
+    return state
   } catch {
-    return { groups: {}, memberships: {} }
+    return { groups: {}, memberships: {}, archivedFlows: {}, archivedGroups: {}, ungroupedOrder: {} }
   }
 }
 
@@ -181,6 +189,9 @@ export function assignFlowToGroup(flowId: string, groupId: string, order?: numbe
   const group = state.groups[groupId]
   if (!group) return
 
+  // Remove from ungrouped order since it's now in a group
+  _removeFromUngroupedOrderInState(state, group.domainId, flowId)
+
   const existing = Object.values(state.memberships).filter((m) => m.groupId === groupId)
   const maxOrder = existing.reduce((max, m) => Math.max(max, m.order), -1)
 
@@ -192,9 +203,18 @@ export function assignFlowToGroup(flowId: string, groupId: string, order?: numbe
   writeState(state)
 }
 
-export function removeFlowFromGroup(flowId: string): void {
+export function removeFlowFromGroup(flowId: string, appendToDomainId?: string): void {
   const state = readState()
+  const membership = state.memberships[flowId]
+  const domainId = appendToDomainId ?? (membership ? state.groups[membership.groupId]?.domainId : undefined)
   delete state.memberships[flowId]
+  // Append to ungrouped order if we know the domain
+  if (domainId) {
+    const order = state.ungroupedOrder[domainId] ?? []
+    if (!order.includes(flowId)) {
+      state.ungroupedOrder[domainId] = [...order, flowId]
+    }
+  }
   writeState(state)
 }
 
@@ -218,6 +238,138 @@ export function reorderGroupsInDomain(domainId: string, orderedGroupIds: string[
     }
   }
   writeState(state)
+}
+
+// ── Public API: archive ──
+
+export function archiveFlow(flowId: string, domainId: string): void {
+  const state = readState()
+  state.archivedFlows[flowId] = domainId
+  writeState(state)
+}
+
+export function unarchiveFlow(flowId: string): void {
+  const state = readState()
+  delete state.archivedFlows[flowId]
+  writeState(state)
+}
+
+export function archiveGroup(groupId: string): void {
+  const state = readState()
+  const group = state.groups[groupId]
+  if (!group) return
+  state.archivedGroups[groupId] = true
+  // Archive all flows in the group
+  const flowIds = Object.values(state.memberships)
+    .filter((m) => m.groupId === groupId)
+    .map((m) => m.flowId)
+  for (const fid of flowIds) {
+    state.archivedFlows[fid] = group.domainId
+  }
+  writeState(state)
+}
+
+export function unarchiveGroup(groupId: string): void {
+  const state = readState()
+  delete state.archivedGroups[groupId]
+  // Unarchive all flows in the group
+  const flowIds = Object.values(state.memberships)
+    .filter((m) => m.groupId === groupId)
+    .map((m) => m.flowId)
+  for (const fid of flowIds) {
+    delete state.archivedFlows[fid]
+  }
+  writeState(state)
+}
+
+export function isFlowArchived(flowId: string): boolean {
+  return flowId in readState().archivedFlows
+}
+
+export function isGroupArchived(groupId: string): boolean {
+  return groupId in readState().archivedGroups
+}
+
+export function getArchivedFlowIds(): string[] {
+  return Object.keys(readState().archivedFlows)
+}
+
+export function getArchivedGroupIds(): string[] {
+  return Object.keys(readState().archivedGroups)
+}
+
+// ── Public API: ungrouped order ──
+
+function _removeFromUngroupedOrderInState(state: FlowGroupState, domainId: string, flowId: string): void {
+  const order = state.ungroupedOrder[domainId]
+  if (!order) return
+  const idx = order.indexOf(flowId)
+  if (idx >= 0) order.splice(idx, 1)
+  if (order.length === 0) delete state.ungroupedOrder[domainId]
+}
+
+export function getUngroupedFlowOrder(domainId: string): string[] {
+  return readState().ungroupedOrder[domainId] ?? []
+}
+
+export function setUngroupedFlowOrder(domainId: string, orderedIds: string[]): void {
+  const state = readState()
+  state.ungroupedOrder[domainId] = orderedIds
+  writeState(state)
+}
+
+export function addToUngroupedOrder(domainId: string, flowId: string, beforeFlowId?: string): void {
+  const state = readState()
+  const order = state.ungroupedOrder[domainId] ?? []
+  // Remove if already present
+  const filtered = order.filter((id) => id !== flowId)
+  if (beforeFlowId) {
+    const idx = filtered.indexOf(beforeFlowId)
+    filtered.splice(idx >= 0 ? idx : filtered.length, 0, flowId)
+  } else {
+    filtered.push(flowId)
+  }
+  state.ungroupedOrder[domainId] = filtered
+  writeState(state)
+}
+
+export function removeFromUngroupedOrder(domainId: string, flowId: string): void {
+  const state = readState()
+  _removeFromUngroupedOrderInState(state, domainId, flowId)
+  writeState(state)
+}
+
+// ── Rename flow in groups ──
+
+export function renameFlowInGroups(oldId: string, newId: string): void {
+  const state = readState()
+  let changed = false
+
+  // Re-key membership
+  if (state.memberships[oldId]) {
+    state.memberships[newId] = { ...state.memberships[oldId], flowId: newId }
+    delete state.memberships[oldId]
+    changed = true
+  }
+
+  // Re-key archived flows
+  if (state.archivedFlows[oldId] !== undefined) {
+    state.archivedFlows[newId] = state.archivedFlows[oldId]
+    delete state.archivedFlows[oldId]
+    changed = true
+  }
+
+  // Re-key in ungrouped order
+  for (const domainId of Object.keys(state.ungroupedOrder)) {
+    const order = state.ungroupedOrder[domainId]
+    const idx = order.indexOf(oldId)
+    if (idx >= 0) {
+      order[idx] = newId
+      changed = true
+    }
+  }
+
+  if (changed) writeState(state)
 }
 
 // ── Seed from old parentFlowId hierarchy ──
@@ -266,4 +418,31 @@ export function seedDefaultGroups(_allFlows?: unknown): void {
   }
 
   writeState(state)
+}
+
+// ── vs1.0 Migration ──
+
+const V1_MIGRATION_KEY = 'picnic-design-lab:v1-migration-done'
+
+export function migrateV1Flows(): void {
+  if (localStorage.getItem(V1_MIGRATION_KEY)) return
+
+  const flowsToMigrate = ['flow-poupar', 'savings-deposit', 'savings-manage-b']
+  const migratedIds: string[] = []
+
+  for (const id of flowsToMigrate) {
+    const targetId = id + '-v1'
+    const ok = duplicateFlowWithId(id, targetId, 'earn')
+    if (ok) migratedIds.push(targetId)
+  }
+
+  if (migratedIds.length > 0) {
+    // Create the "vs1.0" group in the earn domain
+    const group = createGroup('vs1.0', 'earn')
+    for (const mid of migratedIds) {
+      assignFlowToGroup(mid, group.id)
+    }
+  }
+
+  localStorage.setItem(V1_MIGRATION_KEY, new Date().toISOString())
 }

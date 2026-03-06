@@ -17,7 +17,7 @@ export default function AnnotationsPanel({
 
   const handleExport = () => {
     const lines = [
-      `# ${flow.name} — Flow Handoff`,
+      `# ${flow.id} — Flow Handoff`,
       '',
       flow.description ? `> ${flow.description}` : '',
       '',
@@ -65,8 +65,8 @@ export default function AnnotationsPanel({
           <p className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary uppercase tracking-wider mb-[var(--token-spacing-1)]">
             Flow Name
           </p>
-          <p className="text-[length:var(--token-font-size-heading-sm)] font-medium text-shell-text">
-            {flow.name}
+          <p className="text-[length:var(--token-font-size-heading-sm)] font-medium text-shell-text font-mono">
+            {flow.id}
           </p>
         </div>
 

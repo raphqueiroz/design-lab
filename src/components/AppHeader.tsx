@@ -43,8 +43,8 @@ export default function AppHeader({ actions, onSynced }: AppHeaderProps) {
     <header className="h-[48px] flex items-center justify-between px-[var(--token-spacing-md)] border-b border-shell-border bg-shell-surface shrink-0">
       {/* Left: identity + sync */}
       <div className="flex items-center gap-[var(--token-spacing-2)] min-w-[200px]">
-        <h1 className="text-[length:var(--token-font-size-heading-sm)] font-semibold text-shell-text">
-          Picnic Design Lab
+        <h1 className="text-[length:var(--token-font-size-heading-sm)] font-black text-shell-text-secondary uppercase tracking-tight">
+          NAPKIN
         </h1>
         {isSupabaseConnected() ? (
           <button
