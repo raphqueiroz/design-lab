@@ -15,8 +15,8 @@ import EditableFlowSlug from './simulator/EditableFlowSlug'
 import { migrateHardcodedFlows, migrateStaleScreenPaths } from './simulator/flowMigration'
 import { subscribeToGraphChanges } from './simulator/flowGraphStore'
 import { subscribeToDynamicFlowChanges, migrateSavingsToEarnDomain } from './simulator/dynamicFlowStore'
-import { seedDefaultGroups, migrateV1Flows } from './simulator/flowGroupStore'
-import { syncAll, markSynced, pushAllToSupabase } from '../lib/syncStore'
+import { seedDefaultGroups, migrateV1Flows, enableUserActions, subscribeToGroupChanges } from './simulator/flowGroupStore'
+import { pullFromSupabase, pushAllToSupabase } from '../lib/syncStore'
 
 // Expose push function for console use
 if (typeof window !== 'undefined') {
@@ -78,21 +78,23 @@ export default function SimulatorPage() {
   }, [])
 
   useEffect(() => {
-    syncAll().then((ok) => {
+    pullFromSupabase().then((ok) => {
+      enableUserActions()
       if (ok) {
         hydrateDynamicFlows()
         setVersion((v) => v + 1)
       }
     })
-    const unsubGraphs = subscribeToGraphChanges(() => { markSynced(); setVersion((v) => v + 1) })
+    const unsubGraphs = subscribeToGraphChanges(() => { setVersion((v) => v + 1) })
     const unsubDynFlows = subscribeToDynamicFlowChanges(() => {
-      markSynced()
       hydrateDynamicFlows()
       setVersion((v) => v + 1)
     })
+    const unsubGroups = subscribeToGroupChanges(() => { setVersion((v) => v + 1) })
     return () => {
       unsubGraphs?.()
       unsubDynFlows?.()
+      unsubGroups()
     }
   }, [])
 

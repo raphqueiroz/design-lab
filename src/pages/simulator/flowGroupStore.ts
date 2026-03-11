@@ -5,6 +5,7 @@
 
 import { supabase, isSupabaseConnected } from '../../lib/supabase'
 import { parseIfString } from '../../lib/parseIfString'
+import { markSynced, markUnsynced, markError } from '../../lib/syncStore'
 import { getAllFlows, duplicateFlowWithId } from './flowRegistry'
 
 // ── Types ──
@@ -35,6 +36,81 @@ interface FlowGroupState {
 
 const STORAGE_KEY = 'picnic-design-lab:flow-groups'
 
+/**
+ * Track whether a user-initiated action is writing vs bootstrap/module-scope code.
+ * Only user actions should push to Supabase. Bootstrap writes (flow index files,
+ * seedDefaultGroups) only write to localStorage.
+ */
+let userActionsEnabled = false
+
+export function enableUserActions(): void {
+  userActionsEnabled = true
+}
+
+// ── Code-defaults registry ──
+// Flow index files declare their desired group/membership at import time.
+// These are held in memory only, never persisted. During hydration (pull),
+// code defaults fill gaps — they never overwrite user-curated state from Supabase.
+
+interface CodeGroupDefault {
+  name: string
+  domainId: string
+}
+
+interface CodeMembershipDefault {
+  flowId: string
+  groupId: string
+}
+
+const _codeGroupDefaults = new Map<string, CodeGroupDefault>()   // groupId → default
+const _codeMembershipDefaults = new Map<string, CodeMembershipDefault>() // flowId → default
+
+export function declareGroupDefault(name: string, domainId: string): string {
+  const id = 'group-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')
+  _codeGroupDefaults.set(id, { name, domainId })
+  return id
+}
+
+export function declareMembershipDefault(flowId: string, groupId: string): void {
+  _codeMembershipDefaults.set(flowId, { flowId, groupId })
+}
+
+/**
+ * Apply code defaults to a state object (mutates in place).
+ * Only adds groups/memberships that don't already exist in state.
+ */
+function applyCodeDefaults(state: FlowGroupState): void {
+  const registeredFlows = new Set(getAllFlows().map((f) => f.id))
+
+  for (const [groupId, def] of _codeGroupDefaults) {
+    if (!(groupId in state.groups)) {
+      const existing = Object.values(state.groups).filter((g) => g.domainId === def.domainId)
+      const maxOrder = existing.reduce((max, g) => Math.max(max, g.order), -1)
+      state.groups[groupId] = {
+        id: groupId,
+        name: def.name,
+        domainId: def.domainId,
+        order: maxOrder + 1,
+        collapsed: false,
+      }
+    }
+  }
+
+  for (const [flowId, def] of _codeMembershipDefaults) {
+    if (!registeredFlows.has(flowId)) continue
+    if (flowId in state.memberships) continue
+    if (!(def.groupId in state.groups)) continue
+
+    const existing = Object.values(state.memberships).filter((m) => m.groupId === def.groupId)
+    const maxOrder = existing.reduce((max, m) => Math.max(max, m.order), -1)
+    state.memberships[flowId] = {
+      flowId,
+      groupId: def.groupId,
+      order: maxOrder + 1,
+    }
+  }
+}
+
 function readState(): FlowGroupState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -49,9 +125,12 @@ function readState(): FlowGroupState {
   }
 }
 
-function writeState(state: FlowGroupState): void {
+function writeState(state: FlowGroupState, isUserAction = false): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  upsertToSupabase(state)
+  if (isUserAction || userActionsEnabled) {
+    markUnsynced()
+    upsertToSupabase(state)
+  }
   notifyListeners()
 }
 
@@ -80,9 +159,18 @@ async function upsertToSupabase(state: FlowGroupState): Promise<void> {
     },
     { onConflict: 'id' },
   )
-  if (error) console.error('[flowGroupStore] Supabase upsert failed:', error.message)
+  if (error) {
+    console.error('[flowGroupStore] Supabase upsert failed:', error.message)
+    markError()
+  } else {
+    markSynced()
+  }
 }
 
+/**
+ * PULL: Remote replaces local entirely, then code defaults fill gaps.
+ * This is a pure pull — no push-back to Supabase.
+ */
 export async function hydrateFlowGroupsFromSupabase(): Promise<boolean> {
   if (!isSupabaseConnected()) return false
 
@@ -93,53 +181,37 @@ export async function hydrateFlowGroupsFromSupabase(): Promise<boolean> {
       .eq('id', 'singleton')
       .single()
 
-    if (error || !data) return false
+    if (error || !data) {
+      // No remote data — apply code defaults to current local state
+      const state = readState()
+      applyCodeDefaults(state)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+      notifyListeners()
+      return false
+    }
 
     const parsed: FlowGroupState = parseIfString(data.data)
 
     if (parsed.groups && parsed.memberships) {
-      // Merge strategy: LOCAL is the base (always the most recent for this device).
-      // Remote only adds groups/memberships that don't exist locally (from other devices).
-      // Local deletions, archives, and ordering always win.
-      const local = readState()
       if (!parsed.archivedFlows) parsed.archivedFlows = {}
       if (!parsed.archivedGroups) parsed.archivedGroups = {}
       if (!parsed.ungroupedOrder) parsed.ungroupedOrder = {}
 
-      // Start with local as base
-      const merged = { ...local }
-
-      // Add remote-only groups (from another device) that don't exist locally
-      for (const [groupId, remoteGroup] of Object.entries(parsed.groups)) {
-        if (!(groupId in merged.groups)) {
-          merged.groups[groupId] = remoteGroup
-        }
+      // Remote is the base — replaces local entirely
+      const state: FlowGroupState = {
+        groups: { ...parsed.groups },
+        memberships: { ...parsed.memberships },
+        archivedFlows: { ...parsed.archivedFlows },
+        archivedGroups: { ...parsed.archivedGroups },
+        ungroupedOrder: { ...parsed.ungroupedOrder },
       }
 
-      // Add remote-only memberships that don't exist locally
-      for (const [flowId, remoteMembership] of Object.entries(parsed.memberships)) {
-        if (!(flowId in merged.memberships)) {
-          merged.memberships[flowId] = remoteMembership
-        }
-      }
+      // Apply code defaults: add groups/memberships from flow index files
+      // that don't exist in the remote state (new flows not yet pushed)
+      applyCodeDefaults(state)
 
-      // Add remote-only archived flows/groups
-      for (const [flowId, domainId] of Object.entries(parsed.archivedFlows)) {
-        if (!(flowId in merged.archivedFlows)) {
-          merged.archivedFlows[flowId] = domainId
-        }
-      }
-      for (const groupId of Object.keys(parsed.archivedGroups)) {
-        if (!(groupId in merged.archivedGroups)) {
-          merged.archivedGroups[groupId] = true
-        }
-      }
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
       notifyListeners()
-
-      // Push merged state back to Supabase to keep it current
-      upsertToSupabase(merged)
 
       return true
     }
@@ -163,11 +235,27 @@ export function getGroup(groupId: string): FlowGroup | undefined {
 }
 
 export function createGroup(name: string, domainId: string): FlowGroup {
+  const id = 'group-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')
+
+  // During bootstrap (before user actions enabled), just register as a code default
+  if (!userActionsEnabled) {
+    declareGroupDefault(name, domainId)
+    // Still write to localStorage for immediate sidebar rendering
+    const state = readState()
+    if (!(id in state.groups)) {
+      const existing = Object.values(state.groups).filter((g) => g.domainId === domainId)
+      const maxOrder = existing.reduce((max, g) => Math.max(max, g.order), -1)
+      state.groups[id] = { id, name, domainId, order: maxOrder + 1, collapsed: false }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+      notifyListeners()
+    }
+    return state.groups[id] ?? { id, name, domainId, order: 0, collapsed: false }
+  }
+
   const state = readState()
   const existing = Object.values(state.groups).filter((g) => g.domainId === domainId)
   const maxOrder = existing.reduce((max, g) => Math.max(max, g.order), -1)
 
-  const id = 'group-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')
   const group: FlowGroup = {
     id,
     name,
@@ -226,6 +314,22 @@ export function getFlowIdsInGroup(groupId: string): string[] {
 }
 
 export function assignFlowToGroup(flowId: string, groupId: string, order?: number): void {
+  // During bootstrap, just register as a code default
+  if (!userActionsEnabled) {
+    declareMembershipDefault(flowId, groupId)
+    // Still write to localStorage for immediate sidebar rendering
+    const state = readState()
+    if (!(flowId in state.memberships) && state.groups[groupId]) {
+      _removeFromUngroupedOrderInState(state, state.groups[groupId].domainId, flowId)
+      const existing = Object.values(state.memberships).filter((m) => m.groupId === groupId)
+      const maxOrder = existing.reduce((max, m) => Math.max(max, m.order), -1)
+      state.memberships[flowId] = { flowId, groupId, order: order ?? maxOrder + 1 }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+      notifyListeners()
+    }
+    return
+  }
+
   const state = readState()
   const group = state.groups[groupId]
   if (!group) return

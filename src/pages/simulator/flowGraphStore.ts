@@ -8,6 +8,7 @@
 
 import type { Node, Edge } from '@xyflow/react'
 import { supabase, isSupabaseConnected } from '../../lib/supabase'
+import { markSynced, markUnsynced, markError } from '../../lib/syncStore'
 import type { FlowGraph } from './flowGraph.types'
 import { isFlowDeleted } from './flowRegistry'
 
@@ -68,6 +69,7 @@ export async function saveFlowGraph(
 
   // Supabase (async)
   if (isSupabaseConnected()) {
+    markUnsynced()
     const { error } = await supabase!.from('flow_graphs').upsert(
       {
         flow_id: flowId,
@@ -77,7 +79,12 @@ export async function saveFlowGraph(
       },
       { onConflict: 'flow_id' },
     )
-    if (error) console.error('[flowGraphStore] Supabase upsert failed:', error.message)
+    if (error) {
+      console.error('[flowGraphStore] Supabase upsert failed:', error.message)
+      markError()
+    } else {
+      markSynced()
+    }
   }
 }
 

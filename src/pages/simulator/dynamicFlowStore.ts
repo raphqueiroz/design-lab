@@ -6,6 +6,7 @@
 
 import { supabase, isSupabaseConnected } from '../../lib/supabase'
 import { parseIfString } from '../../lib/parseIfString'
+import { markSynced, markUnsynced, markError } from '../../lib/syncStore'
 import { updateScreenMeta } from './flowFileApi'
 
 const DELETED_KEY = 'picnic-design-lab:deleted-flows'
@@ -72,6 +73,7 @@ function writeAll(data: Record<string, DynamicFlowDef>): void {
 
 async function upsertFlowToSupabase(flow: DynamicFlowDef): Promise<void> {
   if (!isSupabaseConnected()) return
+  markUnsynced()
   const { error } = await supabase!.from('dynamic_flows').upsert(
     {
       id: flow.id,
@@ -87,7 +89,12 @@ async function upsertFlowToSupabase(flow: DynamicFlowDef): Promise<void> {
     },
     { onConflict: 'id' },
   )
-  if (error) console.error('[dynamicFlowStore] Supabase upsert failed:', error.message)
+  if (error) {
+    console.error('[dynamicFlowStore] Supabase upsert failed:', error.message)
+    markError()
+  } else {
+    markSynced()
+  }
 }
 
 // ── Public API ──

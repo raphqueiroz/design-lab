@@ -640,7 +640,7 @@ export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, o
               <button
                 type="button"
                 onClick={() => setGroupCollapsed(group.id, !isCollapsed)}
-                className="flex items-center gap-[var(--token-spacing-1)] flex-1 min-w-0 text-left text-[length:var(--token-font-size-body-sm)] text-shell-text-secondary hover:text-shell-text transition-colors cursor-pointer"
+                className="flex items-center gap-[var(--token-spacing-1)] flex-1 min-w-0 text-left text-[length:13px] font-[500] text-shell-text-tertiary hover:text-shell-text transition-colors cursor-pointer"
               >
                 <ChevronIcon size={12} className="shrink-0" />
                 <span className="truncate">{group.name}</span>

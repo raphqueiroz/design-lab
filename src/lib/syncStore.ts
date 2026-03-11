@@ -1,8 +1,10 @@
 /**
- * Centralized sync status + manual sync trigger.
+ * Centralized sync status with explicit Pull/Push model.
  *
- * Tracks whether the last hydration round succeeded or failed,
- * and exposes a `syncAll()` that re-runs every hydrate function.
+ * PULL = Supabase → localStorage (remote replaces local)
+ * PUSH = localStorage → Supabase (local replaces remote)
+ *
+ * User actions auto-push. Manual pull/push via AppHeader buttons.
  */
 
 import { supabase, isSupabaseConnected } from './supabase'
@@ -13,7 +15,7 @@ import { hydratePageOverridesFromSupabase } from '../pages/gallery/pageStore'
 import { hydrateDynamicPagesFromSupabase, getDynamicPages } from '../pages/gallery/dynamicPageStore'
 import { hydrateTokensFromSupabase } from '../lib/tokenStore'
 
-export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error' | 'local'
+export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'unsynced' | 'error' | 'local'
 
 type Listener = (status: SyncStatus) => void
 
@@ -34,10 +36,14 @@ export function subscribeSyncStatus(fn: Listener): () => void {
   return () => { listeners.delete(fn) }
 }
 
+// ── Pull (Supabase → localStorage) ──
+
 /**
- * Run all hydration functions. Returns true if at least one succeeded.
+ * Pull all data from Supabase into localStorage.
+ * Remote replaces local. Code defaults fill gaps (handled by each store's hydrate).
+ * Returns true if at least one store hydrated successfully.
  */
-export async function syncAll(): Promise<boolean> {
+export async function pullFromSupabase(): Promise<boolean> {
   if (!isSupabaseConnected()) {
     setStatus('local')
     return false
@@ -64,15 +70,10 @@ export async function syncAll(): Promise<boolean> {
   }
 }
 
-/** Mark status as synced (call after successful writes or initial hydration). */
-export function markSynced(): void {
-  if (isSupabaseConnected()) setStatus('synced')
-}
+/** @deprecated Use pullFromSupabase() instead */
+export const syncAll = pullFromSupabase
 
-/** Mark status as error (call from write failures if desired). */
-export function markError(): void {
-  if (isSupabaseConnected()) setStatus('error')
-}
+// ── Push (localStorage → Supabase) ──
 
 /** Upsert an array of items to a Supabase table. Returns error strings. */
 async function upsertMany<T>(
@@ -111,7 +112,7 @@ async function upsertLocalStorageEntries(
 
 /**
  * Push all localStorage data to Supabase.
- * Use this to backfill Supabase from existing local data.
+ * Local replaces remote for all stores.
  */
 export async function pushAllToSupabase(): Promise<boolean> {
   if (!isSupabaseConnected() || !supabase) return false
@@ -176,4 +177,21 @@ export async function pushAllToSupabase(): Promise<boolean> {
     setStatus('error')
     return false
   }
+}
+
+// ── Status helpers ──
+
+/** Mark status as synced (call after successful Supabase writes). */
+export function markSynced(): void {
+  if (isSupabaseConnected()) setStatus('synced')
+}
+
+/** Mark status as unsynced (call when local changes are made before Supabase write). */
+export function markUnsynced(): void {
+  if (isSupabaseConnected()) setStatus('unsynced')
+}
+
+/** Mark status as error (call from write failures if desired). */
+export function markError(): void {
+  if (isSupabaseConnected()) setStatus('error')
 }

@@ -12,7 +12,7 @@ import { getAllPages, getPage, hydrateDynamicPages, registerDynamicPage } from '
 import { subscribeToPageChanges } from './gallery/pageStore'
 import { saveDynamicPage, subscribeToDynamicPageChanges } from './gallery/dynamicPageStore'
 import { slugify, uniqueId } from '../lib/slugify'
-import { syncAll, markSynced } from '../lib/syncStore'
+import { pullFromSupabase } from '../lib/syncStore'
 import { migrateHardcodedFlows, migrateStaleScreenPaths } from './simulator/flowMigration'
 import { hydrateDynamicFlows } from './simulator/flowRegistry'
 
@@ -34,15 +34,14 @@ export default function PageGalleryPage() {
   }, [])
 
   useEffect(() => {
-    syncAll().then((ok) => {
+    pullFromSupabase().then((ok) => {
       if (ok) {
         hydrateDynamicPages()
         setVersion((v) => v + 1)
       }
     })
-    const unsub = subscribeToPageChanges(() => { markSynced(); setVersion((v) => v + 1) })
+    const unsub = subscribeToPageChanges(() => { setVersion((v) => v + 1) })
     const unsubDynPages = subscribeToDynamicPageChanges(() => {
-      markSynced()
       hydrateDynamicPages()
       setVersion((v) => v + 1)
     })
