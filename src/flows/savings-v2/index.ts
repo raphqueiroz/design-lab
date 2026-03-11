@@ -45,8 +45,8 @@ const manageScreenDefs = [
   {
     id: 'caixinha-mvp-hub',
     title: 'MVP – Hub (USD)',
-    description: 'Dollar caixinha detail: gradient header, chart, deposit/withdraw shortcuts, tabs, insurance.',
-    componentsUsed: ['BaseLayout', 'Header', 'LineChart', 'Badge', 'ShortcutButton', 'SegmentedControl', 'DataList', 'Banner', 'Avatar', 'Text', 'Stack'],
+    description: 'Dollar caixinha detail: chart, balance with yield arrow + BRL equivalent, deposit/withdraw shortcuts, tabs, insurance.',
+    componentsUsed: ['BaseLayout', 'Header', 'LineChart', 'ShortcutButton', 'SegmentedControl', 'DataList', 'Banner', 'Text', 'Stack'],
     component: MVP_Screen2_Hub,
     interactiveElements: [
       { id: 'sc-adicionar', component: 'ShortcutButton', label: 'Adicionar' },
@@ -54,8 +54,9 @@ const manageScreenDefs = [
       { id: 'btn-apolice', component: 'Button', label: 'Ver apólice' },
     ],
     states: [
-      { id: 'default', name: 'Com saldo', description: 'Has USD balance', isDefault: true, data: {} },
-      { id: 'new-user', name: 'Sem saldo', description: 'Zero balance, first visit', data: { hasBalance: false } },
+      { id: 'default', name: 'Com saldo', description: 'Has balance, Details tab', isDefault: true, data: {} },
+      { id: 'no-balance', name: 'Sem saldo', description: 'Zero balance, Resgatar disabled', data: { hasBalance: false } },
+      { id: 'historico', name: 'Histórico', description: 'History tab active', data: { tab: 1 } },
     ],
   },
   {
@@ -273,6 +274,7 @@ registerFlow({
   name: 'Caixinha MVP Deposit',
   description: 'Deposit into USD caixinha: amount entry, review, processing, success.',
   domain: 'earn',
+  level: 2,
   screens: depositScreenDefs.map(s => ({
     id: s.id,
     title: s.title,
@@ -344,7 +346,7 @@ bootstrapFlowGraph('caixinha-mvp',
     { id: 'e-hub-apolice', source: 'screen-hub', target: 'action-apolice' },
     { id: 'e-apolice-insurance', source: 'action-apolice', target: 'screen-insurance' },
   ],
-  3,
+  4,
 )
 
 // ── Manage graph (Version B) ──

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import type { FlowScreenProps } from '../../../pages/simulator/flowRegistry'
 import { useScreenData } from '../../../lib/ScreenDataContext'
 import Header from '../../../library/navigation/Header'
@@ -9,12 +9,10 @@ import Button from '../../../library/inputs/Button'
 import CurrencyInput from '../../../library/inputs/CurrencyInput'
 import DataList from '../../../library/display/DataList'
 import Banner from '../../../library/display/Banner'
-import Text from '../../../library/foundations/Text'
 import { DataListSkeleton } from '../../../library/feedback/Skeleton'
 import {
   type CaixinhaCurrency,
   CURRENCIES,
-  formatBrlEquivalent,
   rawDigitsFromAmount,
 } from '../shared/data'
 
@@ -56,8 +54,6 @@ export default function Screen1_AmountEntry({ onNext, onBack, onElementTap, onSt
     onStateChange?.(stateMap[calcState])
   }, [calcState, onStateChange])
 
-  const brlEquiv = currency !== 'BRL' && parsedAmount > 0 ? formatBrlEquivalent(parsedAmount, currency) : ''
-
   const balanceDisplay = useMemo(() => {
     return `${curr.symbol} ${cardBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
   }, [curr.symbol, cardBalance])
@@ -77,12 +73,6 @@ export default function Screen1_AmountEntry({ onNext, onBack, onElementTap, onSt
           onBalanceTap={() => setAmount(rawDigitsFromAmount(cardBalance))}
           balanceError={exceedsBalance}
         />
-
-        {brlEquiv && parsedAmount > 0 && (
-          <Text variant="body-sm" color="content-secondary" className="mt-[-8px] pl-1">
-            {brlEquiv}
-          </Text>
-        )}
 
         {calcState === 'loading' && <DataListSkeleton rows={3} />}
 

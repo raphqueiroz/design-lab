@@ -18,7 +18,11 @@ export default function StickyFooter({ children }: StickyFooterProps) {
   }
 
   return (
-    <div data-component="StickyFooter" className="shrink-0 px-[var(--token-spacing-6)] pt-[var(--token-spacing-4)] pb-[max(var(--token-spacing-4),var(--safe-area-bottom,0px))] bg-surface-primary border-t border-[var(--token-border-default)]">
+    <div data-component="StickyFooter" className="relative shrink-0 px-[var(--token-spacing-6)] pt-[var(--token-spacing-4)] pb-[max(var(--token-spacing-4),var(--safe-area-bottom,0px))] bg-surface-primary">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-0 right-0 -top-[16px] h-[16px] bg-gradient-to-t from-surface-primary to-transparent"
+      />
       {children}
     </div>
   )

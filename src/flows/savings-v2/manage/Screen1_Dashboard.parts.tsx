@@ -8,9 +8,9 @@ import Badge from '../../../library/display/Badge'
 import Text from '../../../library/foundations/Text'
 import Stack from '../../../library/layout/Stack'
 import type { CaixinhaCurrency } from '../../savings-reviewed/shared/data'
-import { CURRENCIES, formatCurrency, formatBrlEquivalent } from '../../savings-reviewed/shared/data'
+import { CURRENCIES, formatCurrency } from '../../savings-reviewed/shared/data'
 
-// ── Currency Card ──
+// ── Currency Card (disabled only — kept for EUR/BRL) ──
 
 interface CurrencyCardProps {
   currency: CaixinhaCurrency
@@ -22,7 +22,6 @@ interface CurrencyCardProps {
 
 export function CurrencyCard({ currency, balance, yieldToday, disabled, onPress }: CurrencyCardProps) {
   const curr = CURRENCIES[currency]
-  const brlEquiv = formatBrlEquivalent(balance, currency)
   const hasBalance = balance > 0
 
   if (disabled) {
@@ -62,14 +61,9 @@ export function CurrencyCard({ currency, balance, yieldToday, disabled, onPress 
           <Badge variant="lime" size="sm">{curr.apyDisplay}</Badge>
         </Stack>
         {hasBalance ? (
-          <>
-            <Text variant="body-md" className="font-semibold tabular-nums">
-              {formatCurrency(balance, currency)}
-            </Text>
-            {brlEquiv && (
-              <Text variant="caption" color="content-tertiary">{brlEquiv}</Text>
-            )}
-          </>
+          <Text variant="body-md" className="font-semibold tabular-nums">
+            {formatCurrency(balance, currency)}
+          </Text>
         ) : (
           <Text variant="body-sm" color="content-tertiary">Toque para começar a render</Text>
         )}
@@ -82,6 +76,68 @@ export function CurrencyCard({ currency, balance, yieldToday, disabled, onPress 
         )}
         <RiArrowRightSLine size={18} className="text-content-tertiary" />
       </Stack>
+    </button>
+  )
+}
+
+// ── Caixinha Card (rounded square flag, bigger name, no BRL) ──
+
+interface CaixinhaCardProps {
+  currency: CaixinhaCurrency
+  name: string
+  balance: number
+  yieldToday: number
+  disabled?: boolean
+  onPress?: () => void
+}
+
+export function CaixinhaCard({ currency, name, balance, yieldToday, disabled, onPress }: CaixinhaCardProps) {
+  const curr = CURRENCIES[currency]
+
+  if (disabled) {
+    return (
+      <div className="flex items-center gap-3 w-full py-4 px-0 opacity-25">
+        <div className="w-12 h-12 rounded-[var(--token-radius-md)] overflow-hidden shrink-0 grayscale">
+          <img src={curr.flagIcon} alt="" className="w-full h-full object-cover" />
+        </div>
+        <Stack gap="none" className="flex-1 min-w-0">
+          <Text variant="body-lg" className="font-semibold">{name}</Text>
+          <Text variant="body-sm" color="content-tertiary">Em breve</Text>
+        </Stack>
+      </div>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onPress}
+      className="flex items-center gap-3 w-full text-left py-4 px-0 bg-transparent rounded-[var(--token-radius-md)] shadow-[0_0_0_0_transparent] hover:bg-surface-secondary/50 hover:shadow-[12px_0_0_0_rgba(240,241,243,0.5),-12px_0_0_0_rgba(240,241,243,0.5)] active:bg-surface-secondary/70 active:shadow-[12px_0_0_0_rgba(240,241,243,0.7),-12px_0_0_0_rgba(240,241,243,0.7)] transition-all duration-200 ease-out cursor-pointer border-0"
+    >
+      {/* Rounded square flag */}
+      <div className="w-12 h-12 rounded-[var(--token-radius-md)] overflow-hidden shrink-0">
+        <img src={curr.flagIcon} alt="" className="w-full h-full object-cover" />
+      </div>
+
+      <Stack gap="none" className="flex-1 min-w-0">
+        {/* Row 1: title + value aligned */}
+        <div className="flex items-baseline justify-between">
+          <Text variant="body-lg" className="font-semibold">{name}</Text>
+          <Text variant="body-lg" className="font-medium tracking-tight shrink-0">
+            {formatCurrency(balance, currency)}
+          </Text>
+        </div>
+        {/* Row 2: subtitle + yield aligned */}
+        <div className="flex items-baseline justify-between">
+          <Text variant="body-sm" color="content-tertiary">Rende {curr.apyDisplay.replace(' a.a.', '')} ao ano</Text>
+          {yieldToday > 0 && (
+            <Text variant="body-sm" className="text-[var(--color-feedback-success)] font-semibold tracking-tight shrink-0">
+              ↑ {formatCurrency(yieldToday, currency)}
+            </Text>
+          )}
+        </div>
+      </Stack>
+
     </button>
   )
 }

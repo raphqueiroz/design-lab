@@ -68,7 +68,7 @@ export default function PageGalleryPage() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="h-screen flex flex-col bg-shell-bg"
+      className="flex-1 flex flex-col min-h-0"
     >
       <AppHeader
         onSynced={handleSynced}

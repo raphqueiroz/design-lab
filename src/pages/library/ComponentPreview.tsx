@@ -1028,7 +1028,15 @@ function SegmentedControlPreview() {
   const [idx, setIdx] = useState(0)
   return (
     <div className="max-w-[360px]">
-      <SegmentedControl segments={['All', 'Income', 'Expense']} activeIndex={idx} onChange={setIdx} />
+      <SegmentedControl
+        segments={[
+          { label: 'All', icon: <RiGlobalLine size={16} /> },
+          { label: 'Income', icon: <RiArrowLeftDownLine size={16} /> },
+          { label: 'Expense', icon: <RiArrowRightUpLine size={16} /> },
+        ]}
+        activeIndex={idx}
+        onChange={setIdx}
+      />
     </div>
   )
 }

@@ -8,9 +8,13 @@ import IconButton from '../inputs/IconButton'
 
 export interface FeatureLayoutProps {
   /** Full-bleed header image URL */
-  imageSrc: string
+  imageSrc?: string
   /** Alt text for the header image */
   imageAlt?: string
+  /** Background color for the hero area (used when imageSrc is omitted) */
+  imageBgColor?: string
+  /** Content rendered inside the hero area (e.g. title/subtitle overlaid on image or color) */
+  imageHeader?: ReactNode
   /** Max height of the header image area (mobile default 280, desktop 340) */
   imageMaxHeight?: number
   /** Called when the close button is pressed */
@@ -24,6 +28,8 @@ export interface FeatureLayoutProps {
 export default function FeatureLayout({
   imageSrc,
   imageAlt = '',
+  imageBgColor,
+  imageHeader,
   imageMaxHeight,
   onClose,
   imageOverlay,
@@ -52,16 +58,24 @@ export default function FeatureLayout({
           className,
         )}
       >
-        {/* Header image — rounded top corners */}
+        {/* Header hero — image or solid color */}
         <div
           className="relative w-full shrink-0 overflow-hidden"
-          style={{ height: resolvedMaxHeight }}
+          style={{ height: resolvedMaxHeight, background: imageBgColor }}
         >
-          <img
-            src={imageSrc}
-            alt={imageAlt}
-            className="w-full h-full object-cover"
-          />
+          {imageSrc && (
+            <img
+              src={imageSrc}
+              alt={imageAlt}
+              className="w-full h-full object-cover"
+            />
+          )}
+
+          {imageHeader && (
+            <div className="absolute inset-0 flex flex-col justify-end px-[var(--token-spacing-8)] pb-[var(--token-spacing-8)]">
+              {imageHeader}
+            </div>
+          )}
 
           {onClose && (
             <div className="absolute top-[var(--token-spacing-8)] right-[var(--token-spacing-8)]">
@@ -103,16 +117,27 @@ export default function FeatureLayout({
       className={cn('flex flex-col h-full bg-surface-primary overflow-hidden', className)}
     >
       <div className="flex-1 overflow-y-auto">
-        {/* Full-bleed header image */}
+        {/* Full-bleed header hero — image or solid color */}
         <div
           className="relative w-full shrink-0 overflow-hidden"
-          style={{ maxHeight: resolvedMaxHeight }}
+          style={{
+            ...(imageSrc ? { maxHeight: resolvedMaxHeight } : { height: resolvedMaxHeight }),
+            background: imageBgColor,
+          }}
         >
-          <img
-            src={imageSrc}
-            alt={imageAlt}
-            className="w-full h-full object-cover"
-          />
+          {imageSrc && (
+            <img
+              src={imageSrc}
+              alt={imageAlt}
+              className="w-full h-full object-cover"
+            />
+          )}
+
+          {imageHeader && (
+            <div className="absolute inset-0 flex flex-col justify-end px-[var(--token-spacing-6)] pb-[var(--token-spacing-12)]">
+              {imageHeader}
+            </div>
+          )}
 
           {onClose && (
             <div className="absolute top-[var(--safe-area-top,12px)] right-[var(--token-spacing-6)]">
@@ -132,8 +157,8 @@ export default function FeatureLayout({
           )}
         </div>
 
-        {/* Content — 24px padding on mobile */}
-        <div className="px-[var(--token-spacing-6)] pt-[var(--token-spacing-6)] pb-[40px] flex flex-col gap-[var(--token-spacing-4)]">
+        {/* Content — overlaps hero with rounded top corners */}
+        <div className="relative -mt-[20px] rounded-t-[24px] bg-surface-primary px-[var(--token-spacing-6)] pt-[var(--token-spacing-6)] pb-[40px] flex flex-col gap-[var(--token-spacing-4)]">
           {rest}
         </div>
       </div>
@@ -159,8 +184,8 @@ registerComponent({
     {
       name: 'imageSrc',
       type: 'string',
-      required: true,
-      description: 'URL of the full-bleed header image.',
+      required: false,
+      description: 'URL of the full-bleed header image. Optional if imageBgColor is used.',
     },
     {
       name: 'imageAlt',

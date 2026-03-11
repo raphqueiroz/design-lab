@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { RiFileCopyLine, RiCheckLine, RiPencilLine } from '@remixicon/react'
+import { RiFileCopyLine, RiCheckLine, RiPencilLine, RiExternalLinkLine } from '@remixicon/react'
 import type { FlowScreen, Flow } from './flowRegistry'
 import EditableFlowSlug from './EditableFlowSlug'
 
@@ -108,6 +108,60 @@ function EditableDescription({
   )
 }
 
+function EditableTitle({
+  value,
+  onSave,
+}: {
+  value: string
+  onSave: (val: string) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+
+  const handleEdit = () => {
+    setDraft(value)
+    setEditing(true)
+  }
+
+  const handleSave = () => {
+    const trimmed = draft.trim()
+    if (trimmed && trimmed !== value) onSave(trimmed)
+    setEditing(false)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') { e.preventDefault(); handleSave() }
+    if (e.key === 'Escape') setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <input
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={handleSave}
+        autoFocus
+        className="w-full px-[var(--token-spacing-2)] py-[2px] text-[length:var(--token-font-size-heading-sm)] font-medium text-shell-text bg-shell-input border border-shell-selected-text rounded-[var(--token-radius-sm)] outline-none mb-[var(--token-spacing-1)]"
+      />
+    )
+  }
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleEdit}
+      onKeyDown={(e) => { if (e.key === 'Enter') handleEdit() }}
+      title="Click to edit page name"
+      className="flex items-center gap-[var(--token-spacing-1)] px-[var(--token-spacing-1)] py-[2px] -mx-[var(--token-spacing-1)] rounded-[var(--token-radius-sm)] hover:bg-shell-hover transition-colors border border-transparent hover:border-shell-border cursor-pointer mb-[var(--token-spacing-1)]"
+    >
+      <span className="flex-1 text-[length:var(--token-font-size-heading-sm)] font-medium text-shell-text">{value}</span>
+      <RiPencilLine size={12} className="shrink-0 text-shell-text-tertiary" />
+    </div>
+  )
+}
+
 interface AnnotationsPanelProps {
   flow: Flow
   currentScreen: FlowScreen
@@ -115,6 +169,7 @@ interface AnnotationsPanelProps {
   onFlowEdited: () => void
   onRenameFlow?: (newId: string) => Promise<boolean>
   onFlowDescriptionUpdate?: (description: string) => void
+  onScreenTitleUpdate?: (screenId: string, title: string) => void
 }
 
 export default function AnnotationsPanel({
@@ -123,6 +178,7 @@ export default function AnnotationsPanel({
   screenIndex,
   onRenameFlow,
   onFlowDescriptionUpdate,
+  onScreenTitleUpdate,
 }: AnnotationsPanelProps) {
   const navigate = useNavigate()
 
@@ -207,13 +263,29 @@ export default function AnnotationsPanel({
           <p className="text-[length:var(--token-font-size-caption)] text-shell-text-tertiary uppercase tracking-wider mb-[var(--token-spacing-1)]">
             Screen {screenIndex + 1} of {flow.screens.length}
           </p>
-          <p className="text-[length:var(--token-font-size-heading-sm)] font-medium text-shell-text mb-[var(--token-spacing-1)]">
-            {currentScreen.title}
-          </p>
+          {onScreenTitleUpdate ? (
+            <EditableTitle
+              value={currentScreen.title}
+              onSave={(title) => onScreenTitleUpdate(currentScreen.id, title)}
+            />
+          ) : (
+            <p className="text-[length:var(--token-font-size-heading-sm)] font-medium text-shell-text mb-[var(--token-spacing-1)]">
+              {currentScreen.title}
+            </p>
+          )}
           <CopyableSlug value={currentScreen.id} />
-          <p className="text-[length:var(--token-font-size-body-sm)] text-shell-text-secondary">
+          <p className="text-[length:var(--token-font-size-body-sm)] text-shell-text-secondary mb-[var(--token-spacing-2)]">
             {currentScreen.description}
           </p>
+          <a
+            href={`/preview/${flow.id}?screen=${encodeURIComponent(currentScreen.id)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-[4px] text-[length:var(--token-font-size-caption)] text-shell-selected-text hover:text-[#6EE7A0] font-medium transition-colors no-underline"
+          >
+            <RiExternalLinkLine size={12} />
+            Open standalone
+          </a>
         </div>
 
         {/* Components used */}

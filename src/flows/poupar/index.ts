@@ -17,6 +17,7 @@ const screenDefs = [
     interactiveElements: [
       { id: 'btn-ativar', component: 'Button', label: 'Ativar rendimento' },
       { id: 'link-seguro', component: 'Link', label: 'Saiba mais' },
+      { id: 'btn-close', component: 'IconButton', label: 'Fechar' },
     ],
   },
   {
@@ -65,7 +66,12 @@ registerFlow({
     // Row 0: Intro screen
     { id: 'n-intro', type: 'screen', position: { x, y: 0 },
       data: { label: 'Savings Intro', screenId: 'poupar-intro', nodeType: 'screen',
-              pageId: 'poupar-intro', description: 'FeatureLayout with yields overview and insurance link' } as FlowNodeData },
+              pageId: 'poupar-intro', description: 'FeatureLayout with yields overview and insurance link',
+              interactiveElements: [
+                { id: 'btn-ativar', component: 'Button', label: 'Ativar rendimento' },
+                { id: 'link-seguro', component: 'Link', label: 'Saiba mais' },
+                { id: 'btn-close', component: 'IconButton', label: 'Fechar' },
+              ] } as FlowNodeData },
 
     // Row 1: Two action paths
     { id: 'n-tap-ativar', type: 'action', position: { x, y: ROW },
@@ -105,5 +111,5 @@ registerFlow({
     { id: 'e-5', source: 'n-api-activate', target: 'n-ref-deposit', sourceHandle: 'bottom', targetHandle: 'top' },
   ]
 
-  bootstrapFlowGraph('flow-poupar', nodes, edges)
+  bootstrapFlowGraph('flow-poupar', nodes, edges, 2)
 }

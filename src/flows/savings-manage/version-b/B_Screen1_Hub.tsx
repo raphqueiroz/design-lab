@@ -275,7 +275,6 @@ export default function B_Screen1_Hub({ onNext, onElementTap }: FlowScreenProps)
                 segments={['Sobre a Caixinha', 'Histórico']}
                 activeIndex={activeTab}
                 onChange={setActiveTab}
-                variant="pill"
               />
               {activeTab === 0 && <DetailsTab onViewPolicy={handleViewPolicy} />}
               {activeTab === 1 && <HistoryTab />}

@@ -14,6 +14,7 @@ import { hydrateFlowGroupsFromSupabase } from '../pages/simulator/flowGroupStore
 import { hydratePageOverridesFromSupabase } from '../pages/gallery/pageStore'
 import { hydrateDynamicPagesFromSupabase, getDynamicPages } from '../pages/gallery/dynamicPageStore'
 import { hydrateTokensFromSupabase } from '../lib/tokenStore'
+import { hydrateCommentsFromSupabase, getAllCommentEntries } from '../pages/simulator/canvasCommentStore'
 
 export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'unsynced' | 'error' | 'local'
 
@@ -59,6 +60,7 @@ export async function pullFromSupabase(): Promise<boolean> {
       hydratePageOverridesFromSupabase(),
       hydrateDynamicPagesFromSupabase(),
       hydrateTokensFromSupabase(),
+      hydrateCommentsFromSupabase(),
     ])
 
     const anySucceeded = results.some(Boolean)
@@ -162,6 +164,13 @@ export async function pushAllToSupabase(): Promise<boolean> {
       upsertLocalStorageEntries('picnic-design-lab:token-overrides', 'token_overrides', (_cssVar, value) => ({
         css_var: _cssVar, value, updated_at: now,
       }), 'css_var'),
+
+      // 7. Canvas comments
+      upsertMany('canvas_comments', getAllCommentEntries(), (entry) => ({
+        flow_id: entry.flowId,
+        comments: JSON.stringify(entry.comments),
+        updated_at: now,
+      }), 'flow_id'),
     ])).flat()
 
     if (allErrors.length > 0) {

@@ -1,85 +1,73 @@
+import type { ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import { registerComponent } from '../registry'
+import { cn } from '../../lib/cn'
+
+export type SegmentItem = string | { label: string; icon?: ReactNode }
 
 export interface SegmentedControlProps {
-  segments: string[]
+  segments: SegmentItem[]
   activeIndex: number
   onChange: (index: number) => void
+  /** @deprecated pill is now the only style — this prop is ignored */
   variant?: 'default' | 'pill'
   className?: string
+}
+
+function getLabel(seg: SegmentItem): string {
+  return typeof seg === 'string' ? seg : seg.label
+}
+
+function getIcon(seg: SegmentItem): ReactNode | null {
+  return typeof seg === 'string' ? null : (seg.icon ?? null)
 }
 
 export default function SegmentedControl({
   segments,
   activeIndex,
   onChange,
-  variant = 'default',
   className = '',
 }: SegmentedControlProps) {
-  if (variant === 'pill') {
-    return (
-      <div
-        data-component="SegmentedControl"
-        className={`flex gap-[var(--token-spacing-2)] ${className}`}
-      >
-        {segments.map((seg, i) => (
-          <button
-            key={seg}
-            type="button"
-            onClick={() => onChange(i)}
-            className={`
-              relative px-[16px] py-[8px] rounded-[31px]
-              text-[length:var(--token-font-size-body)] leading-[var(--token-line-height-body)] font-semibold
-              tracking-[0.175px] cursor-pointer text-content-primary
-            `}
-          >
-            {i === activeIndex && (
-              <motion.span
-                layoutId={`pill-bg-${className}`}
-                className="absolute inset-0 bg-surface-secondary rounded-[31px]"
-                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-              />
-            )}
-            <span className="relative z-10">{seg}</span>
-          </button>
-        ))}
-      </div>
-    )
-  }
-
   return (
     <div
       data-component="SegmentedControl"
-      className={`
-        relative flex p-[2px]
-        bg-surface-secondary rounded-[var(--token-radius-md)]
-        ${className}
-      `}
+      className={cn(
+        'flex gap-[4px] p-[4px] rounded-[20px] bg-surface-secondary',
+        className,
+      )}
     >
-      <motion.div
-        className="absolute top-[2px] bottom-[2px] bg-surface-primary rounded-[10px] shadow-sm"
-        initial={false}
-        animate={{
-          left: `calc(${(activeIndex / segments.length) * 100}% + 2px)`,
-          width: `calc(${100 / segments.length}% - 4px)`,
-        }}
-        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-      />
-      {segments.map((seg, i) => (
-        <button
-          key={seg}
-          type="button"
-          onClick={() => onChange(i)}
-          className={`
-            relative z-10 flex-1 py-[var(--token-spacing-2)]
-            text-center text-[length:var(--token-font-size-body-sm)] leading-[var(--token-line-height-body-sm)] font-medium
-            transition-colors duration-[var(--token-transition-fast)] cursor-pointer
-            ${i === activeIndex ? 'text-content-primary' : 'text-content-secondary'}
-          `}
-        >
-          {seg}
-        </button>
-      ))}
+      {segments.map((seg, i) => {
+        const label = getLabel(seg)
+        const icon = getIcon(seg)
+        const isActive = i === activeIndex
+
+        return (
+          <button
+            key={label}
+            type="button"
+            onClick={() => onChange(i)}
+            className={cn(
+              'relative flex items-center justify-center gap-[6px]',
+              'px-[16px] py-[8px] rounded-[16px]',
+              'text-[14px] leading-[20px] font-semibold',
+              'cursor-pointer transition-colors',
+              isActive ? 'text-content-primary' : 'text-content-secondary',
+            )}
+          >
+            {isActive && (
+              <motion.span
+                layoutId={`seg-bg-${className}`}
+                className="absolute inset-0 bg-surface-primary rounded-[16px] shadow-sm"
+                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+              />
+            )}
+            {icon && (
+              <span className="relative z-10 flex items-center shrink-0">{icon}</span>
+            )}
+            <span className="relative z-10">{label}</span>
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -87,10 +75,10 @@ export default function SegmentedControl({
 registerComponent({
   name: 'SegmentedControl',
   category: 'navigation',
-  description: 'Inline tab switcher for filtering or toggling views. Use for 2-4 mutually exclusive options within a screen.',
+  description: 'Inline tab switcher for filtering or toggling views. Segments can be plain strings or objects with { label, icon }. Use for 2-4 mutually exclusive options within a screen.',
   component: SegmentedControl,
   props: [
-    { name: 'segments', type: 'string[]', required: true, description: 'Segment labels' },
+    { name: 'segments', type: 'SegmentItem[]', required: true, description: 'Segment labels — string or { label, icon }' },
     { name: 'activeIndex', type: 'number', required: true, description: 'Active segment index' },
     { name: 'onChange', type: '(index: number) => void', required: true, description: 'Change handler' },
   ],

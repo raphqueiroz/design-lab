@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { registerComponent } from '../registry'
 import type { TypographyVariant } from '../../tokens'
+import { cn } from '../../lib/cn'
 
 export interface TextProps {
   variant?: TypographyVariant
@@ -55,7 +56,7 @@ export default function Text({
     align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left'
 
   return (
-    <Tag data-component="Text" className={`${variantStyles[variant]} ${alignClass} ${className}`} style={colorStyle}>
+    <Tag data-component="Text" className={cn(variantStyles[variant], alignClass, className)} style={colorStyle}>
       {children}
     </Tag>
   )

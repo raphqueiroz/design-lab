@@ -174,9 +174,9 @@ export function registerDynamicFlow(def: DynamicFlowDef): void {
     description: def.description,
     domain: def.domain,
     specContent: def.specContent,
-    level: def.level,
-    linkedFlows: def.linkedFlows,
-    entryPoints: def.entryPoints,
+    level: def.level ?? existingFlow?.level,
+    linkedFlows: def.linkedFlows ?? existingFlow?.linkedFlows,
+    entryPoints: def.entryPoints ?? existingFlow?.entryPoints,
     screens: def.screens.map((s) => {
       const staticScreen = staticScreens.get(s.id)
       const resolved = resolveComponent(s.filePath)

@@ -29,7 +29,7 @@ const variantStyles = {
 
 const primarySizeStyles = {
   sm: 'h-[36px] px-[16px] text-[14px] rounded-full',
-  md: 'h-[44px] px-[24px] text-[16px] tracking-[-0.16px] rounded-[12px]',
+  md: 'h-[56px] px-[24px] text-[16px] tracking-[-0.16px] rounded-[12px]',
   lg: 'h-[56px] px-[24px] text-[16px] tracking-[-0.16px] rounded-[12px]',
 } as const
 

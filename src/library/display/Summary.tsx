@@ -41,7 +41,7 @@ export default function Summary({
             </span>
             <div className="flex flex-col gap-[var(--token-spacing-1)]">
               <span className={cn(
-                'text-[length:var(--token-font-size-body-md)] font-semibold leading-[var(--token-line-height-body-md)] tracking-[-0.16px] inline-flex items-center gap-[var(--token-spacing-1)]',
+                'text-[length:var(--token-font-size-body-lg)] font-semibold leading-[var(--token-line-height-body-md)] tracking-[-0.16px] inline-flex items-center gap-[var(--token-spacing-1)]',
                 isDone ? 'text-[var(--color-content-tertiary)]' : isPending ? 'text-[var(--color-content-secondary)]' : 'text-[var(--color-content-primary)]',
               )}>
                 {item.title}
@@ -50,10 +50,7 @@ export default function Summary({
               </span>
               {item.description && (
                 typeof item.description === 'string' ? (
-                  <span className={cn(
-                    'text-[length:var(--token-font-size-body-sm)] leading-[var(--token-line-height-body-sm)]',
-                    isDone ? 'text-[var(--color-content-tertiary)]' : 'text-[var(--color-content-secondary)]',
-                  )}>
+                  <span className="text-[length:var(--token-font-size-body-md)] leading-[var(--token-line-height-body-sm)] text-[var(--color-content-secondary)]">
                     {item.description}
                   </span>
                 ) : item.description

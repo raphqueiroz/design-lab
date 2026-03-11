@@ -4,7 +4,8 @@ import {
   RiSmartphoneLine, RiComputerLine,
 } from '@remixicon/react'
 import { getFlow, updateFlowMeta } from './flowRegistry'
-import { getDynamicFlow, saveDynamicFlow } from './dynamicFlowStore'
+import { getDynamicFlow, saveDynamicFlow, updateScreenInFlow } from './dynamicFlowStore'
+import { syncScreenTitleToNode } from './flowGraphSync'
 import { getFlowGraph } from './flowGraphStore'
 import { deriveNavigationPath, getNextScreenOptions, getOverlaysForScreen, resolveOverlayElementTarget } from './flowGraphNavigation'
 import type { FlowNodeData } from './flowGraph.types'
@@ -183,6 +184,18 @@ export default function FlowPlayer({ flowId, initialScreenId, onNavigateToFlow, 
     if (dynFlow) {
       dynFlow.description = description
       saveDynamicFlow(dynFlow)
+    }
+    setEditVersion((v) => v + 1)
+  }, [flowId])
+
+  const handleScreenTitleUpdate = useCallback((screenId: string, title: string) => {
+    updateScreenInFlow(flowId, screenId, { title })
+    syncScreenTitleToNode(flowId, screenId, title)
+    // Update in-memory flow registry
+    const f = getFlow(flowId)
+    if (f) {
+      const screen = f.screens.find(s => s.id === screenId)
+      if (screen) (screen as { title: string }).title = title
     }
     setEditVersion((v) => v + 1)
   }, [flowId])
@@ -425,6 +438,7 @@ export default function FlowPlayer({ flowId, initialScreenId, onNavigateToFlow, 
         onFlowEdited={handleFlowEdited}
         onRenameFlow={onRenameFlow}
         onFlowDescriptionUpdate={handleFlowDescriptionUpdate}
+        onScreenTitleUpdate={handleScreenTitleUpdate}
       />
 
       {/* Send render data to iframe via effect */}

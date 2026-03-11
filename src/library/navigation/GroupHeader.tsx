@@ -11,7 +11,7 @@ export interface GroupHeaderProps {
 
 export default function GroupHeader({ text, subtitle, icon, className = '' }: GroupHeaderProps) {
   return (
-    <div data-component="GroupHeader" className={cn('w-full pt-[var(--token-spacing-2)] pb-[var(--token-spacing-3)] border-b border-[var(--token-neutral-100)]', className)}>
+    <div data-component="GroupHeader" className={cn('w-full pt-[var(--token-spacing-3)] pb-[var(--token-spacing-3)] mb-[var(--token-spacing-2)] border-b border-[var(--token-neutral-100)]', className)}>
       <div className="flex items-center gap-[var(--token-spacing-2)]">
         {icon && <span className="shrink-0 text-content-secondary">{icon}</span>}
         <div className="flex flex-col gap-[var(--token-spacing-1)]">

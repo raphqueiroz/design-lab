@@ -69,7 +69,7 @@ export default function FlowMapPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-shell-bg">
+    <div className="flex-1 flex flex-col min-h-0">
       <AppHeader />
       <div className="flex-1">
         <ReactFlow

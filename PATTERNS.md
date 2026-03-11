@@ -957,9 +957,10 @@ Periodically review the Screen Parts catalog (`/components?selected=screen-parts
 2. **Card is not a button.** `Card` requires `pressable` to be clickable, and even then it's not ideal for list items. For tappable list entries, either use `ListItem` or create a screen-part `<button>` with appropriate styles.
 3. **ListItem selection = navigate.** When a user must pick one option from a ListItem list, tapping the ListItem should navigate directly (no separate "Continuar" button). Use RadioGroup + Button only when the selection needs confirmation before proceeding.
 4. **ShortcutButton labels must not wrap.** Keep labels to a single short word (max ~8 chars). E.g., use "Editar" not "Editar nome", "Resgatar" not "Resgatar fundos".
-5. **Level-1 pages never show back buttons.** Screens that are entry points (tab-level) must not render `onBack` in the Header. These pages show the TabBar at the bottom instead.
-6. **Every detail screen needs context.** Add a subtitle or body text below the Header explaining what the user is looking at (e.g., insurance policy, coverage details). Never drop the user into data without framing.
-7. **Wireframe feel = missing visual appeal.** Every list/dashboard page needs visual weight — use `FeatureLayout` with a hero image, a colored gradient header, or Avatar with brand colors. Raw white + flat cards reads as wireframe.
+5. **ShortcutButton icon color must contrast with background.** Primary variant has a lime accent background — use `text-[var(--token-interactive-foreground)]` (dark green) for the icon, never white. Secondary variant has a neutral background — use `text-[var(--color-interactive-primary)]`.
+6. **Level-1 pages never show back buttons.** Screens that are entry points (tab-level) must not render `onBack` in the Header. These pages show the TabBar at the bottom instead.
+7. **Every detail screen needs context.** Add a subtitle or body text below the Header explaining what the user is looking at (e.g., insurance policy, coverage details). Never drop the user into data without framing.
+8. **Wireframe feel = missing visual appeal.** Every list/dashboard page needs visual weight — use `FeatureLayout` with a hero image, a colored gradient header, or Avatar with brand colors. Raw white + flat cards reads as wireframe.
 8. **New screen-part components**: When no library component exists for a use case, create it in `.parts.tsx` and flag it to the user for review. It may be promoted to library, replaced by an existing component, or kept as screen-local.
 
 ### 13.7 Brand Signatures (use 1–2 per piece when relevant)

@@ -78,7 +78,7 @@ function HorizontalRow({ item, isLast }: { item: DataListItem; isLast: boolean }
         isLast && 'border-b-0',
       )}
     >
-      <div className="flex items-center justify-between py-[var(--token-spacing-4)]">
+      <div className="flex items-center justify-between py-[var(--token-spacing-3)]">
         <div className="flex items-center gap-[var(--token-spacing-1)]">
           <span className="text-[length:var(--token-font-size-body-md)] leading-[var(--token-line-height-body-md)] text-content-secondary">
             {item.label}

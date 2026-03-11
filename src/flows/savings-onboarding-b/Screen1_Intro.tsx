@@ -1,24 +1,20 @@
-import type { FlowScreenProps } from '../../pages/simulator/flowRegistry'
-import FeatureLayout from '../../library/layout/FeatureLayout'
-import Stack from '../../library/layout/Stack'
-import Button from '../../library/inputs/Button'
-import Text from '../../library/foundations/Text'
-import Badge from '../../library/display/Badge'
-import Summary from '../../library/display/Summary'
-import GroupHeader from '../../library/navigation/GroupHeader'
-import Link from '../../library/foundations/Link'
+import type { FlowScreenProps } from '@/pages/simulator/flowRegistry'
+import FeatureLayout from '@/library/layout/FeatureLayout'
+import Stack from '@/library/layout/Stack'
+import Button from '@/library/inputs/Button'
+import Text from '@/library/foundations/Text'
+import Badge from '@/library/display/Badge'
+import Summary from '@/library/display/Summary'
+import GroupHeader from '@/library/navigation/GroupHeader'
+import Link from '@/library/foundations/Link'
 import { RiExchangeDollarLine, RiTimeLine, RiShieldCheckLine } from '@remixicon/react'
 
-export default function Screen1_Intro({ onNext, onBack, onElementTap }: FlowScreenProps) {
+export default function Screen1_Intro({ onNext, onElementTap }: FlowScreenProps) {
   return (
     <FeatureLayout
       imageSrc="https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=800&q=80"
       imageAlt="Growing savings"
       imageOverlay={<Badge variant="lime" size="md">5% a.a.</Badge>}
-      onClose={() => {
-        const handled = onElementTap?.('IconButton: Fechar')
-        if (!handled) onBack?.()
-      }}
     >
       <Stack gap="lg">
         <Stack gap="sm">

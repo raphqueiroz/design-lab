@@ -23,6 +23,16 @@ Picnic Design Lab — a React-based design system browser, flow prototyper, and 
 - Path alias: `@` → `src/` (configured in both Vite and tsconfig)
 - `cn()` from `src/lib/cn.ts` (clsx + tailwind-merge) is the only way to compose class names
 
+## STYLE-GUIDE.md Is Reference
+
+`docs/STYLE-GUIDE.md` contains Picnic's brand copywriting guide and Lemon Pie Style (LPS) image generation guide. **Read it before writing any user-facing pt-BR copy or generating illustrations.** Key rules:
+
+1. Voice is casual but substantive — like a smart friend, not a bank
+2. Buttons use infinitive ("Consultar"), body text uses third person
+3. Never use crypto jargon (blockchain, USDC, stablecoin) in user-facing copy
+4. Images use LPS style — flat illustration, chartreuse + deep greens, risograph grain
+5. Use Freepik Mystic API with model `fluid` for image generation
+
 ## PATTERNS.md Is Law
 
 `PATTERNS.md` at the project root is the authoritative guide for building flows and screens. **Read it before creating or modifying any flow screen or library component.** Key rules:

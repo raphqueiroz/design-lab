@@ -1,20 +1,13 @@
 import { type ReactNode, useState, useEffect, useCallback, useRef } from 'react'
-import { Link, useLocation } from 'react-router-dom'
 import { RiArrowDownLine, RiArrowUpLine } from '@remixicon/react'
 import { isSupabaseConnected } from '../lib/supabase'
 import { getSyncStatus, subscribeSyncStatus, pullFromSupabase, pushAllToSupabase, type SyncStatus } from '../lib/syncStore'
 
 interface AppHeaderProps {
+  center?: ReactNode
   actions?: ReactNode
   onSynced?: () => void
 }
-
-const navItems = [
-  { to: '/components', label: 'Design System' },
-  { to: '/flows', label: 'Flows' },
-  { to: '/map', label: 'Map' },
-  { to: '/pages', label: 'Pages' },
-] as const
 
 const statusConfig: Record<SyncStatus, { color: string; label: string; title: string }> = {
   idle: { color: 'bg-shell-active', label: 'Not synced', title: 'Connected to Supabase — not yet synced' },
@@ -25,9 +18,7 @@ const statusConfig: Record<SyncStatus, { color: string; label: string; title: st
   local: { color: 'bg-shell-active', label: 'Local', title: 'Local only (Supabase not configured)' },
 }
 
-export default function AppHeader({ actions, onSynced }: AppHeaderProps) {
-  const location = useLocation()
-  const activePrefix = navItems.find((item) => location.pathname.startsWith(item.to))?.to ?? '/components'
+export default function AppHeader({ center, actions, onSynced }: AppHeaderProps) {
   const [status, setStatus] = useState<SyncStatus>(getSyncStatus)
   const [showPopover, setShowPopover] = useState(false)
   const popoverRef = useRef<HTMLDivElement>(null)
@@ -62,11 +53,8 @@ export default function AppHeader({ actions, onSynced }: AppHeaderProps) {
 
   return (
     <header className="h-[48px] flex items-center justify-between px-[var(--token-spacing-md)] border-b border-shell-border bg-shell-surface shrink-0">
-      {/* Left: identity + sync */}
-      <div className="flex items-center gap-[var(--token-spacing-2)] min-w-[200px]">
-        <h1 className="text-[length:var(--token-font-size-heading-sm)] font-black text-shell-text-secondary uppercase tracking-tight">
-          NAPKIN
-        </h1>
+      {/* Left: sync status */}
+      <div className="flex items-center gap-[var(--token-spacing-2)] min-w-[120px]">
         {isSupabaseConnected() ? (
           <div className="relative" ref={popoverRef}>
             <button
@@ -117,22 +105,10 @@ export default function AppHeader({ actions, onSynced }: AppHeaderProps) {
         )}
       </div>
 
-      {/* Center: primary navigation */}
-      <nav className="flex gap-[var(--token-spacing-1)]">
-        {navItems.map((item) => (
-          <Link
-            key={item.to}
-            to={item.to}
-            className={`px-[var(--token-spacing-3)] py-[var(--token-spacing-1)] rounded-[var(--token-radius-sm)] text-[length:var(--token-font-size-body-sm)] font-medium transition-colors no-underline ${
-              activePrefix === item.to
-                ? 'bg-shell-selected text-shell-selected-text'
-                : 'text-shell-text-secondary hover:bg-shell-hover'
-            }`}
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+      {/* Center: page-specific content (view toggle, etc.) */}
+      <div className="flex items-center">
+        {center}
+      </div>
 
       {/* Right: page-specific actions */}
       <div className="flex items-center gap-[var(--token-spacing-2)] min-w-[200px] justify-end">
