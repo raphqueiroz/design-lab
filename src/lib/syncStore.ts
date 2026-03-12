@@ -53,15 +53,20 @@ export async function pullFromSupabase(): Promise<boolean> {
   setStatus('syncing')
 
   try {
-    const results = await Promise.all([
+    // Flow groups must hydrate first — it populates the deleted-flows list
+    // that dynamicFlows and graphs need to filter against.
+    const groupsOk = await hydrateFlowGroupsFromSupabase()
+
+    const restResults = await Promise.all([
       hydrateGraphsFromSupabase(),
       hydrateDynamicFlowsFromSupabase(),
-      hydrateFlowGroupsFromSupabase(),
       hydratePageOverridesFromSupabase(),
       hydrateDynamicPagesFromSupabase(),
       hydrateTokensFromSupabase(),
       hydrateCommentsFromSupabase(),
     ])
+
+    const results = [restResults[0], restResults[1], groupsOk, ...restResults.slice(2)]
 
     const allSucceeded = results.every(Boolean)
     const anySucceeded = results.some(Boolean)
