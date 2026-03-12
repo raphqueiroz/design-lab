@@ -89,7 +89,7 @@ assignFlowToGroup('referral', group.id)
   const ROW = 120
   const x = 300
   const xL = 0
-  const _xR = 600
+
 
   const nodes = [
     // Row 0: Screen A
