@@ -1,31 +1,23 @@
 import type { Node, Edge } from '@xyflow/react'
+import ELK from 'elkjs/lib/elk.bundled.js'
 import { NODE_WIDTHS } from './resolveEdgeHandles'
 import { recalculateEdgeHandles } from './resolveEdgeHandles'
 import type { FlowNodeData } from './flowGraph.types'
 
-const NODE_HEIGHT = 80
-const VERTICAL_GAP = 80
-const DECISION_VERTICAL_GAP = 120
-const HORIZONTAL_GAP = 30
-const SATELLITE_GAP = 40
+const DEFAULT_NODE_HEIGHT = 80
+const SATELLITE_GAP = 80
+
+const elk = new ELK()
 
 /**
- * Repositions all existing nodes in a centered layered layout
- * using topological ordering from edges, then recalculates edge handles.
- *
- * - Layer 0 = root nodes (no incoming edges)
- * - Each subsequent layer = nodes whose parents are in previous layers
- * - Nodes within a layer are centered horizontally
- * - The entire layout is centered on (0, 0)
- * - Overlay nodes and their connecting action nodes are placed side-by-side
- *   with the parent screen node (to the left)
- * - Decision fail branches (error nodes) are placed to the right of the
- *   decision node; the happy path continues vertically
+ * Repositions all existing nodes using ELK (Eclipse Layout Kernel) for
+ * crossing-minimized hierarchical layout, then positions satellites
+ * (overlays, fail branches, hidden actions) relative to their parents.
  */
-export function alignNodes(
+export async function alignNodes(
   nodes: Node[],
   edges: Edge[],
-): { nodes: Node[]; edges: Edge[] } {
+): Promise<{ nodes: Node[]; edges: Edge[] }> {
   if (nodes.length === 0) return { nodes, edges }
 
   // Identify hidden action nodes (same logic as FlowCanvas enrichedNodes):
@@ -67,11 +59,10 @@ export function alignNodes(
     edgesToTarget.get(edge.target)!.push(edge)
   }
 
-  // ── Identify satellite nodes (excluded from main spine) ──
+  // ── Identify satellite nodes (excluded from ELK layout) ──
   const satelliteNodeIds = new Set<string>(hiddenActionNodeIds)
 
   // --- Overlay satellites ---
-  // Map: parentScreenNodeId → { actionNodeId, overlayNodeId }[]
   const overlaySatellitesOf = new Map<string, { actionId: string; overlayId: string }[]>()
 
   for (const node of nodes) {
@@ -81,7 +72,6 @@ export function alignNodes(
     const parentId = data.parentScreenNodeId
     if (!nodeMap.has(parentId)) continue
 
-    // Find the action node bridging parent → action → overlay
     const incomingEdges = edgesToTarget.get(node.id) ?? []
     let bridgeActionId: string | null = null
 
@@ -109,10 +99,6 @@ export function alignNodes(
   }
 
   // --- Decision fail-branch satellites ---
-  // For each decision node, identify the fail branch target and pull it out of the spine.
-  // Fail branch = edge to an error node, OR any non-bottom edge (right-source handle).
-  // The happy path is the edge that continues vertically (bottom handle).
-  // Map: decisionNodeId → failTargetNodeId[]
   const decisionFailTargets = new Map<string, string[]>()
 
   for (const node of nodes) {
@@ -120,15 +106,13 @@ export function alignNodes(
     if (data.nodeType !== 'decision') continue
 
     const outEdges = edgesFromSource.get(node.id) ?? []
-    if (outEdges.length < 2) continue // no branching
+    if (outEdges.length < 2) continue
 
     for (const edge of outEdges) {
       const targetNode = nodeMap.get(edge.target)
       if (!targetNode) continue
       const targetData = targetNode.data as FlowNodeData
 
-      // Identify fail branch: target is error node, or edge uses right-source handle,
-      // or edge label contains fail/error/no/expired keywords
       const isErrorTarget = targetData.nodeType === 'error'
       const isRightHandle = edge.sourceHandle === 'right-source'
       const label = (typeof edge.label === 'string' ? edge.label : '').toLowerCase()
@@ -142,104 +126,107 @@ export function alignNodes(
     }
   }
 
-  // ── Filter to main-spine nodes only ──
-  const spineNodes = nodes.filter((n) => !satelliteNodeIds.has(n.id))
-
-  // Build adjacency for spine nodes only
-  const childrenOf = new Map<string, string[]>()
-  const parentsOf = new Map<string, string[]>()
-
-  for (const edge of edges) {
-    if (satelliteNodeIds.has(edge.source) || satelliteNodeIds.has(edge.target)) continue
-    if (!childrenOf.has(edge.source)) childrenOf.set(edge.source, [])
-    childrenOf.get(edge.source)!.push(edge.target)
-    if (!parentsOf.has(edge.target)) parentsOf.set(edge.target, [])
-    parentsOf.get(edge.target)!.push(edge.source)
-  }
-
-  // Assign layers via BFS (longest-path layering so children always sit below parents)
-  const layerOf = new Map<string, number>()
-  const roots = spineNodes.filter(
-    (n) => !parentsOf.has(n.id) || parentsOf.get(n.id)!.length === 0,
+  // ── Build spine: all non-satellite nodes ──
+  const spineNodeIds = new Set(
+    nodes.filter((n) => !satelliteNodeIds.has(n.id)).map((n) => n.id),
   )
 
-  const queue: { id: string; layer: number }[] = roots.map((n) => ({
-    id: n.id,
-    layer: 0,
-  }))
+  // Build virtual spine edges, bridging through hidden satellite nodes.
+  // IMPORTANT: stop at the FIRST spine node reached — don't bridge transitively
+  // through spine nodes. This preserves the correct chain depth.
+  const spineEdges: { id: string; source: string; target: string }[] = []
+  const seenSpineEdges = new Set<string>()
 
-  while (queue.length > 0) {
-    const { id, layer } = queue.shift()!
-    if (layerOf.has(id) && layerOf.get(id)! >= layer) continue
-    layerOf.set(id, layer)
-    for (const childId of childrenOf.get(id) ?? []) {
-      queue.push({ id: childId, layer: layer + 1 })
+  function addSpineEdge(source: string, target: string, edgeId: string) {
+    const key = `${source}→${target}`
+    if (seenSpineEdges.has(key)) return
+    seenSpineEdges.add(key)
+    spineEdges.push({ id: edgeId, source, target })
+  }
+
+  // For each edge, follow through satellites to find the immediate next spine nodes
+  function followToNextSpine(startId: string): string[] {
+    const results: string[] = []
+    const visited = new Set<string>()
+    const queue = [startId]
+    while (queue.length > 0) {
+      const id = queue.pop()!
+      if (visited.has(id)) continue
+      visited.add(id)
+      if (spineNodeIds.has(id)) {
+        // Found a spine node — record it but DON'T continue past it
+        results.push(id)
+      } else {
+        // Satellite — keep following outgoing edges
+        for (const e of edges) {
+          if (e.source === id) queue.push(e.target)
+        }
+      }
+    }
+    return results
+  }
+
+  for (const edge of edges) {
+    if (spineNodeIds.has(edge.source) && spineNodeIds.has(edge.target)) {
+      addSpineEdge(edge.source, edge.target, edge.id)
+    } else if (spineNodeIds.has(edge.source) && satelliteNodeIds.has(edge.target)) {
+      const nextSpine = followToNextSpine(edge.target)
+      for (const dsId of nextSpine) {
+        addSpineEdge(edge.source, dsId, `virtual-${edge.source}-${dsId}`)
+      }
     }
   }
 
-  // Handle disconnected spine nodes
-  const maxAssignedLayer = Math.max(0, ...layerOf.values())
-  let nextLayer = maxAssignedLayer + 1
-  for (const node of spineNodes) {
-    if (!layerOf.has(node.id)) {
-      layerOf.set(node.id, nextLayer++)
-    }
+  // ── Run ELK layout on spine ──
+  const elkGraph = {
+    id: 'root',
+    layoutOptions: {
+      'elk.algorithm': 'layered',
+      'elk.direction': 'DOWN',
+      // Spacing
+      'elk.spacing.nodeNode': '80',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '120',
+      'elk.layered.spacing.edgeNodeBetweenLayers': '40',
+      'elk.spacing.edgeNode': '40',
+      // Crossing minimization
+      'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+      // Node placement — NETWORK_SIMPLEX keeps connected nodes close
+      'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+      // Respect edge order from the model
+      'elk.layered.considerModelOrder.strategy': 'PREFER_EDGES',
+      // Compact layout
+      'elk.layered.compaction.postCompaction.strategy': 'EDGE_LENGTH',
+    },
+    children: [...spineNodeIds].map((id) => {
+      const node = nodeMap.get(id)!
+      const w = node.measured?.width ?? NODE_WIDTHS[node.type ?? 'screen'] ?? 200
+      const h = node.measured?.height ?? DEFAULT_NODE_HEIGHT
+      return { id, width: w, height: h }
+    }),
+    edges: spineEdges.map((e) => ({
+      id: e.id,
+      sources: [e.source],
+      targets: [e.target],
+    })),
   }
 
-  // Group spine nodes by layer
-  const layerGroups = new Map<number, Node[]>()
-  for (const node of spineNodes) {
-    const layer = layerOf.get(node.id)!
-    if (!layerGroups.has(layer)) layerGroups.set(layer, [])
-    layerGroups.get(layer)!.push(node)
-  }
+  const layoutResult = await elk.layout(elkGraph)
 
-  for (const group of layerGroups.values()) {
-    group.sort((a, b) => a.position.x - b.position.x)
-  }
-
-  const sortedLayers = [...layerGroups.entries()].sort((a, b) => a[0] - b[0])
-
-  // Identify which layers contain a decision node (next layer needs extra gap for labels)
-  const decisionLayers = new Set<number>()
-  for (const [layer, layerNodes] of sortedLayers) {
-    if (layerNodes.some((n) => (n.data as FlowNodeData).nodeType === 'decision')) {
-      decisionLayers.add(layer)
-    }
-  }
-
-  // Calculate cumulative Y positions (variable gap after decision layers)
-  const layerYPositions: number[] = []
-  let cumulativeY = 0
-  for (let i = 0; i < sortedLayers.length; i++) {
-    layerYPositions.push(cumulativeY)
-    if (i < sortedLayers.length - 1) {
-      const prevLayerIdx = sortedLayers[i][0]
-      const gap = decisionLayers.has(prevLayerIdx) ? DECISION_VERTICAL_GAP : VERTICAL_GAP
-      cumulativeY += NODE_HEIGHT + gap
-    }
-  }
-
-  // Center vertically
-  const totalHeight = cumulativeY
-  const startY = -totalHeight / 2
-
-  // Position spine nodes
+  // ── Apply ELK positions, centered on origin ──
   const newPositions = new Map<string, { x: number; y: number }>()
 
-  for (let i = 0; i < sortedLayers.length; i++) {
-    const layerNodes = sortedLayers[i][1]
-    const y = startY + layerYPositions[i]
+  if (layoutResult.children) {
+    const root = layoutResult as { width?: number; height?: number; children?: typeof layoutResult.children }
+    const totalW = root.width ?? 0
+    const totalH = root.height ?? 0
+    const offsetX = -totalW / 2
+    const offsetY = -totalH / 2
 
-    const widths = layerNodes.map((n) => NODE_WIDTHS[n.type ?? 'screen'] ?? 200)
-    const totalWidth =
-      widths.reduce((sum, w) => sum + w, 0) +
-      (layerNodes.length - 1) * HORIZONTAL_GAP
-
-    let x = -totalWidth / 2
-    for (let j = 0; j < layerNodes.length; j++) {
-      newPositions.set(layerNodes[j].id, { x, y })
-      x += widths[j] + HORIZONTAL_GAP
+    for (const elkNode of layoutResult.children) {
+      newPositions.set(elkNode.id, {
+        x: (elkNode.x ?? 0) + offsetX,
+        y: (elkNode.y ?? 0) + offsetY,
+      })
     }
   }
 
@@ -252,32 +239,46 @@ export function alignNodes(
 
     for (let i = 0; i < satellites.length; i++) {
       const { actionId, overlayId } = satellites[i]
+      const verticalOffset = i * (DEFAULT_NODE_HEIGHT + 20)
       const actionX = parentPos.x - nodeWidth - SATELLITE_GAP
       const overlayX = parentPos.x - (nodeWidth + SATELLITE_GAP) * 2
 
       if (actionId) {
-        newPositions.set(actionId, { x: actionX, y: parentPos.y })
+        newPositions.set(actionId, { x: actionX, y: parentPos.y + verticalOffset })
       }
-      newPositions.set(overlayId, { x: overlayX, y: parentPos.y })
+      newPositions.set(overlayId, { x: overlayX, y: parentPos.y + verticalOffset })
     }
   }
 
-  // ── Position decision fail targets to the right of the decision node ──
+  // ── Position decision fail targets to the right and slightly below ──
   for (const [decisionId, failTargetIds] of decisionFailTargets) {
     const decisionPos = newPositions.get(decisionId)
     if (!decisionPos) continue
 
     for (let i = 0; i < failTargetIds.length; i++) {
       const failX = decisionPos.x + (nodeWidth + SATELLITE_GAP) * (i + 1)
-      newPositions.set(failTargetIds[i], { x: failX, y: decisionPos.y })
+      const failY = decisionPos.y + 30
+      newPositions.set(failTargetIds[i], { x: failX, y: failY })
     }
   }
 
-  // Position hidden action nodes at their source node's coords (invisible anyway)
+  // Position hidden action nodes between their source and target (for correct edge routing)
   for (const actionId of hiddenActionNodeIds) {
     if (newPositions.has(actionId)) continue
-    // Find the source node of this action's incoming edge
     const incoming = edges.find((e) => e.target === actionId)
+    const outgoing = edges.find((e) => e.source === actionId)
+    if (incoming && outgoing) {
+      const sourcePos = newPositions.get(incoming.source)
+      const targetPos = newPositions.get(outgoing.target)
+      if (sourcePos && targetPos) {
+        newPositions.set(actionId, {
+          x: (sourcePos.x + targetPos.x) / 2,
+          y: (sourcePos.y + targetPos.y) / 2,
+        })
+        continue
+      }
+    }
+    // Fallback: position at source
     if (incoming) {
       const sourcePos = newPositions.get(incoming.source)
       if (sourcePos) {
@@ -285,7 +286,6 @@ export function alignNodes(
         continue
       }
     }
-    // Fallback: keep original position
   }
 
   const alignedNodes = nodes.map((n) => ({

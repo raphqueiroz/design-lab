@@ -25,9 +25,7 @@ export interface Page {
 const pages = new Map<string, Page>()
 
 export function registerPage(page: Page): void {
-  if (import.meta.env.DEV && pages.has(page.id)) {
-    throw new Error(`[pageRegistry] Duplicate page ID: "${page.id}"`)
-  }
+  // Silent overwrite — HMR re-executes flow index files which re-register pages
   pages.set(page.id, page)
 }
 

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
+import { motion } from 'framer-motion'
 import type { FlowScreenProps } from '@/pages/simulator/flowRegistry'
 import { useScreenData } from '@/lib/ScreenDataContext'
 import Header from '@/library/navigation/Header'
@@ -122,31 +123,32 @@ export default function Screen1_AmountEntry({ onNext, onBack, onElementTap, onSt
         )}
 
         {calcState === 'ready' && (
-          <>
-            <DataList data={[
-              ...(isPix
-                ? [
-                    { label: 'Câmbio', value: `US$ 1 ⇄ R$ ${MOCK_RATE.toFixed(4)}` },
-                    { label: 'Spread', value: '0,38%' },
-                    { label: 'VET', info: () => {}, value: `US$ 1 ⇄ R$ ${(MOCK_RATE * 1.0038).toFixed(4)}` },
-                  ]
-                : []),
-              { label: 'Prazo', value: isPix ? '5 minutos' : 'Instantâneo' },
-              { label: 'Rendimento a partir de', value: 'Hoje' },
-              {
-                label: 'Nossa taxa',
-                value: (
-                  <span className="text-[var(--color-feedback-success)] font-medium">Grátis</span>
-                ),
-              },
-            ]} />
-            <Banner
-              variant="neutral"
-              title="Seu saldo começa a render hoje"
-              description="O valor depositado entra em rendimento automático no mesmo dia — sem carência e sem burocracia."
-            />
-          </>
+          <DataList data={[
+            ...(isPix
+              ? [
+                  { label: 'Câmbio', value: `US$ 1 ⇄ R$ ${MOCK_RATE.toFixed(4)}` },
+                  { label: 'Spread', value: '0,38%' },
+                  { label: 'VET', info: () => {}, value: `US$ 1 ⇄ R$ ${(MOCK_RATE * 1.0038).toFixed(4)}` },
+                ]
+              : []),
+            { label: 'Prazo', value: isPix ? '5 minutos' : 'Instantâneo' },
+            { label: 'Rendimento a partir de', value: 'Hoje' },
+            {
+              label: 'Nossa taxa',
+              value: (
+                <span className="text-[var(--color-feedback-success)] font-medium">Grátis</span>
+              ),
+            },
+          ]} />
         )}
+
+        <motion.div layout transition={{ duration: 0.3, ease: 'easeOut' }}>
+          <Banner
+            variant="neutral"
+            title="Rendimento automático"
+            description="Seu dinheiro rende 4.37% ao ano e você resgata quando quiser."
+          />
+        </motion.div>
       </Stack>
 
       <StickyFooter>

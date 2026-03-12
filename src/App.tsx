@@ -30,7 +30,7 @@ export default function App() {
         {/* Legacy redirects */}
         <Route path="/library/*" element={<Navigate to="/components" replace />} />
         <Route path="/simulator/*" element={<Navigate to="/flows" replace />} />
-        <Route path="*" element={<Navigate to="/components" replace />} />
+        <Route path="*" element={<Navigate to="/flows" replace />} />
       </Routes>
     </AnimatePresence>
   )

@@ -1,20 +1,30 @@
 import type { FlowScreenProps } from '@/pages/simulator/flowRegistry'
 import FeatureLayout from '@/library/layout/FeatureLayout'
+import StickyFooter from '@/library/layout/StickyFooter'
 import Stack from '@/library/layout/Stack'
 import Button from '@/library/inputs/Button'
 import Text from '@/library/foundations/Text'
 import Badge from '@/library/display/Badge'
 import Summary from '@/library/display/Summary'
 import GroupHeader from '@/library/navigation/GroupHeader'
-import Link from '@/library/foundations/Link'
-import { RiExchangeDollarLine, RiTimeLine, RiShieldCheckLine } from '@remixicon/react'
+import { RiExchangeDollarLine, RiTimeLine, RiShieldCheckLine, RiFlashlightFill } from '@remixicon/react'
+import savingsPiggy from '@/assets/images/savings-piggy-3d.jpg'
 
-export default function Screen1_Intro({ onNext, onElementTap }: FlowScreenProps) {
+export default function Screen1_Intro({ onNext, onBack, onElementTap }: FlowScreenProps) {
+  const handleSaibaMais = () => {
+    const handled = onElementTap?.('Link: Saiba mais')
+    if (!handled) onNext()
+  }
+
   return (
     <FeatureLayout
-      imageSrc="https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=800&q=80"
-      imageAlt="Growing savings"
-      imageOverlay={<Badge variant="lime" size="md">5% a.a.</Badge>}
+      imageSrc={savingsPiggy}
+      imageAlt="Piggy bank savings"
+      imageOverlay={<Badge variant="lime" size="md" icon={<RiFlashlightFill size={16} />}>Novidade</Badge>}
+      onClose={() => {
+        const handled = onElementTap?.('IconButton: Fechar')
+        if (!handled) onBack?.()
+      }}
     >
       <Stack gap="lg">
         <Stack gap="sm">
@@ -30,32 +40,20 @@ export default function Screen1_Intro({ onNext, onElementTap }: FlowScreenProps)
             data={[
               { icon: <RiExchangeDollarLine size={20} />, title: 'Rendimento automático', description: 'Seu saldo rende todos os dias, sem precisar fazer nada' },
               { icon: <RiTimeLine size={20} />, title: 'Resgate quando quiser', description: 'Sem carência — retire seus fundos a qualquer momento' },
-              { icon: <RiShieldCheckLine size={20} />, title: 'Protegido por seguro', description: (
-                <Stack gap="sm">
-                  <Text variant="body-sm" color="content-secondary">
-                    Se uma falha técnica afetar seu saldo, você é reembolsado automaticamente
-                  </Text>
-                  <Link
-                    linkText="Saiba mais"
-                    size="xs"
-                    onLinkPress={() => {
-                      const handled = onElementTap?.('Link: Saiba mais')
-                      if (!handled) onNext()
-                    }}
-                  />
-                </Stack>
-              ) },
+              { icon: <RiShieldCheckLine size={20} />, title: 'Protegido por seguro', description: 'Se uma falha técnica afetar seu saldo, você é reembolsado automaticamente', linkText: 'Saiba mais', onLinkPress: handleSaibaMais },
             ]}
           />
         </Stack>
+      </Stack>
 
+      <StickyFooter>
         <Button fullWidth onPress={() => {
-          const handled = onElementTap?.('Button: Ativar rendimento')
+          const handled = onElementTap?.('Button: Ativar minha Caixinha')
           if (!handled) onNext()
         }}>
-          Ativar rendimento
+          Ativar minha Caixinha
         </Button>
-      </Stack>
+      </StickyFooter>
     </FeatureLayout>
   )
 }

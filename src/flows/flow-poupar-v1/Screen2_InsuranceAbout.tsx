@@ -2,52 +2,52 @@ import type { FlowScreenProps } from '@/pages/simulator/flowRegistry'
 import BaseLayout from '@/library/layout/BaseLayout'
 import Stack from '@/library/layout/Stack'
 import Header from '@/library/navigation/Header'
-import Button from '@/library/inputs/Button'
 import Banner from '@/library/display/Banner'
 import Summary from '@/library/display/Summary'
 import GroupHeader from '@/library/navigation/GroupHeader'
 import DataList from '@/library/display/DataList'
-import { RiCodeLine, RiLineChartLine, RiShieldCheckLine, RiGovernmentLine } from '@remixicon/react'
+import { RiBugLine, RiAlertLine, RiRefundLine, RiShieldCheckLine } from '@remixicon/react'
 
 export default function Screen2_InsuranceAbout({ onBack }: FlowScreenProps) {
   return (
     <BaseLayout>
-      <Header title="Sobre o seguro" onBack={onBack} />
+      <Header
+        title="Seu dinheiro protegido"
+        description="Toda caixinha já vem com seguro incluso. Sem contratação, sem custo extra. A proteção ativa no momento em que você guarda."
+        onBack={onBack}
+      />
 
       <Stack gap="lg">
-        <Banner
-          variant="neutral"
-          title="Proteção para seu rendimento"
-          description="Seu saldo é protegido por um seguro automático que cobre riscos operacionais dos smart contracts. Você não precisa contratar nada — a proteção já está inclusa."
-        />
 
         <Stack gap="none">
-          <GroupHeader text="O que está coberto" />
+          <GroupHeader text="O que o seguro cobre" />
           <Summary
             data={[
-              { icon: <RiCodeLine size={20} />, title: 'Bugs em smart contracts', description: 'Falhas no código que resultem em uso não intencional e perda de fundos' },
-              { icon: <RiLineChartLine size={20} />, title: 'Falha e manipulação de oráculos', description: 'Dados de preço incorretos ou deliberadamente corrompidos usados pelos contratos' },
-              { icon: <RiShieldCheckLine size={20} />, title: 'Falha de liquidação', description: 'Problemas na liquidação de garantias que gerem dívida socializada entre os usuários' },
-              { icon: <RiGovernmentLine size={20} />, title: 'Tomada de governança', description: 'Ataques maliciosos que forcem atualizações indevidas nos smart contracts' },
+              { icon: <RiBugLine size={20} />, title: 'Falha técnica no sistema', description: 'Um erro na tecnologia afeta seu saldo? Você é reembolsado.' },
+              { icon: <RiAlertLine size={20} />, title: 'Dados de preço incorretos', description: 'Se uma informação errada causar perda, a cobertura entra em ação.' },
+              { icon: <RiRefundLine size={20} />, title: 'Problema na liquidação', description: 'Algo trava na hora de processar? O seguro garante a devolução.' },
+              { icon: <RiShieldCheckLine size={20} />, title: 'Atualização indevida', description: 'Mudança forçada que prejudique seu saldo é coberta automaticamente.' },
             ]}
           />
         </Stack>
 
         <Stack gap="none">
-          <GroupHeader text="Detalhes da cobertura" />
+          <GroupHeader text="Detalhes" />
           <DataList data={[
-            { label: 'Provedor', value: 'OpenCover × Nexus Mutual' },
-            { label: 'Dedutível', value: '5% do valor coberto' },
-            { label: 'Carência após evento', value: '14 dias' },
-            { label: 'Prazo para resgate', value: '30 dias após aprovação' },
-            { label: 'Custo para você', value: 'Incluso no rendimento' },
+            { label: 'Custo', value: <span className="text-[var(--color-feedback-success)] font-medium">Grátis</span> },
+            { label: 'Cobertura', value: '97% do valor investido' },
+            { label: 'Prazo de análise', value: 'Até 14 dias' },
+            { label: 'Reembolso após aprovação', value: 'Até 30 dias' },
           ]} />
         </Stack>
 
-        <Button variant="ghost" fullWidth onPress={() => onBack?.()}>
-          Consultar a apólice de seguro
-        </Button>
+        <Banner
+          variant="neutral"
+          title="O que não é coberto?"
+          description="Quedas normais de mercado, decisões pessoais de resgate e perdas por acesso indevido à sua conta (como phishing)."
+        />
       </Stack>
+
     </BaseLayout>
   )
 }

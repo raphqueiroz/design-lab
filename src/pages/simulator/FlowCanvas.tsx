@@ -14,6 +14,9 @@ import {
   type Node,
   type Edge,
   type NodeChange,
+  type EdgeChange,
+  applyEdgeChanges,
+  useReactFlow,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
@@ -48,7 +51,7 @@ const edgeTypes = { insertable: InsertableEdge }
 
 function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowChanged }: FlowCanvasProps) {
   const [nodes, setNodes, applyNodeChanges] = useNodesState<Node>([] as Node[])
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([] as Edge[])
+  const [edges, setEdges] = useEdgesState<Edge>([] as Edge[])
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
   const [helperLines, setHelperLines] = useState<HelperLineResult>({})
   const [spacePressed, setSpacePressed] = useState(false)
@@ -56,21 +59,44 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
   const initializedRef = useRef<string | null>(null)
 
   const { pushUndo, undo, redo, reset: resetUndoRedo, canUndo, canRedo } = useUndoRedo()
+  const { fitView } = useReactFlow()
+
+  // Debounced save — must be defined before onNodesChange which references it
+  const scheduleSave = useCallback(() => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+    saveTimeoutRef.current = setTimeout(() => {
+      setNodes((currentNodes) => {
+        setEdges((currentEdges) => {
+          saveFlowGraph(flow.id, currentNodes, currentEdges)
+          return currentEdges
+        })
+        return currentNodes
+      })
+    }, 500)
+  }, [flow.id, setNodes, setEdges])
 
   // Custom onNodesChange: intercept drag to compute alignment guides + snap,
-  // and intercept remove to clean up linked screen files.
+  // and intercept remove to clean up linked screen files + real edges behind merged edges.
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      // Handle screen node deletion: remove linked screen + .tsx file
       const removes = changes.filter((c) => c.type === 'remove')
       if (removes.length > 0) {
+        const removedIds = new Set(removes.map((c) => c.type === 'remove' ? c.id : ''))
+
+        // Push undo state before applying removes
+        setEdges((currentEdges) => {
+          pushUndo(nodes, currentEdges)
+          return currentEdges
+        })
+
         for (const change of removes) {
           if (change.type !== 'remove') continue
           const node = nodes.find((n) => n.id === change.id)
           if (!node) continue
           const nd = node.data as FlowNodeData
+
+          // Screen node deletion: remove linked screen + .tsx file
           if ((nd.nodeType === 'screen' || nd.nodeType === 'page') && nd.screenId) {
-            // Find the screen's filePath before removing it
             const dynFlow = getDynamicFlow(flow.id)
             const dynScreen = dynFlow?.screens.find((s) => s.id === nd.screenId)
             if (dynScreen?.filePath) {
@@ -81,21 +107,73 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
             onFlowChanged?.()
           }
         }
+
+        // Remove real edges connected to deleted nodes (React Flow only sees
+        // enriched/merged edges, so it can't clean up the originals).
+        // Also remove orphaned action nodes that were hidden behind merged edges.
+        setEdges((currentEdges) => {
+          const cleaned = currentEdges.filter(
+            (e) => !removedIds.has(e.source) && !removedIds.has(e.target),
+          )
+          // After cleaning edges, also remove orphaned action nodes (those
+          // that lost their incoming or outgoing connection).
+          setTimeout(() => {
+            setNodes((curNodes) => {
+              let latestEdges: Edge[] = []
+              setEdges((ce) => { latestEdges = ce; return ce })
+              const sources = new Set(latestEdges.map((e) => e.source))
+              const targets = new Set(latestEdges.map((e) => e.target))
+              return curNodes.filter((n) => {
+                const d = n.data as FlowNodeData
+                if (d.nodeType !== 'action') return true
+                return targets.has(n.id) && sources.has(n.id)
+              })
+            })
+          }, 0)
+          return cleaned
+        })
+
+        scheduleSave()
       }
 
-      const hasDrag = changes.some((c) => c.type === 'position' && c.dragging)
+      // Only apply non-remove changes via the standard path, since we
+      // already handled removes above (including edge cleanup + undo).
+      const nonRemoves = changes.filter((c) => c.type !== 'remove')
+      if (removes.length > 0 && nonRemoves.length === 0) {
+        // All changes were removes — apply them to remove the nodes
+        applyNodeChanges(changes)
+        return
+      }
+
+      const hasDrag = nonRemoves.some((c) => c.type === 'position' && c.dragging)
       if (hasDrag) {
         const { lines, adjustedChanges } = getHelperLines(changes, nodes, edges)
         setHelperLines(lines)
         applyNodeChanges(adjustedChanges)
       } else {
         // Clear guides when drag stops
-        const dragStopped = changes.some((c) => c.type === 'position' && c.dragging === false)
+        const dragStopped = nonRemoves.some((c) => c.type === 'position' && c.dragging === false)
         if (dragStopped) setHelperLines({})
         applyNodeChanges(changes)
       }
     },
-    [nodes, edges, applyNodeChanges, flow.id, onFlowChanged],
+    [nodes, edges, applyNodeChanges, setEdges, setNodes, pushUndo, scheduleSave, flow.id, onFlowChanged],
+  )
+
+  // Custom onEdgesChange: skip remove changes for merged edge IDs (those are
+  // virtual — onNodesChange already handles cleaning up the real edges behind them).
+  // All other edge changes (select, etc.) are applied normally.
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      // Filter out remove changes for merged edges — they don't exist in real state
+      const filtered = changes.filter(
+        (c) => !(c.type === 'remove' && c.id.startsWith('merged-')),
+      )
+      if (filtered.length > 0) {
+        setEdges((currentEdges) => applyEdgeChanges(filtered, currentEdges))
+      }
+    },
+    [setEdges],
   )
 
   // Load or auto-generate graph when flow changes
@@ -138,20 +216,6 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
     setSelectedNode(null)
     resetUndoRedo()
   }, [flow.id, flow, setNodes, setEdges, resetUndoRedo])
-
-  // Debounced save
-  const scheduleSave = useCallback(() => {
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-    saveTimeoutRef.current = setTimeout(() => {
-      setNodes((currentNodes) => {
-        setEdges((currentEdges) => {
-          saveFlowGraph(flow.id, currentNodes, currentEdges)
-          return currentEdges
-        })
-        return currentNodes
-      })
-    }, 500)
-  }, [flow.id, setNodes, setEdges])
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -509,23 +573,23 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
   }, [])
 
   // Align nodes: reposition all nodes in a centered layered layout
-  const handleAlignNodes = useCallback(() => {
-    const result = { nodes: null as Node[] | null, edges: null as Edge[] | null }
-    setNodes((currentNodes) => {
-      setEdges((currentEdges) => {
-        pushUndo(currentNodes, currentEdges)
-        const aligned = alignNodes(currentNodes, currentEdges)
-        result.nodes = aligned.nodes as Node[]
-        result.edges = aligned.edges as Edge[]
-        return result.edges
-      })
-      return result.nodes ?? currentNodes
-    })
-    if (result.nodes && result.edges) {
-      saveFlowGraph(flow.id, result.nodes, result.edges)
-    }
+  const handleAlignNodes = useCallback(async () => {
+    // Snapshot current state for undo and as input
+    let currentNodes: Node[] = []
+    let currentEdges: Edge[] = []
+    setNodes((n) => { currentNodes = n; return n })
+    setEdges((e) => { currentEdges = e; return e })
+
+    pushUndo(currentNodes, currentEdges)
+
+    const aligned = await alignNodes(currentNodes, currentEdges)
+    setNodes(aligned.nodes as Node[])
+    setEdges(aligned.edges as Edge[])
+    saveFlowGraph(flow.id, aligned.nodes, aligned.edges)
     setSelectedNode(null)
-  }, [flow.id, setNodes, setEdges, pushUndo])
+    // Fit view after a tick so React Flow has time to apply new positions
+    setTimeout(() => fitView({ padding: 0.15, duration: 300 }), 50)
+  }, [flow.id, setNodes, setEdges, pushUndo, fitView])
 
   // Annotations panel: update node data fields
   const handleNodeUpdate = useCallback(
@@ -885,10 +949,29 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
             onReconnectEnd={handleReconnectEnd}
             onDelete={({ edges: deletedEdges }) => {
               if (deletedEdges.length > 0) {
+                // For merged edges, remove the original real edges behind them
+                const realIdsToRemove = new Set<string>()
+                for (const e of deletedEdges) {
+                  if (e.id.startsWith('merged-')) {
+                    const data = e.data as Record<string, unknown> | undefined
+                    const inId = data?._originalIncomingEdgeId as string | undefined
+                    const outId = data?._originalOutgoingEdgeId as string | undefined
+                    if (inId) realIdsToRemove.add(inId)
+                    if (outId) realIdsToRemove.add(outId)
+                  }
+                }
                 setNodes((currentNodes) => {
-                  let currentEdges: Edge[] = []
-                  setEdges((ce) => { currentEdges = ce; return ce })
-                  return removeOrphanedActionNodes(currentNodes, currentEdges)
+                  let nextEdges: Edge[] = []
+                  setEdges((currentEdges) => {
+                    if (realIdsToRemove.size > 0) {
+                      pushUndo(currentNodes, currentEdges)
+                    }
+                    nextEdges = realIdsToRemove.size > 0
+                      ? currentEdges.filter((e) => !realIdsToRemove.has(e.id))
+                      : currentEdges
+                    return nextEdges
+                  })
+                  return removeOrphanedActionNodes(currentNodes, nextEdges)
                 })
                 scheduleSave()
               }

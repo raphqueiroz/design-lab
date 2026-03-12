@@ -24,6 +24,7 @@ interface FlowSidebarProps {
   onSelect: (flowId: string) => void
   onFlowCreated?: () => void
   onFlowDeleted?: () => void
+  createTriggerRef?: React.MutableRefObject<(() => void) | null>
 }
 
 // ── Drag state ──
@@ -120,8 +121,11 @@ function ArchiveSection({
   )
 }
 
-export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, onFlowDeleted }: FlowSidebarProps) {
+export default function FlowSidebar({ selectedFlowId, onSelect, onFlowCreated, onFlowDeleted, createTriggerRef }: FlowSidebarProps) {
   const [showNewDialog, setShowNewDialog] = useState(false)
+
+  // Expose dialog trigger to parent
+  if (createTriggerRef) createTriggerRef.current = () => setShowNewDialog(true)
   const [collapsedDomains, setCollapsedDomains] = useState<Set<string>>(new Set())
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 

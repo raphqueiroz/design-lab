@@ -53,7 +53,7 @@ function NavItem({ item, isActive }: { item: NavItem; isActive: boolean }) {
 
 export default function NavRail() {
   const location = useLocation()
-  const activePrefix = navItems.find((item) => location.pathname.startsWith(item.to))?.to ?? '/components'
+  const activePrefix = navItems.find((item) => location.pathname.startsWith(item.to))?.to ?? '/flows'
 
   return (
     <nav className="w-[48px] h-full shrink-0 flex flex-col items-center py-[10px] gap-[4px] bg-shell-bg border-r border-shell-border">
