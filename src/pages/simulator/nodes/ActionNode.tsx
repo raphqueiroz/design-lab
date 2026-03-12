@@ -25,34 +25,39 @@ function ActionNode({ data, selected }: NodeProps) {
   return (
     <div
       className={`
-        w-[200px] rounded-[var(--token-radius-full)] border-2 overflow-hidden
-        transition-colors duration-[var(--token-transition-fast)]
+        w-[200px] rounded-full border overflow-hidden
+        transition-all duration-[var(--token-transition-fast)]
         ${selected
-          ? 'border-[#A78BFA] shadow-[0_0_0_2px_rgba(167,139,250,0.3)]'
-          : 'border-[#78716C]'
+          ? 'border-[#A78BFA]/60'
+          : 'border-white/[0.08]'
         }
-        bg-[#2D2640]
+        bg-[#2A2240]
       `}
+      style={{
+        boxShadow: selected
+          ? '0 0 0 1px rgba(167,139,250,0.2), 0 4px 12px rgba(0,0,0,0.4)'
+          : '0 2px 8px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04)',
+      }}
     >
-      <Handle type="target" position={Position.Top} id="top" className="!bg-[#A78BFA] !w-[10px] !h-[10px] !border-2 !border-[#2D2640]" />
-      <Handle type="target" position={Position.Left} id="left-target" className="!bg-[#A78BFA] !w-[10px] !h-[10px] !border-2 !border-[#2D2640]" />
-      <Handle type="source" position={Position.Left} id="left-source" className="!bg-[#A78BFA] !w-[10px] !h-[10px] !border-2 !border-[#2D2640]" />
-      <Handle type="target" position={Position.Right} id="right-target" className="!bg-[#A78BFA] !w-[10px] !h-[10px] !border-2 !border-[#2D2640]" />
-      <Handle type="source" position={Position.Right} id="right-source" className="!bg-[#A78BFA] !w-[10px] !h-[10px] !border-2 !border-[#2D2640]" />
+      <Handle type="target" position={Position.Top} id="top" className="!bg-[#A78BFA] !w-[8px] !h-[8px] !border-[1.5px] !border-[#2A2240]" />
+      <Handle type="target" position={Position.Left} id="left-target" className="!bg-[#A78BFA] !w-[8px] !h-[8px] !border-[1.5px] !border-[#2A2240]" />
+      <Handle type="source" position={Position.Left} id="left-source" className="!bg-[#A78BFA] !w-[8px] !h-[8px] !border-[1.5px] !border-[#2A2240]" />
+      <Handle type="target" position={Position.Right} id="right-target" className="!bg-[#A78BFA] !w-[8px] !h-[8px] !border-[1.5px] !border-[#2A2240]" />
+      <Handle type="source" position={Position.Right} id="right-source" className="!bg-[#A78BFA] !w-[8px] !h-[8px] !border-[1.5px] !border-[#2A2240]" />
       <div className="flex items-center gap-[var(--token-spacing-2)] px-[var(--token-spacing-3)] py-[var(--token-spacing-2)]">
         <Icon size={12} className="text-[#A78BFA] shrink-0" />
-        <span className="flex-1 min-w-0 text-[length:var(--token-font-size-caption)] text-shell-text-secondary truncate">
+        <span className="flex-1 min-w-0 text-[length:var(--token-font-size-caption)] text-[#999] truncate">
           {nodeData.actionTarget && nodeData.label.includes(nodeData.actionTarget) ? (
             <>
               {nodeData.label.slice(0, nodeData.label.indexOf(nodeData.actionTarget))}
-              <span className="font-semibold text-shell-text">{nodeData.actionTarget}</span>
+              <span className="font-semibold text-[#e0e0e0]">{nodeData.actionTarget}</span>
             </>
           ) : (
             nodeData.label
           )}
         </span>
       </div>
-      <Handle type="source" position={Position.Bottom} id="bottom" className="!bg-[#A78BFA] !w-[10px] !h-[10px] !border-2 !border-[#2D2640]" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="!bg-[#A78BFA] !w-[8px] !h-[8px] !border-[1.5px] !border-[#2A2240]" />
     </div>
   )
 }

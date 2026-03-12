@@ -28,11 +28,11 @@ function ToolbarButton({
       title={title}
       disabled={disabled}
       className={`
-        flex items-center justify-center w-[32px] h-[32px] rounded-[var(--token-radius-sm)]
+        flex items-center justify-center w-[28px] h-[28px] rounded-[6px]
         transition-colors cursor-pointer
         ${disabled
-          ? 'text-shell-text-tertiary/40 cursor-not-allowed'
-          : 'text-shell-text-secondary hover:bg-shell-hover hover:text-shell-text'
+          ? 'text-[#555] cursor-not-allowed'
+          : 'text-[#aaa] hover:bg-[#3a3a3a] hover:text-white'
         }
       `}
     >
@@ -42,7 +42,7 @@ function ToolbarButton({
 }
 
 function Divider() {
-  return <div className="w-[1px] h-[20px] bg-shell-border mx-[2px]" />
+  return <div className="w-[1px] h-[20px] bg-[#444] mx-[4px]" />
 }
 
 // Group node types for the toolbar layout
@@ -64,7 +64,7 @@ function NodeTypeButtons({ types, onAddNode }: { types: CreatableNodeType[]; onA
         if (type === 'delay') tooltip += ' — Async wait (webhook, polling, timer)'
         return (
           <ToolbarButton key={type} onClick={() => onAddNode(type)} title={tooltip}>
-            <Icon size={14} />
+            <Icon size={16} />
           </ToolbarButton>
         )
       })}
@@ -80,7 +80,7 @@ export default function FloatingCanvasToolbar({
   canRedo = false,
 }: FloatingCanvasToolbarProps) {
   return (
-    <div className="absolute bottom-[16px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-[2px] px-[var(--token-spacing-2)] py-[var(--token-spacing-1)] bg-shell-surface border border-shell-border rounded-[var(--token-radius-full)] shadow-lg">
+    <div className="absolute bottom-[16px] left-1/2 -translate-x-1/2 z-10 flex items-center gap-[2px] h-[40px] px-[6px] bg-[#2c2c2c] border border-[#3a3a3a] rounded-[12px] shadow-2xl">
       <NodeTypeButtons types={UI_TYPES} onAddNode={onAddNode} />
       <Divider />
       <NodeTypeButtons types={LOGIC_TYPES} onAddNode={onAddNode} />

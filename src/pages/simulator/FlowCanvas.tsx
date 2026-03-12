@@ -676,21 +676,20 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
             panOnDrag={!spacePressed}
             snapToGrid
             snapGrid={[20, 20]}
-            fitView
-            fitViewOptions={{ padding: 0.3 }}
+            defaultViewport={{ x: 0, y: 0, zoom: 0.9 }}
             proOptions={{ hideAttribution: true }}
             edgeTypes={edgeTypes}
             defaultEdgeOptions={{
               type: 'insertable',
-              style: { stroke: '#4ADE80', strokeWidth: 2 },
+              style: { stroke: '#4ADE80', strokeWidth: 1.5 },
             }}
           >
             <Background
-              variant={BackgroundVariant.Lines}
-              gap={20}
-              lineWidth={1}
-              color="#2A2A2A"
-              bgColor="#1E1E1E"
+              variant={BackgroundVariant.Dots}
+              gap={24}
+              size={1.5}
+              color="#444"
+              bgColor="#1a1a1a"
             />
             <MiniMap
               nodeColor={(node) => NODE_COLORS[node.type ?? ''] ?? '#6B6B6B'}
