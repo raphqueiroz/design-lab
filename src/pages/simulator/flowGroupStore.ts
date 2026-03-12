@@ -218,6 +218,7 @@ export async function hydrateFlowGroupsFromSupabase(): Promise<boolean> {
         archivedFlows: { ...parsed.archivedFlows },
         archivedGroups: { ...parsed.archivedGroups },
         ungroupedOrder: { ...parsed.ungroupedOrder },
+        deletedFlows: parsed.deletedFlows ?? [],
       }
 
       // Apply code defaults: add groups/memberships from flow index files
@@ -225,6 +226,10 @@ export async function hydrateFlowGroupsFromSupabase(): Promise<boolean> {
       applyCodeDefaults(state)
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+      // Sync deletedFlows to the legacy key so flowRegistry can read it
+      if (state.deletedFlows && state.deletedFlows.length > 0) {
+        localStorage.setItem('picnic-design-lab:deleted-flows', JSON.stringify(state.deletedFlows))
+      }
       notifyListeners()
 
       return true

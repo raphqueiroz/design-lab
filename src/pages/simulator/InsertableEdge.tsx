@@ -206,7 +206,6 @@ export default function InsertableEdge({
             className="overflow-visible pointer-events-auto"
           >
             <button
-              xmlns="http://www.w3.org/1999/xhtml"
               type="button"
               onClick={(e) => {
                 e.stopPropagation()
