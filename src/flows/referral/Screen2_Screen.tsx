@@ -205,7 +205,7 @@ export default function Screen({ onNext, onElementTap }: FlowScreenProps) {
       </div>
 
       {/* ══════ STICKY CTA ══════ */}
-      <StickyFooter className="!bg-[#FAF7F0] !border-t-0">
+      <StickyFooter>
         <Stack gap="sm">
           <Button variant="primary" size="lg" onPress={handleShare} fullWidth>
             Compartilhar convite <RiArrowRightLine size={18} className="inline ml-[4px] -mt-[2px]" />

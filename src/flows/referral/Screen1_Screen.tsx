@@ -151,7 +151,7 @@ export default function Screen({ onNext, onElementTap }: FlowScreenProps) {
       </div>
 
       {/* ══════ STICKY CTA ══════ */}
-      <StickyFooter className="!bg-[#FAF7F0] !border-t-0">
+      <StickyFooter>
         <Stack gap="sm">
           <TextInput
             placeholder="Seu melhor e-mail"

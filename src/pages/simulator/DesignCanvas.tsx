@@ -447,7 +447,7 @@ export default function DesignCanvas({ flow }: DesignCanvasProps) {
                         }`}
                       >
                         <LayoutProvider level={1} breadcrumbs={[]} isDesktop={false}>
-                          <AppShell>
+                          <AppShell sidebar={null}>
                             <ScreenDataProvider data={stateData}>
                               <ScreenComponent
                                 onNext={() => {}}
