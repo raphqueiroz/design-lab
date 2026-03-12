@@ -6,23 +6,18 @@ import Banner from '../../library/display/Banner'
 import Summary from '../../library/display/Summary'
 import GroupHeader from '../../library/navigation/GroupHeader'
 import DataList from '../../library/display/DataList'
-import Text from '../../library/foundations/Text'
-import StickyFooter from '../../library/layout/StickyFooter'
-import Button from '../../library/inputs/Button'
 import { RiBugLine, RiAlertLine, RiRefundLine, RiShieldCheckLine } from '@remixicon/react'
 
 export default function Screen2_InsuranceAbout({ onBack }: FlowScreenProps) {
   return (
     <BaseLayout>
-      <Header title="Seu dinheiro protegido" onBack={onBack} />
+      <Header
+        title="Seu dinheiro protegido"
+        description="Toda caixinha já vem com seguro incluso. Sem contratação, sem custo extra. A proteção ativa no momento em que você guarda."
+        onBack={onBack}
+      />
 
       <Stack gap="lg">
-        <Stack gap="sm">
-          <Text variant="heading-lg">Se algo der errado, você recebe de volta.</Text>
-          <Text variant="body-md" color="content-secondary">
-            Toda caixinha já vem com seguro incluso. Sem contratação, sem custo extra. A proteção ativa no momento em que você guarda.
-          </Text>
-        </Stack>
 
         <Stack gap="none">
           <GroupHeader text="O que o seguro cobre" />
@@ -39,8 +34,8 @@ export default function Screen2_InsuranceAbout({ onBack }: FlowScreenProps) {
         <Stack gap="none">
           <GroupHeader text="Detalhes" />
           <DataList data={[
-            { label: 'Custo pra você', value: <span className="text-[var(--color-feedback-success)] font-medium">Grátis — incluso no rendimento</span> },
-            { label: 'Franquia', value: '5% do valor afetado' },
+            { label: 'Custo', value: <span className="text-[var(--color-feedback-success)] font-medium">Grátis</span> },
+            { label: 'Cobertura', value: '97% do valor investido' },
             { label: 'Prazo de análise', value: 'Até 14 dias' },
             { label: 'Reembolso após aprovação', value: 'Até 30 dias' },
           ]} />
@@ -53,11 +48,6 @@ export default function Screen2_InsuranceAbout({ onBack }: FlowScreenProps) {
         />
       </Stack>
 
-      <StickyFooter>
-        <Button variant="ghost" fullWidth onPress={() => onBack?.()}>
-          Entendi
-        </Button>
-      </StickyFooter>
     </BaseLayout>
   )
 }

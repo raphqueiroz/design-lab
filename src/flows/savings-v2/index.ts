@@ -39,7 +39,7 @@ const manageScreenDefs = [
     ],
     states: [
       { id: 'default', name: 'Com saldo', description: 'USD caixinha has balance', isDefault: true, data: {} },
-      { id: 'new-user', name: 'Novo usuário', description: 'All caixinhas zero balance', data: { hasBalance: false } },
+      { id: 'no-balance', name: 'Sem saldo', description: 'All caixinhas zero balance', data: { hasBalance: false } },
     ],
   },
   {
@@ -51,12 +51,11 @@ const manageScreenDefs = [
     interactiveElements: [
       { id: 'sc-adicionar', component: 'ShortcutButton', label: 'Adicionar' },
       { id: 'sc-resgatar', component: 'ShortcutButton', label: 'Resgatar' },
-      { id: 'btn-apolice', component: 'Button', label: 'Ver apólice' },
+      { id: 'btn-apolice', component: 'Button', label: 'Ver certificado' },
     ],
     states: [
       { id: 'default', name: 'Com saldo', description: 'Has balance, Details tab', isDefault: true, data: {} },
       { id: 'no-balance', name: 'Sem saldo', description: 'Zero balance, Resgatar disabled', data: { hasBalance: false } },
-      { id: 'historico', name: 'Histórico', description: 'History tab active', data: { tab: 1 } },
     ],
   },
   {
@@ -84,7 +83,7 @@ const manageScreenDefs_B = [
     ],
     states: [
       { id: 'default', name: 'Com saldo', description: 'USD caixinha has balance', isDefault: true, data: {} },
-      { id: 'new-user', name: 'Novo usuário', description: 'All caixinhas zero balance', data: { hasBalance: false } },
+      { id: 'no-balance', name: 'Sem saldo', description: 'All caixinhas zero balance', data: { hasBalance: false } },
     ],
   },
   {
@@ -96,7 +95,7 @@ const manageScreenDefs_B = [
     interactiveElements: [
       { id: 'sc-adicionar', component: 'ShortcutButton', label: 'Adicionar' },
       { id: 'sc-resgatar', component: 'ShortcutButton', label: 'Resgatar' },
-      { id: 'btn-apolice', component: 'Button', label: 'Ver apólice' },
+      { id: 'btn-apolice', component: 'Button', label: 'Ver certificado' },
     ],
     states: [
       { id: 'default', name: 'Com saldo', description: 'Has USD balance', isDefault: true, data: {} },
@@ -293,6 +292,7 @@ registerFlow({
   name: 'Caixinha MVP Withdraw',
   description: 'Withdraw from USD caixinha: amount entry, review, processing, success.',
   domain: 'earn',
+  level: 2,
   screens: withdrawScreenDefs.map(s => ({
     id: s.id,
     title: s.title,
@@ -333,7 +333,7 @@ bootstrapFlowGraph('caixinha-mvp',
     { id: 'ref-withdraw', type: 'flow-reference', position: { x: xR, y: ROW * 4 }, data: { label: 'Withdraw flow', screenId: null, nodeType: 'flow-reference', targetFlowId: 'caixinha-mvp-withdraw' } as FlowNodeData },
 
     // From hub → insurance
-    { id: 'action-apolice', type: 'action', position: { x: xL, y: ROW * 3 }, data: { label: 'Tap Ver apólice', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Button: Ver apólice' } as FlowNodeData },
+    { id: 'action-apolice', type: 'action', position: { x: xL, y: ROW * 3 }, data: { label: 'Tap Ver certificado', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Button: Ver certificado' } as FlowNodeData },
     { id: 'screen-insurance', type: 'screen', position: { x: xL, y: ROW * 4 }, data: { label: 'Insurance Card', screenId: 'caixinha-mvp-insurance', nodeType: 'screen', pageId: 'caixinha-mvp-insurance' } as FlowNodeData },
   ],
   [
@@ -363,7 +363,7 @@ bootstrapFlowGraph('caixinha-mvp-b',
     { id: 'action-resgatar', type: 'action', position: { x: xR, y: ROW * 3 }, data: { label: 'Tap Resgatar', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'ShortcutButton: Resgatar' } as FlowNodeData },
     { id: 'ref-withdraw', type: 'flow-reference', position: { x: xR, y: ROW * 4 }, data: { label: 'Withdraw flow', screenId: null, nodeType: 'flow-reference', targetFlowId: 'caixinha-mvp-withdraw' } as FlowNodeData },
 
-    { id: 'action-apolice', type: 'action', position: { x: xL, y: ROW * 3 }, data: { label: 'Tap Ver apólice', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Button: Ver apólice' } as FlowNodeData },
+    { id: 'action-apolice', type: 'action', position: { x: xL, y: ROW * 3 }, data: { label: 'Tap Ver certificado', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Button: Ver certificado' } as FlowNodeData },
     { id: 'screen-insurance', type: 'screen', position: { x: xL, y: ROW * 4 }, data: { label: 'Insurance Card', screenId: 'caixinha-mvp-insurance', nodeType: 'screen', pageId: 'caixinha-mvp-insurance' } as FlowNodeData },
   ],
   [

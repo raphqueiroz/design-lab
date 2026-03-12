@@ -49,7 +49,7 @@ export default function FeedbackLayout({
           isDesktop ? 'pt-[var(--token-spacing-6)]' : 'pt-[var(--safe-area-top,0px)]',
         )}
       >
-        <div className="px-[var(--token-spacing-6)] flex flex-col gap-[var(--token-spacing-6)]">
+        <div className="px-[var(--token-spacing-6)] flex flex-col gap-[var(--token-spacing-3)]">
           {/* Close button — top-right */}
           {onClose && (
             <div className="flex justify-end">
@@ -64,12 +64,12 @@ export default function FeedbackLayout({
           {/* Animation — left-aligned */}
           {animation && (
             <div
-              style={{ width: ANIMATION_SIZE, height: ANIMATION_SIZE }}
+              style={{ width: ANIMATION_SIZE, height: ANIMATION_SIZE, marginLeft: -ANIMATION_SIZE * 0.2, marginBottom: 'calc(-1 * var(--token-spacing-6))' }}
               className="shrink-0"
             >
               <Lottie
                 animationData={animation}
-                loop
+                loop={false}
                 className="w-full h-full"
               />
             </div>

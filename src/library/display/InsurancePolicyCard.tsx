@@ -36,14 +36,11 @@ export default function InsurancePolicyCard({ providerName, coverItems, classNam
 
       <Stack gap="default" className="relative z-10">
         {/* Top section */}
-        <Stack direction="row" gap="sm" align="center" className="justify-between">
-          <Text variant="body-sm" className="text-white/70 uppercase tracking-wider font-medium">
-            Certificado de cobertura
-          </Text>
+        <div className="flex justify-end">
           <Text variant="body-sm" className="text-white font-semibold">
             {providerName}
           </Text>
-        </Stack>
+        </div>
 
         {/* Cover info heading */}
         <Text variant="heading-sm" className="text-white">

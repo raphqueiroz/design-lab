@@ -38,7 +38,7 @@ export default function Screen2_Hub({ onNext, onBack, onElementTap }: FlowScreen
   }
 
   const handleViewPolicy = () => {
-    const resolved = onElementTap?.('Button: Ver apólice')
+    const resolved = onElementTap?.('Button: Ver certificado')
     if (!resolved) onNext()
   }
 
@@ -53,10 +53,12 @@ export default function Screen2_Hub({ onNext, onBack, onElementTap }: FlowScreen
         </Stack>
 
         <Stack gap="none" className="gap-1">
-          <BalanceDisplay value={CURRENT_BALANCE} symbol="US$" />
-          <Text variant="body-md" className="text-[var(--color-feedback-success)] font-medium tracking-tight">
-            ↑ {formatCurrency(CURRENT_GAINS, 'USD')}
-          </Text>
+          <BalanceDisplay value={hasBalance ? CURRENT_BALANCE : 0} symbol="US$" />
+          {hasBalance && (
+            <Text variant="body-md" className="text-[var(--color-feedback-success)] font-medium tracking-tight">
+              ↑ {formatCurrency(CURRENT_GAINS, 'USD')}
+            </Text>
+          )}
         </Stack>
 
         <Stack direction="row" gap="default" align="start">
@@ -83,8 +85,8 @@ export default function Screen2_Hub({ onNext, onBack, onElementTap }: FlowScreen
             className="self-start"
           />
 
-          {activeTab === 0 && <DetailsTab onViewPolicy={handleViewPolicy} />}
-          {activeTab === 1 && <HistoryTab />}
+          {activeTab === 0 && <DetailsTab hasBalance={hasBalance} yieldAmount={formatCurrency(CURRENT_GAINS, 'USD')} onViewPolicy={handleViewPolicy} />}
+          {activeTab === 1 && <HistoryTab hasBalance={hasBalance} />}
         </Stack>
       </Stack>
     </BaseLayout>

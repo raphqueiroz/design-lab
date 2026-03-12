@@ -15,7 +15,7 @@ export default function GroupHeader({ text, subtitle, icon, className = '' }: Gr
       <div className="flex items-center gap-[var(--token-spacing-2)]">
         {icon && <span className="shrink-0 text-content-secondary">{icon}</span>}
         <div className="flex flex-col gap-[var(--token-spacing-1)]">
-          <span className="text-[length:var(--token-font-size-body-sm)] leading-[var(--token-line-height-body-sm)] font-medium text-content-secondary">
+          <span className="text-[length:var(--token-font-size-body-sm)] leading-[var(--token-line-height-body-sm)] font-medium text-content-primary">
             {text}
           </span>
           {subtitle && (

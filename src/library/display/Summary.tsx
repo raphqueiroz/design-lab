@@ -8,6 +8,8 @@ export interface SummaryItem {
   title: string
   description?: string | ReactNode
   status?: 'none' | 'done' | 'pending'
+  linkText?: string
+  onLinkPress?: () => void
 }
 
 export interface SummaryProps {
@@ -55,6 +57,15 @@ export default function Summary({
                   </span>
                 ) : item.description
               )}
+              {item.linkText && item.onLinkPress && (
+                <button
+                  type="button"
+                  onClick={item.onLinkPress}
+                  className="text-[length:var(--token-font-size-body-md)] leading-[var(--token-line-height-body-sm)] font-medium text-[var(--color-interactive-default)] text-left cursor-pointer"
+                >
+                  {item.linkText}
+                </button>
+              )}
             </div>
           </div>
         )
@@ -69,7 +80,7 @@ registerComponent({
   description: 'List of steps or tasks with icons and status indicators. Use for instructions, onboarding steps, and checklists.',
   component: Summary,
   props: [
-    { name: 'data', type: 'SummaryItem[]', required: true, description: 'Array of items with icon, title, description, and optional status (none, done, pending)' },
+    { name: 'data', type: 'SummaryItem[]', required: true, description: 'Array of items with icon, title, description, optional status (none, done, pending), and optional linkText + onLinkPress' },
     { name: 'header', type: 'string', required: false, description: 'Optional header text above the list' },
   ],
 })

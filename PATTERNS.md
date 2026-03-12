@@ -173,6 +173,8 @@ Or with a visible title:
 
 > **Important:** Always prefer Header over creating custom top-action wrappers with raw divs + IconButton. Avoid creating new components when not strictly necessary.
 
+> **Important:** When a screen has a subtitle or description below the title, always use Header's `description` prop — never place a separate `<Text>` element below the Header. The Header component handles the correct 8px gap and typography pairing internally. Wrong: `<Header title="..." /><Text>subtitle here</Text>`. Right: `<Header title="..." description="subtitle here" />`.
+
 ### 4.3 List / Selection Screen
 
 ```

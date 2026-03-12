@@ -6,11 +6,9 @@ import GroupHeader from '../../library/navigation/GroupHeader'
 import Button from '../../library/inputs/Button'
 import DataList from '../../library/display/DataList'
 import Text from '../../library/foundations/Text'
-import savingsAnimation from '../../assets/lottie/savings-success.json'
-
 export default function Screen4_Success({ onBack }: FlowScreenProps) {
   return (
-    <FeedbackLayout onClose={onBack} animation={savingsAnimation}>
+    <FeedbackLayout onClose={onBack}>
       <Stack gap="sm">
         <Text variant="display">Resgate concluído</Text>
         <Text variant="body-md" color="content-secondary">

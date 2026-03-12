@@ -6,20 +6,18 @@ import InsurancePolicyCard from '../../../library/display/InsurancePolicyCard'
 import Summary from '../../../library/display/Summary'
 import GroupHeader from '../../../library/navigation/GroupHeader'
 import DataList from '../../../library/display/DataList'
-import Text from '../../../library/foundations/Text'
 import { RiCodeLine, RiLineChartLine, RiShieldCheckLine, RiGovernmentLine } from '@remixicon/react'
 
 export default function Screen3_InsuranceCard({ onBack }: FlowScreenProps) {
   return (
     <BaseLayout>
-      <Header title="Apólice de seguro" onBack={onBack} />
+      <Header
+        title="Certificado de cobertura"
+        description="Sua caixinha já vem com seguro incluso. Sem contratação, sem custo extra."
+        onBack={onBack}
+      />
 
       <Stack gap="lg">
-        <Stack gap="sm">
-          <Text variant="body-md" color="content-secondary">
-            Seu investimento é protegido automaticamente contra riscos operacionais de smart contracts. Sem custo adicional.
-          </Text>
-        </Stack>
 
         <InsurancePolicyCard
           providerName="Nexus Mutual"

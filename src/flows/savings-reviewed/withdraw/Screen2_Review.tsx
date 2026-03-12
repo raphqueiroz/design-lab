@@ -1,13 +1,13 @@
 import type { FlowScreenProps } from '../../../pages/simulator/flowRegistry'
 import { useScreenData } from '../../../lib/ScreenDataContext'
+import Header from '../../../library/navigation/Header'
 import BaseLayout from '../../../library/layout/BaseLayout'
 import StickyFooter from '../../../library/layout/StickyFooter'
 import Stack from '../../../library/layout/Stack'
-import Header from '../../../library/navigation/Header'
-import GroupHeader from '../../../library/navigation/GroupHeader'
 import Button from '../../../library/inputs/Button'
 import DataList from '../../../library/display/DataList'
-import Text from '../../../library/foundations/Text'
+import GroupHeader from '../../../library/navigation/GroupHeader'
+import Banner from '../../../library/display/Banner'
 import { type CaixinhaCurrency, CURRENCIES } from '../shared/data'
 
 export default function Screen2_Review({ onNext, onBack, onElementTap }: FlowScreenProps) {
@@ -17,22 +17,37 @@ export default function Screen2_Review({ onNext, onBack, onElementTap }: FlowScr
 
   return (
     <BaseLayout>
-      <Header title="" onBack={onBack} />
+      <Header title="Revise os dados" onBack={onBack} />
 
-      <Text variant="heading-lg">Confirme o resgate</Text>
+      <Stack gap="default">
+        <Stack gap="none">
+          <GroupHeader text="Detalhes do resgate" />
+          <DataList data={[
+            { label: 'Você está resgatando', value: `${curr.symbol} 100,00` },
+            { label: 'Destino', value: 'Saldo do Cartão' },
+            {
+              label: 'Prazo',
+              value: <span className="text-[var(--color-feedback-success)] font-medium">Imediato</span>,
+            },
+            {
+              label: 'Nossa taxa',
+              value: <span className="text-[var(--color-feedback-success)] font-medium">Grátis</span>,
+            },
+          ]} />
+        </Stack>
 
-      <Stack gap="none">
-        <GroupHeader text="Detalhes do resgate" />
-        <DataList data={[
-          { label: 'Valor', value: `${curr.symbol} 100,00` },
-          { label: 'Caixinha', value: 'Reserva de emergência' },
-          { label: 'Destino', value: 'Saldo do Cartão' },
-          { label: 'Taxa', value: 'Grátis' },
-          {
-            label: 'Prazo',
-            value: <span className="text-[var(--color-feedback-success)] font-medium">Imediato</span>,
-          },
-        ]} />
+        <Stack gap="none">
+          <GroupHeader text="Sobre a caixinha" />
+          <DataList data={[
+            { label: 'Saldo após resgate', value: `${curr.symbol} 2.400,00` },
+          ]} />
+        </Stack>
+
+        <Banner
+          variant="neutral"
+          title="Resgate imediato"
+          description="O valor é creditado direto no saldo do seu cartão, sem carência."
+        />
       </Stack>
 
       <StickyFooter>

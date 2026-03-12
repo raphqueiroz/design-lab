@@ -58,7 +58,7 @@ const ZOOM_MAX = 3
 const ZOOM_STEP = 0.1
 
 export default function DesignCanvas({ flow }: DesignCanvasProps) {
-  const [frameMode, setFrameMode] = useState<FrameMode>('device')
+  const [frameMode, setFrameMode] = useState<FrameMode>('full-height')
   const [tool, setTool] = useState<CanvasTool>('select')
 
   // Pan/zoom state
@@ -300,6 +300,20 @@ export default function DesignCanvas({ flow }: DesignCanvasProps) {
           --safe-area-top: 54px;
           --safe-area-bottom: 34px;
         }
+        .canvas-fullheight {
+          height: auto !important;
+        }
+        .canvas-fullheight [data-component="AppShell"],
+        .canvas-fullheight [data-component="BaseLayout"],
+        .canvas-fullheight [data-component="FeedbackLayout"],
+        .canvas-fullheight [data-component="FeatureLayout"],
+        .canvas-fullheight [data-component="LoadingScreen"] {
+          height: auto !important;
+          min-height: 840px;
+        }
+        .canvas-fullheight [data-part="content-area"] {
+          overflow: visible !important;
+        }
       `}</style>
 
       {/* Bottom toolbars — Figma style */}
@@ -350,18 +364,18 @@ export default function DesignCanvas({ flow }: DesignCanvasProps) {
         {/* Frame mode toolbar */}
         <div className="flex items-center gap-[2px] h-[40px] px-[6px] bg-[#2c2c2c] border border-[#3a3a3a] rounded-[12px] shadow-2xl">
           <ToolbarBtn
-            active={isDevice}
-            onClick={() => setFrameMode('device')}
-            title="Device frame"
-          >
-            <RiSmartphoneLine size={16} />
-          </ToolbarBtn>
-          <ToolbarBtn
             active={!isDevice}
             onClick={() => setFrameMode('full-height')}
             title="Full"
           >
             <RiExpandUpDownLine size={16} />
+          </ToolbarBtn>
+          <ToolbarBtn
+            active={isDevice}
+            onClick={() => setFrameMode('device')}
+            title="Device frame"
+          >
+            <RiSmartphoneLine size={16} />
           </ToolbarBtn>
         </div>
       </div>
@@ -426,10 +440,10 @@ export default function DesignCanvas({ flow }: DesignCanvasProps) {
 
                       {/* Phone artboard */}
                       <div
-                        className={`w-[390px] bg-[var(--color-surface-primary)] text-[var(--color-content-primary)] shadow-2xl relative flex flex-col ${
+                        className={`w-[390px] bg-[var(--color-surface-primary)] text-[var(--color-content-primary)] shadow-2xl relative flex flex-col rounded-[32px] ${
                           isDevice
-                            ? 'h-[844px] rounded-[32px] overflow-hidden'
-                            : 'min-h-[840px] rounded-[32px] overflow-hidden'
+                            ? 'h-[844px] overflow-hidden'
+                            : 'min-h-[840px] overflow-hidden canvas-fullheight'
                         }`}
                       >
                         <LayoutProvider level={1} breadcrumbs={[]} isDesktop={false}>

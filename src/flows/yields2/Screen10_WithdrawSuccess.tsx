@@ -6,7 +6,6 @@ import Button from '../../library/inputs/Button'
 import Text from '../../library/foundations/Text'
 import DataList from '../../library/display/DataList'
 import GroupHeader from '../../library/navigation/GroupHeader'
-
 export default function Screen10_WithdrawSuccess({ onBack }: FlowScreenProps) {
   return (
     <FeedbackLayout onClose={onBack}>

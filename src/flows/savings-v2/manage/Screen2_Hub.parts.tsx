@@ -16,7 +16,7 @@ interface BalanceDisplayProps {
 }
 
 export function BalanceDisplay({ value = 1250.00 }: BalanceDisplayProps) {
-  const formatted = value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const formatted = value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   return (
     <Stack direction="row" gap="none" align="center">
       <span
@@ -49,28 +49,38 @@ export const MOCK_YIELD_DATA = Array.from({ length: 30 }, (_, i) => {
 // ── Details Tab ──
 
 interface DetailsTabProps {
+  hasBalance?: boolean
+  yieldAmount?: string
   onViewPolicy?: () => void
 }
 
-export function DetailsTab({ onViewPolicy }: DetailsTabProps) {
+export function DetailsTab({ hasBalance = true, yieldAmount, onViewPolicy }: DetailsTabProps) {
   return (
     <Stack gap="default">
       <Stack gap="none">
         <DataList
-          data={[
-            { label: 'Rendimento', value: '4,72% a.a.' },
-            { label: 'Rendeu até agora', value: 'US$ 5,21' },
-            { label: 'Investindo desde', value: '21 jan 2026' },
-            { label: 'Resgate', value: 'A qualquer momento' },
-          ]}
+          data={
+            hasBalance
+              ? [
+                  { label: 'Rendimento', value: '4,72% a.a.' },
+                  { label: 'Rendeu até agora', value: yieldAmount ?? 'US$ 80,32' },
+                  { label: 'Guardando desde', value: '21 jan 2026' },
+                  { label: 'Resgate', value: 'A qualquer momento' },
+                ]
+              : [
+                  { label: 'Rendimento', value: '4,72% a.a.' },
+                  { label: 'Resgate', value: 'A qualquer momento' },
+                  { label: 'Proteção', value: 'Seguro incluso' },
+                ]
+          }
         />
       </Stack>
 
       <Banner
         variant="neutral"
-        title="Investimento assegurado"
-        description="Seu investimento é protegido pela OpenCover contra riscos operacionais de smart contracts."
-        linkText="Ver apólice"
+        title="Seu dinheiro protegido"
+        description="Seu saldo é coberto contra falhas técnicas e fraudes — sem custo adicional."
+        linkText="Ver certificado"
         onLinkPress={onViewPolicy}
       />
     </Stack>
@@ -147,7 +157,24 @@ function TransactionLine({ tx }: { tx: Transaction }) {
   )
 }
 
-export function HistoryTab() {
+interface HistoryTabProps {
+  hasBalance?: boolean
+}
+
+export function HistoryTab({ hasBalance = true }: HistoryTabProps) {
+  if (!hasBalance) {
+    return (
+      <Stack gap="sm" className="py-8 items-center">
+        <Text variant="body-md" color="content-tertiary" className="text-center">
+          Nenhuma movimentação ainda
+        </Text>
+        <Text variant="body-sm" color="content-tertiary" className="text-center">
+          Faça seu primeiro depósito para começar a render.
+        </Text>
+      </Stack>
+    )
+  }
+
   return (
     <div className="flex flex-col w-full">
       {MOCK_HISTORY.map((group) => (

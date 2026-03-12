@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react'
+import { motion } from 'framer-motion'
 import type { FlowScreenProps } from '../../../pages/simulator/flowRegistry'
 import { useScreenData } from '../../../lib/ScreenDataContext'
 import Header from '../../../library/navigation/Header'
@@ -77,22 +78,23 @@ export default function Screen1_AmountEntry({ onNext, onBack, onElementTap, onSt
         {calcState === 'loading' && <DataListSkeleton rows={3} />}
 
         {calcState === 'ready' && (
-          <>
-            <DataList data={[
-              { label: 'Prazo', value: 'Instantâneo' },
-              { label: 'Rendimento a partir de', value: 'Hoje' },
-              {
-                label: 'Nossa taxa',
-                value: <span className="text-[var(--color-feedback-success)] font-medium">Grátis</span>,
-              },
-            ]} />
-            <Banner
-              variant="neutral"
-              title="Resgate imediato"
-              description="Você pode resgatar a qualquer momento, sem carência e sem penalidade."
-            />
-          </>
+          <DataList data={[
+            { label: 'Prazo', value: 'Instantâneo' },
+            { label: 'Rendimento a partir de', value: 'Hoje' },
+            {
+              label: 'Nossa taxa',
+              value: <span className="text-[var(--color-feedback-success)] font-medium">Grátis</span>,
+            },
+          ]} />
         )}
+
+        <motion.div layout transition={{ duration: 0.3, ease: 'easeOut' }}>
+          <Banner
+            variant="neutral"
+            title="Rendimento automático"
+            description="Seu dinheiro rende 4.37% ao ano e você resgata quando quiser."
+          />
+        </motion.div>
       </Stack>
 
       <StickyFooter>

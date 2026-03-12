@@ -60,7 +60,7 @@ export default function Screen2_Hub_B({ onNext, onBack, onElementTap }: FlowScre
     if (!resolved) onNext()
   }
   const handleViewPolicy = () => {
-    const resolved = onElementTap?.('Button: Ver apólice')
+    const resolved = onElementTap?.('Button: Ver certificado')
     if (!resolved) onNext()
   }
 

@@ -365,13 +365,5 @@ export async function renameFlowIdCascade(oldId: string, newId: string): Promise
   // 8. Update flow-reference nodes in ALL other flow graphs
   updateFlowReferencesInAllGraphs(oldId, newId)
 
-  // 9. Update deleted flows set if present
-  const deleted = readDeletedFlows()
-  if (deleted.has(oldId)) {
-    deleted.delete(oldId)
-    deleted.add(newId)
-    writeDeletedFlows(deleted)
-  }
-
   return true
 }

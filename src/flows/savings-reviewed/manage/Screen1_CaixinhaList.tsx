@@ -12,7 +12,7 @@ import Badge from '../../../library/display/Badge'
 import { CaixinhaListCard, EmptyState } from './Screen1_CaixinhaList.parts'
 import { MOCK_REVIEWED_CAIXINHAS, MOCK_FX_TO_BRL } from '../shared/data'
 
-import savingsPiggyHero from '@/assets/images/savings-piggy-hero.png'
+const PIGGY_BANK_IMG = 'https://images.unsplash.com/photo-1589824783528-fdfccf80ed70?w=800&q=80'
 
 export default function Screen1_CaixinhaList({ onNext, onElementTap }: FlowScreenProps) {
   const { isEmpty } = useScreenData<{ isEmpty?: boolean }>()
@@ -34,7 +34,7 @@ export default function Screen1_CaixinhaList({ onNext, onElementTap }: FlowScree
 
   return (
     <FeatureLayout
-      imageSrc={savingsPiggyHero}
+      imageSrc={PIGGY_BANK_IMG}
       imageAlt="Savings illustration"
       imageMaxHeight={200}
       imageOverlay={

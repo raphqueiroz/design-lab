@@ -93,9 +93,9 @@
   --token-line-height-display: 44px;
   --token-font-weight-display: 600;
 
-  /* Heading LG — 30/38, semibold */
+  /* Heading LG — 30/120%, semibold */
   --token-font-size-heading-lg: 30px;
-  --token-line-height-heading-lg: 38px;
+  --token-line-height-heading-lg: 120%;
   --token-font-weight-heading-lg: 600;
 
   /* Heading MD — 24/32, semibold */

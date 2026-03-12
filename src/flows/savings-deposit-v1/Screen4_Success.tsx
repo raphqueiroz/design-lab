@@ -1,5 +1,4 @@
 import type { FlowScreenProps } from '@/pages/simulator/flowRegistry'
-import savingsAnimation from '@/assets/lottie/savings-success.json'
 import FeedbackLayout from '@/library/layout/FeedbackLayout'
 import StickyFooter from '@/library/layout/StickyFooter'
 import Stack from '@/library/layout/Stack'
@@ -11,7 +10,7 @@ import Text from '@/library/foundations/Text'
 
 export default function Screen4_Success({ onBack, onElementTap }: FlowScreenProps) {
   return (
-    <FeedbackLayout onClose={onBack} animation={savingsAnimation}>
+    <FeedbackLayout onClose={onBack}>
       <Stack gap="sm">
         <Text variant="display">Seu dinheiro já está rendendo</Text>
         <Text variant="body-md" color="content-secondary">
