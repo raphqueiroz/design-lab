@@ -132,7 +132,8 @@ export default function PageDetailPanel({ page, selectedNode, onPageChanged }: P
   const handleNameSave = useCallback(
     (name: string) => {
       if (!page) return
-      setPageName(page.id, name).then(() => onPageChanged?.())
+      setPageName(page.id, name)
+      onPageChanged?.()
     },
     [page, onPageChanged],
   )
@@ -140,7 +141,8 @@ export default function PageDetailPanel({ page, selectedNode, onPageChanged }: P
   const handleDescriptionSave = useCallback(
     (description: string) => {
       if (!page) return
-      setPageDescription(page.id, description).then(() => onPageChanged?.())
+      setPageDescription(page.id, description)
+      onPageChanged?.()
     },
     [page, onPageChanged],
   )

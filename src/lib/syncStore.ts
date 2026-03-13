@@ -221,16 +221,6 @@ export async function pushAllToSupabase(): Promise<boolean> {
 
 // ── Status helpers ──
 
-/** Mark status as synced (internal — used by pull/push). */
-function markSynced(): void {
-  if (isSupabaseConnected()) setStatus('synced')
-}
-
-/** Mark status as error (internal — used by pull/push). */
-function markError(): void {
-  if (isSupabaseConnected()) setStatus('error')
-}
-
 /** Mark status as unsynced (call when localStorage changes without pushing). */
 export function markUnsynced(): void {
   if (isSupabaseConnected()) setStatus('unsynced')
