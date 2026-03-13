@@ -19,6 +19,16 @@ npm run dev
 
 Then open Claude Code in the same directory. The `CLAUDE.md` file gives Claude full context about the codebase, patterns, and conventions.
 
+### Environment variables
+
+The app works fully offline without any configuration — all data persists in localStorage. To enable **shared sync** with the team's Supabase database (flow graphs, sidebar groups, token overrides):
+
+1. Copy the example file: `cp .env.example .env`
+2. Ask Raph for the real values for `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+3. Restart the dev server
+
+Without these variables, the Pull/Push sync buttons in the header won't connect — everything else works normally.
+
 ### Commands
 
 | Command | What it does |
