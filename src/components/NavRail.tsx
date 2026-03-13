@@ -17,8 +17,8 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { to: '/components', label: 'Library', icon: <RiPuzzleFill size={20} /> },
   { to: '/flows', label: 'Flows', icon: <RiFlowChart size={20} /> },
+  { to: '/components', label: 'Library', icon: <RiPuzzleFill size={20} /> },
 ]
 
 function NavItem({ item, isActive }: { item: NavItem; isActive: boolean }) {
