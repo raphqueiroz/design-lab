@@ -23,7 +23,7 @@ import {
 import '@xyflow/react/dist/style.css'
 
 import type { Flow } from './flowRegistry'
-import { refreshDynamicFlow, updateFlowMeta, getFlowsLinkingTo, renameFlowIdCascade } from './flowRegistry'
+import { refreshDynamicFlow, updateFlowMeta, getFlowsLinkingTo, renameFlowIdCascade, getAllFlows } from './flowRegistry'
 import { getFlowGraph, saveFlowGraph } from './flowGraphStore'
 import { autoGenerateFlowGraph } from './flowGraphAutoGen'
 import { alignNodes } from './alignNodes'
@@ -230,6 +230,96 @@ function FlowCanvasInner({ flow, onNavigateToScreen, onNavigateToFlow, onFlowCha
       setNodes(graphNodes)
       setEdges(generated.edges as Edge[])
       saveFlowGraph(flow.id, generated.nodes, generated.edges)
+    }
+
+    // Reconcile: sync action node actionTargets with current screen interactive elements.
+    // Handles both code-defined graphs (where graph nodes store interactiveElements)
+    // and dynamic/UI-created graphs (where screen nodes may lack interactiveElements).
+    {
+      // Build a map of screenId → current interactiveElements from the flow definition,
+      // falling back to all registered flows for shared/reused screens (dynamic flows may
+      // not store interactiveElements on their screen entries).
+      const currentElementsByScreen = new Map<string, { id: string; component: string; label: string }[]>()
+      for (const s of flow.screens) {
+        if (s.interactiveElements?.length) {
+          currentElementsByScreen.set(s.id, s.interactiveElements)
+        } else {
+          // Fallback: look up from all registered flows
+          for (const f of getAllFlows()) {
+            const found = f.screens.find(fs => fs.id === s.id)?.interactiveElements
+            if (found?.length) { currentElementsByScreen.set(s.id, found); break }
+          }
+        }
+      }
+
+      // Build a set of all current valid targets for quick lookup
+      const currentValidTargets = new Set<string>()
+      for (const els of currentElementsByScreen.values()) {
+        for (const el of els) currentValidTargets.add(`${el.component}: ${el.label}`)
+      }
+
+      // Build adjacency from edges (child → parent direction)
+      const childToParents = new Map<string, string[]>()
+      const graphEdges = existing ? existing.edges as Edge[] : []
+      for (const e of graphEdges) {
+        const list = childToParents.get(e.target) ?? []
+        list.push(e.source)
+        childToParents.set(e.target, list)
+      }
+
+      // For each action node with a stale actionTarget, find the parent screen
+      // and match the element by component type to get the updated label
+      let dirty = false
+      graphNodes = graphNodes.map(n => {
+        const nd = n.data as FlowNodeData
+        if (nd.nodeType !== 'action' || !nd.actionTarget) return n
+        // If the target is still valid, nothing to fix
+        if (currentValidTargets.has(nd.actionTarget)) return n
+
+        // Find parent screen node by walking edges backwards
+        const parentIds = childToParents.get(n.id) ?? []
+        let parentScreenId: string | null = null
+        for (const pid of parentIds) {
+          const pn = graphNodes.find(gn => gn.id === pid)
+          const pd = pn?.data as FlowNodeData | undefined
+          if (pd && (pd.nodeType === 'screen' || pd.nodeType === 'overlay')) {
+            parentScreenId = pd.screenId ?? pd.pageId ?? null
+            break
+          }
+        }
+        if (!parentScreenId) return n
+
+        const screenEls = currentElementsByScreen.get(parentScreenId)
+        if (!screenEls) return n
+
+        // Extract component type from old actionTarget ("Button: Ativar rendimento" → "Button")
+        const colonIdx = nd.actionTarget.indexOf(': ')
+        if (colonIdx < 0) return n
+        const oldComponent = nd.actionTarget.slice(0, colonIdx)
+
+        // Find matching element by same component type
+        const matches = screenEls.filter(el => el.component === oldComponent)
+        if (matches.length !== 1) return n // ambiguous or no match — don't auto-fix
+
+        const newTarget = `${matches[0].component}: ${matches[0].label}`
+        if (newTarget === nd.actionTarget) return n
+
+        dirty = true
+        const targetLabel = matches[0].label
+        return {
+          ...n,
+          data: {
+            ...nd,
+            actionTarget: newTarget,
+            ...(!nd.labelManuallyEdited ? { label: `User ${nd.actionType ?? 'tap'}s ${targetLabel}` } : {}),
+          },
+        }
+      })
+
+      if (dirty) {
+        setNodes(graphNodes)
+        saveFlowGraph(flow.id, graphNodes, graphEdges)
+      }
     }
 
     // Reconcile: prune dynamic screens not referenced by any graph node

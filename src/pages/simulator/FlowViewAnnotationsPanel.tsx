@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { RiPencilLine, RiCheckLine, RiPlayLine, RiFileTextLine, RiCloseLine, RiAddLine } from '@remixicon/react'
 import type { Node, Edge } from '@xyflow/react'
 import type { Flow } from './flowRegistry'
-import { getAllFlows, getFlow, getLinkedFlows, getFlowsLinkingTo } from './flowRegistry'
+import { getAllFlows, getAllDomains, getDomain, getFlow, getFlowsByDomain, getLinkedFlows, getFlowsLinkingTo } from './flowRegistry'
 import { getDynamicFlow } from './dynamicFlowStore'
+import { isFlowArchived } from './flowGroupStore'
 import type { FlowNodeData } from './flowGraph.types'
 import { NODE_TYPE_CONFIG } from './nodeTypeConfig'
 import { SLUG_REGEX, formatSlug } from '../../lib/slugify'
@@ -670,9 +671,22 @@ export default function FlowViewAnnotationsPanel({
                   className="w-full px-[var(--token-spacing-2)] py-[var(--token-spacing-1)] text-[length:var(--token-font-size-body-sm)] text-shell-text bg-shell-input border border-shell-border rounded-[var(--token-radius-sm)] outline-none focus:border-shell-selected-text cursor-pointer"
                 >
                   <option value="">(None)</option>
-                  {getAllFlows().filter(f => f.id !== flow.id).map((f) => (
-                    <option key={f.id} value={f.id}>{f.id}</option>
-                  ))}
+                  {(() => {
+                    const currentIsArchived = isFlowArchived(flow.id)
+                    const grouped = getFlowsByDomain()
+                    const domains = getAllDomains()
+                    return domains
+                      .filter(d => grouped[d.id]?.some(f => f.id !== flow.id && (currentIsArchived || !isFlowArchived(f.id))))
+                      .map(d => (
+                        <optgroup key={d.id} label={d.name}>
+                          {grouped[d.id]
+                            .filter(f => f.id !== flow.id && (currentIsArchived || !isFlowArchived(f.id)))
+                            .map(f => (
+                              <option key={f.id} value={f.id}>{f.name}</option>
+                            ))}
+                        </optgroup>
+                      ))
+                  })()}
                 </select>
               </div>
             )}

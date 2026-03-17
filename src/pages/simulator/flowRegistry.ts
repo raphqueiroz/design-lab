@@ -195,7 +195,7 @@ export function registerDynamicFlow(def: DynamicFlowDef): void {
         component: resolved ?? staticScreen?.component ?? pageComponent ?? createPlaceholderComponent(s.title, s.description),
         pageId,
         states: s.states as PageStateDefinition[] | undefined,
-        interactiveElements: s.interactiveElements,
+        interactiveElements: staticScreen?.interactiveElements ?? s.interactiveElements,
       }
     }),
   }

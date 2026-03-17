@@ -15,7 +15,7 @@ const screenDefs = [
     componentsUsed: ['FeatureLayout', 'Stack', 'Button', 'Text', 'Badge', 'Summary', 'GroupHeader', 'Link'],
     component: Screen1_Intro,
     interactiveElements: [
-      { id: 'btn-ativar', component: 'Button', label: 'Ativar rendimento' },
+      { id: 'btn-ativar', component: 'Button', label: 'Ativar minha Caixinha' },
       { id: 'link-seguro', component: 'Link', label: 'Saiba mais' },
       { id: 'btn-close', component: 'IconButton', label: 'Fechar' },
     ],
@@ -68,15 +68,15 @@ registerFlow({
       data: { label: 'Savings Intro', screenId: 'poupar-intro', nodeType: 'screen',
               pageId: 'poupar-intro', description: 'FeatureLayout with yields overview and insurance link',
               interactiveElements: [
-                { id: 'btn-ativar', component: 'Button', label: 'Ativar rendimento' },
+                { id: 'btn-ativar', component: 'Button', label: 'Ativar minha Caixinha' },
                 { id: 'link-seguro', component: 'Link', label: 'Saiba mais' },
                 { id: 'btn-close', component: 'IconButton', label: 'Fechar' },
               ] } as FlowNodeData },
 
     // Row 1: Two action paths
     { id: 'n-tap-ativar', type: 'action', position: { x, y: ROW },
-      data: { label: 'Tap Ativar rendimento', screenId: null, nodeType: 'action',
-              actionType: 'tap', actionTarget: 'Button: Ativar rendimento' } as FlowNodeData },
+      data: { label: 'Tap Ativar minha Caixinha', screenId: null, nodeType: 'action',
+              actionType: 'tap', actionTarget: 'Button: Ativar minha Caixinha' } as FlowNodeData },
     { id: 'n-tap-seguro', type: 'action', position: { x: xR, y: ROW },
       data: { label: 'Tap Saiba mais', screenId: null, nodeType: 'action',
               actionType: 'tap', actionTarget: 'Link: Saiba mais' } as FlowNodeData },
@@ -111,5 +111,5 @@ registerFlow({
     { id: 'e-5', source: 'n-api-activate', target: 'n-ref-deposit', sourceHandle: 'bottom', targetHandle: 'top' },
   ]
 
-  bootstrapFlowGraph('flow-poupar', nodes, edges, 2)
+  bootstrapFlowGraph('flow-poupar', nodes, edges, 3)
 }
