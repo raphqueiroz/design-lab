@@ -42,7 +42,7 @@ export default function Screen1_AmountEntry({ onNext, onBack, onElementTap, onSt
 
   const [amount, setAmount] = useState('')
   const [usdAmount, setUsdAmount] = useState('')
-  const [lastEdited, setLastEdited] = useState<'eur' | 'usd'>('eur')
+  const [, setLastEdited] = useState<'eur' | 'usd'>('eur')
   const [calcState, setCalcState] = useState<CalcState>('idle')
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -92,8 +92,6 @@ export default function Screen1_AmountEntry({ onNext, onBack, onElementTap, onSt
   const balanceDisplay = useMemo(() => {
     return `${curr.symbol} ${cardBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
   }, [curr.symbol, cardBalance])
-
-  const parsedUsd = parseInt(usdAmount || '0', 10) / 100
 
   return (
     <BaseLayout>

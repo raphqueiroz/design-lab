@@ -44,7 +44,7 @@ export default function Screen1_AmountEntry({ onNext, onBack, onElementTap, onSt
 
   const [amount, setAmount] = useState('')
   const [eurAmount, setEurAmount] = useState('')
-  const [lastEdited, setLastEdited] = useState<'usd' | 'eur'>('usd')
+  const [, setLastEdited] = useState<'usd' | 'eur'>('usd')
   const [calcState, setCalcState] = useState<CalcState>('idle')
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -95,8 +95,6 @@ export default function Screen1_AmountEntry({ onNext, onBack, onElementTap, onSt
     const sym = isEurMode ? usdCurr.symbol : curr.symbol
     return `${sym} ${balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
   }, [isEurMode, usdCurr.symbol, curr.symbol, balance])
-
-  const parsedEur = parseInt(eurAmount || '0', 10) / 100
 
   return (
     <BaseLayout>
