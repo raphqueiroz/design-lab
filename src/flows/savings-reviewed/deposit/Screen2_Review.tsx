@@ -1,3 +1,7 @@
+/**
+ * @screen Deposit Review
+ * @description Review deposit with instant redemption callout and insurance mention.
+ */
 import type { FlowScreenProps } from '../../../pages/simulator/flowRegistry'
 import { useScreenData } from '../../../lib/ScreenDataContext'
 import Header from '../../../library/navigation/Header'

@@ -1,3 +1,7 @@
+/**
+ * @screen Withdraw Review
+ * @description Withdrawal review with "Prazo: Imediato" in green.
+ */
 import type { FlowScreenProps } from '../../../pages/simulator/flowRegistry'
 import { useScreenData } from '../../../lib/ScreenDataContext'
 import Header from '../../../library/navigation/Header'

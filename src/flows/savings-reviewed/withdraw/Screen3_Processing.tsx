@@ -1,3 +1,7 @@
+/**
+ * @screen Withdraw Processing
+ * @description Loading screen with withdrawal processing steps.
+ */
 import type { FlowScreenProps } from '../../../pages/simulator/flowRegistry'
 import LoadingScreen from '../../../library/feedback/LoadingScreen'
 import { WITHDRAW_PROCESSING_STEPS } from '../shared/data'

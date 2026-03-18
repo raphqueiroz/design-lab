@@ -1,3 +1,7 @@
+/**
+ * @screen Deposit Success
+ * @description Deposit confirmed with USD summary and instant redemption.
+ */
 import type { FlowScreenProps } from '../../../pages/simulator/flowRegistry'
 import { useScreenData } from '../../../lib/ScreenDataContext'
 import FeedbackLayout from '../../../library/layout/FeedbackLayout'
@@ -18,9 +22,9 @@ export default function Screen4_Success({ onBack, onElementTap }: FlowScreenProp
   return (
     <FeedbackLayout onClose={onBack}>
       <Stack gap="sm">
-        <Text variant="display">Seu dinheiro já está rendendo</Text>
+        <Text variant="display">Seu dinheiro começa a render em breve</Text>
         <Text variant="body-md" color="content-secondary">
-          O depósito foi concluído e o rendimento começa hoje mesmo.
+          Seu depósito está sendo processado e deve ser concluído em até 3 minutos.
         </Text>
       </Stack>
 
@@ -29,7 +33,6 @@ export default function Screen4_Success({ onBack, onElementTap }: FlowScreenProp
           <GroupHeader text="Resumo da operação" />
           <DataList data={[
             { label: 'Valor guardado', value: `${curr.symbol} 100,00` },
-            { label: 'Caixinha', value: 'Reserva de emergência' },
             { label: 'Rendimento atual', value: curr.apyDisplay },
             {
               label: 'Resgate',

@@ -39,6 +39,7 @@ const manageScreenDefs = [
     ],
     states: [
       { id: 'default', name: 'Com saldo', description: 'USD caixinha has balance', isDefault: true, data: {} },
+      { id: 'pending', name: 'Processando', description: 'Deposit sent but still processing (~3 min)', data: { hasPending: true } },
       { id: 'no-balance', name: 'Sem saldo', description: 'All caixinhas zero balance', data: { hasBalance: false } },
     ],
   },
@@ -55,6 +56,7 @@ const manageScreenDefs = [
     ],
     states: [
       { id: 'default', name: 'Com saldo', description: 'Has balance, Details tab', isDefault: true, data: {} },
+      { id: 'pending', name: 'Processando', description: 'Deposit processing, balance greyed out', data: { hasPending: true } },
       { id: 'no-balance', name: 'Sem saldo', description: 'Zero balance, Resgatar disabled', data: { hasBalance: false } },
     ],
   },
@@ -124,6 +126,10 @@ const depositScreenDefs = [
     component: Deposit_Screen1,
     interactiveElements: [
       { id: 'btn-continuar', component: 'Button', label: 'Continuar' },
+    ],
+    states: [
+      { id: 'usd', name: 'Dólar (USD)', description: 'Dollar deposit — pay in USD', isDefault: true, data: { currency: 'USD' } },
+      { id: 'eur', name: 'Euro (EUR)', description: 'Pay in EUR, save in USD', data: { currency: 'EUR' } },
     ],
   },
   {
@@ -346,7 +352,7 @@ bootstrapFlowGraph('caixinha-mvp',
     { id: 'e-hub-apolice', source: 'screen-hub', target: 'action-apolice' },
     { id: 'e-apolice-insurance', source: 'action-apolice', target: 'screen-insurance' },
   ],
-  4,
+  5,
 )
 
 // ── Manage graph (Version B) ──
@@ -376,7 +382,7 @@ bootstrapFlowGraph('caixinha-mvp-b',
     { id: 'e-hub-apolice', source: 'screen-hub', target: 'action-apolice' },
     { id: 'e-apolice-insurance', source: 'action-apolice', target: 'screen-insurance' },
   ],
-  1,
+  2,
 )
 
 // ── Deposit graph ──
@@ -403,7 +409,7 @@ bootstrapFlowGraph('caixinha-mvp-deposit',
     { id: 'e-success-entendi', source: 'screen-success', target: 'action-entendi' },
     { id: 'e-entendi-manage', source: 'action-entendi', target: 'ref-manage' },
   ],
-  3,
+  4,
 )
 
 // ── Withdraw graph ──
@@ -430,7 +436,7 @@ bootstrapFlowGraph('caixinha-mvp-withdraw',
     { id: 'e-success-entendi', source: 'screen-success', target: 'action-entendi' },
     { id: 'e-entendi-manage', source: 'action-entendi', target: 'ref-manage' },
   ],
-  3,
+  4,
 )
 
 // ═══════════════════════════════════════════════════════════════

@@ -1,3 +1,7 @@
+/**
+ * @screen Deposit Processing
+ * @description Loading screen with deposit processing steps.
+ */
 import type { FlowScreenProps } from '../../../pages/simulator/flowRegistry'
 import LoadingScreen from '../../../library/feedback/LoadingScreen'
 import { DEPOSIT_PROCESSING_STEPS } from '../shared/data'

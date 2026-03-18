@@ -95,6 +95,7 @@ interface Transaction {
   title: string
   amount: string
   brl?: string
+  status?: 'completed' | 'processing'
 }
 
 interface TransactionGroup {
@@ -106,7 +107,7 @@ const MOCK_HISTORY: TransactionGroup[] = [
   {
     date: '3 março 2026',
     transactions: [
-      { id: '1', type: 'deposit', title: 'Depósito', amount: '+ US$ 500,00' },
+      { id: '1', type: 'deposit', title: 'Depósito', amount: '+ US$ 500,00', status: 'processing' },
     ],
   },
   {
@@ -126,20 +127,26 @@ const MOCK_HISTORY: TransactionGroup[] = [
 
 function TransactionLine({ tx }: { tx: Transaction }) {
   const Icon = tx.type === 'deposit' ? RiAddLine : RiSubtractLine
+  const isProcessing = tx.status === 'processing'
 
   return (
     <div className="flex items-center justify-between py-4 w-full">
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-full bg-surface-secondary flex items-center justify-center shrink-0">
-          <Icon size={20} className="text-content-primary" />
+          <Icon size={20} className={isProcessing ? 'text-content-tertiary' : 'text-content-primary'} />
         </div>
-        <span className="text-[16px] font-semibold leading-6 text-content-primary">
-          {tx.title}
-        </span>
+        <Stack gap="none">
+          <span className={`text-[16px] font-semibold leading-6 ${isProcessing ? 'text-content-tertiary' : 'text-content-primary'}`}>
+            {tx.title}
+          </span>
+          {isProcessing && (
+            <span className="text-[14px] leading-5 text-[var(--color-feedback-warning)] font-medium">Processando</span>
+          )}
+        </Stack>
       </div>
       <div className="flex flex-col items-end shrink-0">
         <span
-          className="text-[16px] font-normal leading-6 text-content-primary tracking-[-0.08px]"
+          className={`text-[16px] font-normal leading-6 tracking-[-0.08px] ${isProcessing ? 'text-content-tertiary' : 'text-content-primary'}`}
           style={{ fontFeatureSettings: "'ss01' 1, 'calt' 0" }}
         >
           {tx.amount}

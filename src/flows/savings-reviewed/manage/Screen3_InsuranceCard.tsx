@@ -1,3 +1,7 @@
+/**
+ * @screen Coverage
+ * @description Nexus Mutual-style green certificate card with coverage details.
+ */
 import type { FlowScreenProps } from '../../../pages/simulator/flowRegistry'
 import BaseLayout from '../../../library/layout/BaseLayout'
 import Stack from '../../../library/layout/Stack'

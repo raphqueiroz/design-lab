@@ -1,3 +1,7 @@
+/**
+ * @screen Withdraw Success
+ * @description Withdrawal confirmed with USD summary.
+ */
 import type { FlowScreenProps } from '../../../pages/simulator/flowRegistry'
 import { useScreenData } from '../../../lib/ScreenDataContext'
 import FeedbackLayout from '../../../library/layout/FeedbackLayout'

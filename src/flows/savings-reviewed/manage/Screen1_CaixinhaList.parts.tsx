@@ -15,6 +15,7 @@ import Text from '../../../library/foundations/Text'
 import Avatar from '../../../library/display/Avatar'
 import Badge from '../../../library/display/Badge'
 
+import LoadingSpinner from '../../../library/feedback/LoadingSpinner'
 import { type CaixinhaData, type CaixinhaIconId, CURRENCIES, formatCurrency, formatBrlEquivalent } from '../shared/data'
 
 const ICON_MAP: Record<CaixinhaIconId, typeof RiPlaneLine> = {
@@ -30,6 +31,22 @@ const ICON_MAP: Record<CaixinhaIconId, typeof RiPlaneLine> = {
   money: RiMoneyDollarCircleLine,
   pet: RiBearSmileLine,
   music: RiMusicLine,
+}
+
+/* ── PendingDepositBanner ── */
+
+export function PendingDepositBanner() {
+  return (
+    <div className="flex items-center gap-3 p-4 rounded-[var(--token-radius-lg)] bg-surface-secondary">
+      <LoadingSpinner size="sm" />
+      <Stack gap="none">
+        <Text variant="body-md" className="font-semibold">Processando seu depósito</Text>
+        <Text variant="body-sm" color="content-secondary">
+          Seu saldo será atualizado em breve
+        </Text>
+      </Stack>
+    </div>
+  )
 }
 
 /* ── CaixinhaListCard ── */

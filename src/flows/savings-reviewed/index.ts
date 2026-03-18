@@ -99,6 +99,7 @@ const manageScreenDefs = [
     ],
     states: [
       { id: 'default', name: 'Com caixinhas', description: '4 caixinhas (EUR, 2×USD, BRL)', isDefault: true, data: {} },
+      { id: 'pending', name: 'Processando', description: 'Deposit sent but still processing (~3 min)', data: { hasPending: true } },
       { id: 'empty', name: 'Vazio', description: 'New user, no caixinhas', data: { isEmpty: true } },
     ],
   },
@@ -166,9 +167,8 @@ const depositScreenDefs = [
       { id: 'btn-continuar', component: 'Button', label: 'Continuar' },
     ],
     states: [
-      { id: 'usd', name: 'USD', description: 'Dollar deposit', isDefault: true, data: { currency: 'USD' } },
-      { id: 'brl', name: 'BRL', description: 'Real deposit', data: { currency: 'BRL' } },
-      { id: 'eur', name: 'EUR', description: 'Euro deposit', data: { currency: 'EUR' } },
+      { id: 'usd', name: 'Dólar (USD)', description: 'Dollar deposit — pay in USD', isDefault: true, data: { currency: 'USD' } },
+      { id: 'eur', name: 'Euro (EUR)', description: 'Pay in EUR, save in USD', data: { currency: 'EUR' } },
     ],
   },
   {
@@ -181,9 +181,8 @@ const depositScreenDefs = [
       { id: 'btn-confirmar', component: 'Button', label: 'Confirmar depósito' },
     ],
     states: [
-      { id: 'usd', name: 'USD', description: 'Dollar deposit review', isDefault: true, data: { currency: 'USD' } },
-      { id: 'brl', name: 'BRL', description: 'Real deposit review', data: { currency: 'BRL' } },
-      { id: 'eur', name: 'EUR', description: 'Euro deposit review', data: { currency: 'EUR' } },
+      { id: 'usd', name: 'Dólar (USD)', description: 'Dollar deposit review', isDefault: true, data: { currency: 'USD' } },
+      { id: 'eur', name: 'Euro (EUR)', description: 'Euro deposit review', data: { currency: 'EUR' } },
     ],
   },
   {
@@ -203,9 +202,8 @@ const depositScreenDefs = [
       { id: 'btn-entendi', component: 'Button', label: 'Entendi' },
     ],
     states: [
-      { id: 'usd', name: 'USD', description: 'Dollar deposit success', isDefault: true, data: { currency: 'USD' } },
-      { id: 'brl', name: 'BRL', description: 'Real deposit success', data: { currency: 'BRL' } },
-      { id: 'eur', name: 'EUR', description: 'Euro deposit success', data: { currency: 'EUR' } },
+      { id: 'usd', name: 'Dólar (USD)', description: 'Dollar deposit success', isDefault: true, data: { currency: 'USD' } },
+      { id: 'eur', name: 'Euro (EUR)', description: 'Euro deposit success', data: { currency: 'EUR' } },
     ],
   },
 ]
@@ -225,9 +223,8 @@ const withdrawScreenDefs = [
       { id: 'btn-continuar', component: 'Button', label: 'Continuar' },
     ],
     states: [
-      { id: 'usd', name: 'USD', description: 'Dollar withdrawal', isDefault: true, data: { currency: 'USD' } },
-      { id: 'brl', name: 'BRL', description: 'Real withdrawal', data: { currency: 'BRL' } },
-      { id: 'eur', name: 'EUR', description: 'Euro withdrawal', data: { currency: 'EUR' } },
+      { id: 'usd', name: 'Dólar (USD)', description: 'Dollar withdrawal', isDefault: true, data: { currency: 'USD' } },
+      { id: 'eur', name: 'Euro (EUR)', description: 'Withdraw USD, receive in EUR', data: { currency: 'EUR' } },
     ],
   },
   {
@@ -240,9 +237,7 @@ const withdrawScreenDefs = [
       { id: 'btn-confirmar', component: 'Button', label: 'Confirmar resgate' },
     ],
     states: [
-      { id: 'usd', name: 'USD', description: 'Dollar withdrawal review', isDefault: true, data: { currency: 'USD' } },
-      { id: 'brl', name: 'BRL', description: 'Real withdrawal review', data: { currency: 'BRL' } },
-      { id: 'eur', name: 'EUR', description: 'Euro withdrawal review', data: { currency: 'EUR' } },
+      { id: 'usd', name: 'Dólar (USD)', description: 'Dollar withdrawal review', isDefault: true, data: { currency: 'USD' } },
     ],
   },
   {
@@ -263,7 +258,6 @@ const withdrawScreenDefs = [
     ],
     states: [
       { id: 'default', name: 'Com saldo', description: 'Has remaining balance', isDefault: true, data: { currency: 'USD' } },
-      { id: 'zero-balance', name: 'Saldo zerado', description: 'Zero balance — shows delete option', data: { currency: 'USD', isZeroBalance: true } },
     ],
   },
 ]
@@ -401,7 +395,7 @@ const xR = 600
     { id: 'e-c11', source: 'n-tap-ver', target: 'n-ref-manage', sourceHandle: 'bottom', targetHandle: 'top' },
   ]
 
-  bootstrapFlowGraph('caixinha-create', nodes, edges)
+  bootstrapFlowGraph('caixinha-create', nodes, edges, 2)
 }
 
 // ── Manage Flow Graph (hub with branches) ──
@@ -496,7 +490,7 @@ const xR = 600
     { id: 'e-m15', source: 'n-tap-nova', target: 'n-ref-create', sourceHandle: 'bottom', targetHandle: 'top' },
   ]
 
-  bootstrapFlowGraph('caixinha-manage', nodes, edges)
+  bootstrapFlowGraph('caixinha-manage', nodes, edges, 2)
 }
 
 // ── Deposit Flow Graph (linear) ──
@@ -543,7 +537,7 @@ const xR = 600
     { id: 'e-d8', source: 'n-tap-entendi', target: 'n-ref-manage', sourceHandle: 'bottom', targetHandle: 'top' },
   ]
 
-  bootstrapFlowGraph('caixinha-deposit-reviewed', nodes, edges)
+  bootstrapFlowGraph('caixinha-deposit-reviewed', nodes, edges, 2)
 }
 
 // ── Withdraw Flow Graph (linear + delete branch) ──
@@ -596,7 +590,7 @@ const xR = 600
     { id: 'e-w9', source: 'n-tap-excluir', target: 'n-ref-manage', sourceHandle: 'bottom', targetHandle: 'top' },
   ]
 
-  bootstrapFlowGraph('caixinha-withdraw-reviewed', nodes, edges)
+  bootstrapFlowGraph('caixinha-withdraw-reviewed', nodes, edges, 2)
 }
 
 // ═══════════════════════════════════════════════════════════════

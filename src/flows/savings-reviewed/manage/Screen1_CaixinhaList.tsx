@@ -9,13 +9,13 @@ import Text from '../../../library/foundations/Text'
 import Amount from '../../../library/display/Amount'
 import Badge from '../../../library/display/Badge'
 
-import { CaixinhaListCard, EmptyState } from './Screen1_CaixinhaList.parts'
+import { CaixinhaListCard, EmptyState, PendingDepositBanner } from './Screen1_CaixinhaList.parts'
 import { MOCK_REVIEWED_CAIXINHAS, MOCK_FX_TO_BRL } from '../shared/data'
 
 const PIGGY_BANK_IMG = 'https://images.unsplash.com/photo-1589824783528-fdfccf80ed70?w=800&q=80'
 
 export default function Screen1_CaixinhaList({ onNext, onElementTap }: FlowScreenProps) {
-  const { isEmpty } = useScreenData<{ isEmpty?: boolean }>()
+  const { isEmpty, hasPending } = useScreenData<{ isEmpty?: boolean; hasPending?: boolean }>()
 
   const caixinhas = isEmpty ? [] : MOCK_REVIEWED_CAIXINHAS
 
@@ -45,13 +45,17 @@ export default function Screen1_CaixinhaList({ onNext, onElementTap }: FlowScree
         {/* Total in BRL */}
         <Stack gap="sm">
           <Text variant="body-sm" color="content-secondary">Total em reais</Text>
-          <Amount value={totalBrl} currency="R$" size="lg" />
-          {totalYieldBrl > 0 && (
+          <div className={hasPending ? 'opacity-40' : ''}>
+            <Amount value={totalBrl} currency="R$" size="lg" />
+          </div>
+          {totalYieldBrl > 0 && !hasPending && (
             <Text variant="caption" className="text-[var(--color-feedback-success)]">
               +R$ {totalYieldBrl.toFixed(2).replace('.', ',')} rendendo hoje
             </Text>
           )}
         </Stack>
+
+        {hasPending && <PendingDepositBanner />}
 
         {/* Caixinha list */}
         {caixinhas.length > 0 ? (

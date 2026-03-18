@@ -76,6 +76,14 @@ export function getBasePage(id: string): Page | undefined {
   return pages.get(id)
 }
 
+/** Find a page by its component reference (useful for renamed flows where screen IDs changed). */
+export function getPageByComponent(component: ComponentType<FlowScreenProps>): Page | undefined {
+  for (const page of pages.values()) {
+    if (page.component === component) return page
+  }
+  return undefined
+}
+
 export function getAllPages(): Page[] {
   return Array.from(pages.keys()).map((id) => getPage(id)!)
 }

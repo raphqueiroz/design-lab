@@ -3,7 +3,7 @@ import type { PageStateDefinition } from '../gallery/pageRegistry'
 import { getDynamicFlows, getDynamicFlow, saveDynamicFlow, renameDynamicFlow, type DynamicFlowDef } from './dynamicFlowStore'
 import { createPlaceholderComponent } from '../../flows/PlaceholderScreen'
 import { resolveComponent } from './screenResolver'
-import { registerPage, getBasePage } from '../gallery/pageRegistry'
+import { registerPage, getBasePage, getPageByComponent } from '../gallery/pageRegistry'
 import { getFlowGraph, saveFlowGraph as saveFlowGraphStore, renameFlowGraph, updateFlowReferencesInAllGraphs } from './flowGraphStore'
 import { renameFlowInGroups } from './flowGroupStore'
 import { SLUG_REGEX } from '../../lib/slugify'
@@ -184,17 +184,19 @@ export function registerDynamicFlow(def: DynamicFlowDef): void {
       const staticScreen = staticScreens.get(s.id)
       const resolved = resolveComponent(s.filePath)
       const pageId = s.pageId ?? staticScreen?.pageId
-      // Fall back: file path → static flow screen → page registry (by pageId or screen id) → placeholder
+      // Fall back: file path → static flow screen → page registry (by pageId or screen id) → by component ref → placeholder
       const registeredPage = (pageId ? getBasePage(pageId) : undefined) ?? getBasePage(s.id)
-      const pageComponent = registeredPage?.component
+      const finalComponent = resolved ?? staticScreen?.component ?? registeredPage?.component
+      // For renamed flows, look up the original page by component reference to inherit states/interactiveElements
+      const sourcePage = registeredPage ?? (finalComponent ? getPageByComponent(finalComponent) : undefined)
       return {
         id: s.id,
         title: s.title,
         description: s.description,
         componentsUsed: s.componentsUsed,
-        component: resolved ?? staticScreen?.component ?? pageComponent ?? createPlaceholderComponent(s.title, s.description),
+        component: finalComponent ?? createPlaceholderComponent(s.title, s.description),
         pageId,
-        states: s.states as PageStateDefinition[] | undefined,
+        states: sourcePage?.states ?? (s.states as PageStateDefinition[] | undefined) ?? staticScreen?.states,
         interactiveElements: staticScreen?.interactiveElements ?? s.interactiveElements,
       }
     }),

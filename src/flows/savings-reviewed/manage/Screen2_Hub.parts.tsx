@@ -8,6 +8,7 @@ import DataList from '../../../library/display/DataList'
 import Banner from '../../../library/display/Banner'
 import ListItem from '../../../library/display/ListItem'
 import Avatar from '../../../library/display/Avatar'
+import Badge from '../../../library/display/Badge'
 import Text from '../../../library/foundations/Text'
 import { type CaixinhaCurrency, CURRENCIES, formatCurrency } from '../shared/data'
 
@@ -87,9 +88,9 @@ interface HistoryTabProps {
 
 export function HistoryTab({ currency }: HistoryTabProps) {
   const transactions = [
-    { id: '1', type: 'deposit' as const, title: 'Depósito', amount: formatCurrency(500, currency), date: '28 fev 2026', icon: RiArrowDownLine },
-    { id: '2', type: 'withdraw' as const, title: 'Resgate', amount: formatCurrency(200, currency), date: '15 fev 2026', icon: RiArrowUpLine },
-    { id: '3', type: 'deposit' as const, title: 'Depósito', amount: formatCurrency(950, currency), date: '21 jan 2026', icon: RiArrowDownLine },
+    { id: '1', type: 'deposit' as const, title: 'Depósito', amount: formatCurrency(500, currency), date: '28 fev 2026', icon: RiArrowDownLine, status: 'processing' as const },
+    { id: '2', type: 'withdraw' as const, title: 'Resgate', amount: formatCurrency(200, currency), date: '15 fev 2026', icon: RiArrowUpLine, status: 'completed' as const },
+    { id: '3', type: 'deposit' as const, title: 'Depósito', amount: formatCurrency(950, currency), date: '21 jan 2026', icon: RiArrowDownLine, status: 'completed' as const },
   ]
 
   return (
@@ -98,9 +99,18 @@ export function HistoryTab({ currency }: HistoryTabProps) {
         <ListItem
           key={tx.id}
           title={tx.title}
-          subtitle={tx.date}
+          subtitle={tx.status === 'processing' ? 'Processando...' : tx.date}
           left={<Avatar icon={<tx.icon size={20} />} size="md" />}
-          right={<Text variant="body-sm">{tx.type === 'deposit' ? '+' : '-'}{tx.amount}</Text>}
+          right={
+            <Stack gap="none" align="end">
+              <Text variant="body-sm" className={tx.status === 'processing' ? 'text-content-tertiary' : ''}>
+                {tx.type === 'deposit' ? '+' : '-'}{tx.amount}
+              </Text>
+              {tx.status === 'processing' && (
+                <Badge variant="warning" size="sm">Processando</Badge>
+              )}
+            </Stack>
+          }
           trailing={null}
         />
       ))}
