@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { FlowScreenProps } from '@/pages/simulator/flowRegistry'
+import { BRL_FLAG } from '@/lib/flags'
 import BaseLayout from '@/library/layout/BaseLayout'
 import Header from '@/library/navigation/Header'
 import StickyFooter from '@/library/layout/StickyFooter'
@@ -21,7 +22,7 @@ export default function Screen9_SellAmount({ onNext, onBack, onElementTap }: Flo
         value={value}
         onChange={setValue}
         currencySymbol="R$"
-        tokenIcon="https://flagcdn.com/w80/br.png"
+        tokenIcon={BRL_FLAG}
         balance="R$ 4.802,50"
         helperText="Saldo disponível em BTC"
       />

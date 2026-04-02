@@ -90,7 +90,7 @@ export default function SharedDepositAmount({ onNext, onBack }: FlowScreenProps)
             left={<Avatar src={currentSource.icon} size="sm" />}
             inverted
             right={
-              <Button variant="secondary" size="sm" onPress={() => setSheetOpen(true)}>
+              <Button variant="primary" size="sm" onPress={() => setSheetOpen(true)}>
                 Mudar
               </Button>
             }

@@ -44,7 +44,7 @@ export default function Screen3_VerifyEmail({ onNext, onBack, onElementTap }: Fl
 
       <StickyFooter>
         <Button
-          variant="primary"
+          variant="accent"
           fullWidth
           disabled={code.length < 6}
           onPress={() => {

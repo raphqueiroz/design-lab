@@ -1,52 +1,93 @@
 /**
- * Open Orders — dark-themed list of active TP/SL orders.
- * Empty state when no orders exist. Staggered glass card rows.
- * Pure custom Tailwind + inline styles + Framer Motion. NO library components.
+ * Open Orders — list of orders grouped by date, with status badges.
+ * Tap order row → BottomSheet with details + cancel. Empty state when no orders.
  */
+import { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { RiArrowLeftLine, RiInboxLine } from '@remixicon/react'
+import { RiInboxLine, RiAddLine, RiSubtractLine } from '@remixicon/react'
 import type { FlowScreenProps } from '@/pages/simulator/flowRegistry'
 import {
-  getActiveOrders, getAsset, formatBRL, formatQuantity,
+  getAllOrdersGrouped, getAsset, formatBRL, formatQuantity,
 } from './shared/data'
+import type { Order } from './shared/data'
+import Toast from '@/library/feedback/Toast'
 import { getAssetPalette } from './shared/assetPalette'
 import {
-  BG, BG_CARD, BORDER, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_TERTIARY,
-  GREEN, RED, SAFE_TOP, SAFE_BOTTOM, fadeUp,
+  BG, TEXT_SECONDARY, TEXT_TERTIARY,
+  SAFE_TOP, SAFE_BOTTOM, fadeUp,
 } from './shared/theme'
-import { listContainer, listItemY, idlePulse } from './shared/animations'
+import { idlePulse } from './shared/animations'
 import { TokenLogoCircle } from './shared/TokenLogo'
+import Header from '@/library/navigation/Header'
+import GroupHeader from '@/library/navigation/GroupHeader'
+import ListItem from '@/library/display/ListItem'
+import BottomSheet from '@/library/layout/BottomSheet'
+import DataList from '@/library/display/DataList'
+import Button from '@/library/inputs/Button'
+import Stack from '@/library/layout/Stack'
+import Text from '@/library/foundations/Text'
+
+// ── Status config ──
+
+const STATUS_CONFIG: Record<Order['status'], { label: string; color: string }> = {
+  active: { label: 'Em aberto', color: '#F59E0B' },
+  executed: { label: 'Executada', color: '#16A34A' },
+  cancelled: { label: 'Cancelada', color: '#9CA3AF' },
+}
+
+// ── Order Avatar: asset token with +/- overlay (same pattern as il-statement) ──
+
+function OrderAvatar({ order }: { order: Order }) {
+  const asset = getAsset(order.asset)
+  const palette = getAssetPalette(order.asset)
+  const isBuy = order.side === 'buy'
+  const Icon = isBuy ? RiAddLine : RiSubtractLine
+
+  return (
+    <div className="relative flex-shrink-0" style={{ width: 40, height: 40 }}>
+      {/* Main: asset token */}
+      <TokenLogoCircle ticker={asset.ticker} fallbackUrl={asset.icon} size={40} color={palette.bg} />
+      {/* Overlay: buy/sell icon */}
+      <div
+        className="absolute flex items-center justify-center rounded-full border-2 border-white bg-[var(--color-surface-shade)]"
+        style={{ width: 24, height: 24, bottom: -4, right: -4 }}
+      >
+        <Icon size={12} className="text-content-primary" />
+      </div>
+    </div>
+  )
+}
 
 export default function Screen7_OpenOrders({ onBack, onElementTap, onNext }: FlowScreenProps) {
-  const orders = getActiveOrders()
+  const [cancelledIds, setCancelledIds] = useState<Set<string>>(new Set())
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [toastVisible, setToastVisible] = useState(false)
 
-  const handleCancelOrder = () => {
-    const handled = onElementTap?.('ListItem: Cancelar ordem')
-    if (!handled) onNext()
-  }
+  // Build groups with local cancelled overrides
+  const orderGroups = getAllOrdersGrouped().map(g => ({
+    ...g,
+    orders: g.orders.map(o => cancelledIds.has(o.id) ? { ...o, status: 'cancelled' as const } : o),
+  }))
+  const allOrders = orderGroups.flatMap(g => g.orders)
+
+  const handleCancelOrder = useCallback(() => {
+    if (selectedOrder) {
+      setCancelledIds(prev => new Set(prev).add(selectedOrder.id))
+      setSelectedOrder(null)
+      setToastVisible(true)
+      setTimeout(() => setToastVisible(false), 3000)
+    }
+  }, [selectedOrder])
 
   // ── Empty State ──
-  if (orders.length === 0) {
+  if (allOrders.length === 0) {
     return (
       <div className="flex flex-col min-h-screen" style={{ background: BG }}>
         <div style={{ height: SAFE_TOP }} />
-
-        {/* Header */}
-        <div className="flex items-center gap-3 px-5 pt-3 pb-4">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={onBack}
-            className="flex items-center justify-center rounded-full border-none cursor-pointer"
-            style={{ width: 36, height: 36, background: BG_CARD }}
-          >
-            <RiArrowLeftLine size={20} color={TEXT_PRIMARY} />
-          </motion.button>
-          <span style={{ color: TEXT_PRIMARY, fontSize: 17, fontWeight: 600 }}>
-            Ordens abertas
-          </span>
+        <div className="page-pad">
+          <Header title="Ordens" description="Acompanhe e gerencie suas ordens de Take Profit e Stop Loss." onBack={onBack} />
         </div>
 
-        {/* Empty center */}
         <div className="flex-1 flex flex-col items-center justify-center px-8">
           <motion.div
             {...fadeUp(0)}
@@ -56,7 +97,7 @@ export default function Screen7_OpenOrders({ onBack, onElementTap, onNext }: Flo
               width: 72,
               height: 72,
               background: 'rgba(0,0,0,0.03)',
-              border: `1px solid rgba(0,0,0,0.05)`,
+              border: '1px solid rgba(0,0,0,0.05)',
             }}
           >
             <RiInboxLine size={32} color={TEXT_TERTIARY} />
@@ -83,113 +124,99 @@ export default function Screen7_OpenOrders({ onBack, onElementTap, onNext }: Flo
 
   // ── Orders List ──
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: BG }}>
+    <div className="relative flex flex-col min-h-screen" style={{ background: BG }}>
       <div style={{ height: SAFE_TOP }} />
 
-      {/* Header */}
-      <div className="flex items-center gap-3 px-5 pt-3 pb-4">
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={onBack}
-          className="flex items-center justify-center rounded-full border-none cursor-pointer"
-          style={{ width: 36, height: 36, background: BG_CARD }}
-        >
-          <RiArrowLeftLine size={20} color={TEXT_PRIMARY} />
-        </motion.button>
-        <span style={{ color: TEXT_PRIMARY, fontSize: 17, fontWeight: 600 }}>
-          Ordens abertas
-        </span>
-      </div>
+      <div className="flex-1 overflow-y-auto page-pad">
+        <Header title="Ordens" description="Acompanhe e gerencie suas ordens de Take Profit e Stop Loss." onBack={onBack} />
 
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto">
-        {/* Section header */}
-        <motion.div {...fadeUp(0)} className="flex items-center gap-2.5 px-5 mb-3">
-          <span style={{
-            color: TEXT_TERTIARY,
-            fontSize: 12,
-            fontWeight: 600,
-            letterSpacing: 0.5,
-            textTransform: 'uppercase' as const,
-          }}>
-            Ordens ativas
-          </span>
-          <span
-            className="inline-flex items-center justify-center rounded-full"
-            style={{
-              minWidth: 20,
-              height: 20,
-              padding: '0 6px',
-              fontSize: 11,
-              fontWeight: 700,
-              color: TEXT_PRIMARY,
-              background: 'rgba(0,0,0,0.08)',
-            }}
-          >
-            {orders.length}
-          </span>
-        </motion.div>
+        {/* Orders grouped by date */}
+        <div className="full-bleed mt-4">
+          {orderGroups.map(group => (
+            <Stack gap="none" key={group.date}>
+              <GroupHeader text={group.date} className="px-[var(--token-spacing-6)]" />
+              {group.orders.map((order) => {
+                const asset = getAsset(order.asset)
+                const isBuy = order.side === 'buy'
+                const sideLabel = isBuy ? 'Comprar' : 'Vender'
+                const status = STATUS_CONFIG[order.status]
+                const isCancelled = order.status === 'cancelled'
 
-        {/* Order rows */}
-        <motion.div variants={listContainer} initial="hidden" animate="visible" className="flex flex-col gap-2.5 px-5">
-          {orders.map((order) => {
-            const asset = getAsset(order.asset)
-            const isTP = order.type === 'take-profit'
-            const dotColor = isTP ? GREEN : RED
-            const typeLabel = isTP ? 'Take Profit' : 'Stop Loss'
-
-            return (
-              <motion.button
-                key={order.id}
-                variants={listItemY}
-                whileTap={{ scale: 0.97 }}
-                onClick={handleCancelOrder}
-                className="flex items-center gap-3 w-full rounded-2xl px-4 py-3.5 border-none cursor-pointer text-left"
-                style={{
-                  background: BG_CARD,
-                  border: `1px solid ${BORDER}`,
-                }}
-              >
-                {/* Color dot + asset icon */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <div
-                    className="rounded-full"
-                    style={{
-                      width: 8,
-                      height: 8,
-                      background: dotColor,
-                      boxShadow: `0 0 8px ${dotColor}60`,
-                    }}
+                return (
+                  <ListItem
+                    key={order.id}
+                    title={`${sideLabel} ${asset.name}`}
+                    subtitle={`Preço alvo: ${formatBRL(order.triggerPrice)}`}
+                    className={`[--token-font-size-body-lg:16px] px-[var(--token-spacing-6)] ${isCancelled ? 'opacity-50' : ''}`}
+                    left={<OrderAvatar order={order} />}
+                    onPress={() => setSelectedOrder(order)}
+                    right={
+                      <Stack gap="none" align="end">
+                        <Text variant="body-md">{formatBRL(order.value)}</Text>
+                        <span className="inline-flex items-center gap-1.5" style={{ color: TEXT_SECONDARY, fontSize: 14 }}>
+                          <span className="inline-block rounded-full" style={{ width: 6, height: 6, background: status.color, flexShrink: 0 }} />
+                          {status.label}
+                        </span>
+                      </Stack>
+                    }
+                    trailing={null}
                   />
-                  <TokenLogoCircle ticker={asset.ticker} fallbackUrl={asset.icon} size={24} color={getAssetPalette(asset.ticker).iconBg} />
-                </div>
-
-                {/* Center: title + date */}
-                <div className="flex flex-col flex-1 min-w-0">
-                  <span className="truncate" style={{ color: TEXT_PRIMARY, fontSize: 14, fontWeight: 600 }}>
-                    {asset.ticker} — {typeLabel}
-                  </span>
-                  <span style={{ color: TEXT_TERTIARY, fontSize: 12 }}>
-                    Criada em {order.createdAt}
-                  </span>
-                </div>
-
-                {/* Right: trigger price + quantity */}
-                <div className="flex flex-col items-end flex-shrink-0">
-                  <span style={{ color: TEXT_PRIMARY, fontSize: 14, fontWeight: 600 }}>
-                    {formatBRL(order.triggerPrice)}
-                  </span>
-                  <span style={{ color: TEXT_SECONDARY, fontSize: 11 }}>
-                    {formatQuantity(order.quantity, order.asset)}
-                  </span>
-                </div>
-              </motion.button>
-            )
-          })}
-        </motion.div>
+                )
+              })}
+            </Stack>
+          ))}
+        </div>
 
         <div style={{ paddingBottom: SAFE_BOTTOM }} />
       </div>
+
+      {/* ── Order Detail BottomSheet ── */}
+      {selectedOrder && (() => {
+        const asset = getAsset(selectedOrder.asset)
+        const isBuy = selectedOrder.side === 'buy'
+        const sideLabel = isBuy ? 'Compra' : 'Venda'
+        const typeLabel = selectedOrder.type === 'take-profit' ? 'Take Profit' : 'Stop Loss'
+        const status = STATUS_CONFIG[selectedOrder.status]
+
+        return (
+          <BottomSheet open={!!selectedOrder} onClose={() => setSelectedOrder(null)}>
+            <DataList data={[
+              { label: 'Ativo', value: `${asset.name} (${asset.ticker})` },
+              { label: 'Operação', value: sideLabel },
+              { label: 'Tipo', value: typeLabel },
+              { label: 'Preço alvo', value: formatBRL(selectedOrder.triggerPrice) },
+              { label: 'Valor', value: formatBRL(selectedOrder.value) },
+              { label: 'Quantidade', value: formatQuantity(selectedOrder.quantity, selectedOrder.asset) },
+              { label: 'Status', value: (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-block rounded-full" style={{ width: 6, height: 6, background: status.color, flexShrink: 0 }} />
+                  {status.label}
+                </span>
+              ) },
+              { label: 'Criada em', value: selectedOrder.createdAt },
+            ]} />
+            {selectedOrder.status === 'active' && (
+              <div className="mt-4">
+                <Button
+                  variant="destructive"
+                  size="lg"
+                  fullWidth
+                  onPress={handleCancelOrder}
+                >
+                  Cancelar ordem
+                </Button>
+              </div>
+            )}
+          </BottomSheet>
+        )
+      })()}
+
+      <Toast
+        variant="success"
+        message="Ordem cancelada com sucesso"
+        visible={toastVisible}
+        onDismiss={() => setToastVisible(false)}
+      />
     </div>
   )
 }

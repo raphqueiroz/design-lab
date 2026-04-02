@@ -1,3 +1,5 @@
+import { USD_FLAG, BRL_FLAG, EUR_FLAG } from '@/lib/flags'
+
 export type CaixinhaCurrency = 'USD' | 'BRL' | 'EUR'
 
 export interface CurrencyInfo {
@@ -9,9 +11,9 @@ export interface CurrencyInfo {
 }
 
 export const CURRENCIES: Record<CaixinhaCurrency, CurrencyInfo> = {
-  USD: { name: 'Dólar americano', symbol: 'US$', flagIcon: 'https://flagcdn.com/w320/us.png', apy: 0.0437, apyDisplay: '4,37% a.a.' },
-  BRL: { name: 'Real brasileiro', symbol: 'R$', flagIcon: 'https://flagcdn.com/w320/br.png', apy: 0.10, apyDisplay: '10% a.a.' },
-  EUR: { name: 'Euro', symbol: '€', flagIcon: 'https://flagcdn.com/w320/eu.png', apy: 0.03, apyDisplay: '3% a.a.' },
+  USD: { name: 'Dólar americano', symbol: 'US$', flagIcon: USD_FLAG, apy: 0.0437, apyDisplay: '4,37% a.a.' },
+  BRL: { name: 'Real brasileiro', symbol: 'R$', flagIcon: BRL_FLAG, apy: 0.10, apyDisplay: '10% a.a.' },
+  EUR: { name: 'Euro', symbol: '€', flagIcon: EUR_FLAG, apy: 0.03, apyDisplay: '3% a.a.' },
 }
 
 export const MOCK_FX_TO_BRL: Record<CaixinhaCurrency, number> = {

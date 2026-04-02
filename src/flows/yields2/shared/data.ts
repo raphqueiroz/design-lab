@@ -1,6 +1,8 @@
 // ── Yields2 & Yields3 shared constants, types, and formatters ──
 // sDAI on Gnosis, insured via OpenCover/Nexus Mutual
 
+import { USD_FLAG, BRL_FLAG } from '@/lib/flags'
+
 export const GROSS_APY = 0.0486
 export const INSURANCE_COST = 0.007
 export const NET_APY = 0.0416
@@ -12,8 +14,8 @@ export const YIELD_MONTH = 7.44
 export const COVERAGE_PERCENT = 97.5
 export const INSURANCE_PROVIDER = 'OpenCover / Nexus Mutual'
 
-export const USD_ICON = 'https://flagcdn.com/w80/us.png'
-export const BRL_ICON = 'https://flagcdn.com/w80/br.png'
+export const USD_ICON = USD_FLAG
+export const BRL_ICON = BRL_FLAG
 export const MOCK_RATE = 5.4583
 
 export const COVERED_ITEMS = [

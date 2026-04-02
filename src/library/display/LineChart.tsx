@@ -37,6 +37,8 @@ interface LineChartProps {
   fillPattern?: 'gradient' | 'dots'
   /** Format a tooltip label from the crosshair value. Return null to hide. */
   tooltipFormatter?: (value: number) => string | null
+  /** Disable all chart pointer interactions (crosshair, hover). Use when overlaying custom interactive elements. */
+  noInteraction?: boolean
   className?: string
 }
 
@@ -199,6 +201,7 @@ export default function LineChart({
   dark = false,
   fillPattern,
   tooltipFormatter,
+  noInteraction = false,
   className,
 }: LineChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -288,17 +291,19 @@ export default function LineChart({
       leftPriceScale: { visible: false },
       handleScroll: false,
       handleScale: false,
-      crosshair: {
-        vertLine: {
-          visible: true,
-          color: dark ? 'rgba(255,255,255,0.15)' : crosshairColor,
-          width: 1,
-          style: 0, // solid
-          labelVisible: false,
-        },
-        horzLine: { visible: false },
-        mode: 0, // normal — shows on hover/touch
-      },
+      crosshair: noInteraction
+        ? { vertLine: { visible: false }, horzLine: { visible: false }, mode: 0 }
+        : {
+            vertLine: {
+              visible: true,
+              color: dark ? 'rgba(255,255,255,0.15)' : crosshairColor,
+              width: 1,
+              style: 0, // solid
+              labelVisible: false,
+            },
+            horzLine: { visible: false },
+            mode: 0, // normal — shows on hover/touch
+          },
     })
     chartRef.current = chart
 
@@ -405,11 +410,11 @@ export default function LineChart({
       window.removeEventListener('resize', handleResize)
       chart.remove()
     }
-  }, [data, height, variant, showPriceScale, showTimeScale, smooth, dark, fillPattern, handleCrosshair])
+  }, [data, height, variant, showPriceScale, showTimeScale, smooth, dark, fillPattern, noInteraction, handleCrosshair])
 
   return (
     <div className={`relative overflow-visible ${className ?? ''}`} onMouseLeave={() => setTooltip(null)}>
-      <div ref={containerRef} />
+      <div ref={containerRef} style={noInteraction ? { pointerEvents: 'none' } : undefined} />
       {fillPattern === 'dots' && (
         <canvas
           ref={overlayCanvasRef}

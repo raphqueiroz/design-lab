@@ -1,3 +1,5 @@
+import { USD_FLAG, BRL_FLAG, EUR_FLAG } from '@/lib/flags'
+
 export type AssetTicker = 'BTC' | 'ETH' | 'SOL' | 'AAVE' | 'XRP' | 'LINK' | 'PAXG' | 'KAG' | 'RENDA-USD' | 'RENDA-BRL' | 'RENDA-EUR'
 export type AssetCategory = 'crypto' | 'commodity' | 'fixed-income'
 
@@ -85,7 +87,7 @@ export const ASSETS: Asset[] = [
   },
   {
     ticker: 'RENDA-USD', name: 'Renda em Dólar', category: 'fixed-income',
-    icon: 'https://flagcdn.com/w80/us.png',
+    icon: USD_FLAG,
     color: '#10B981',
     apy: 0.0437, apyDisplay: '4,37% a.a.',
     description: 'Rendimento automático em dólar.',
@@ -93,7 +95,7 @@ export const ASSETS: Asset[] = [
   },
   {
     ticker: 'RENDA-BRL', name: 'Renda em Real', category: 'fixed-income',
-    icon: 'https://flagcdn.com/w80/br.png',
+    icon: BRL_FLAG,
     color: '#10B981',
     apy: 0.10, apyDisplay: '10% a.a.',
     description: 'Rendimento em reais acima da poupança.',
@@ -101,7 +103,7 @@ export const ASSETS: Asset[] = [
   },
   {
     ticker: 'RENDA-EUR', name: 'Renda em Euro', category: 'fixed-income',
-    icon: 'https://flagcdn.com/w80/eu.png',
+    icon: EUR_FLAG,
     color: '#10B981',
     apy: 0.03, apyDisplay: '3% a.a.',
     description: 'Seus euros renderem automaticamente.',

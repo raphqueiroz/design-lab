@@ -371,6 +371,13 @@ export function GrowthAnimation() {
 
 // ── Social Proof Counter (Bandwagon + Social Proof) ──
 
+const SOCIAL_AVATARS = [
+  'https://i.pravatar.cc/80?img=12',
+  'https://i.pravatar.cc/80?img=25',
+  'https://i.pravatar.cc/80?img=33',
+  'https://i.pravatar.cc/80?img=47',
+]
+
 export function SocialProofCounter() {
   const target = 12847
   const [count, setCount] = useState(0)
@@ -396,27 +403,28 @@ export function SocialProofCounter() {
   const formatted = count.toLocaleString('pt-BR')
 
   return (
-    <div className="flex items-center gap-3">
-      {/* Avatar stack */}
+    <div className="flex items-center gap-2.5">
+      {/* Avatar stack with real photos */}
       <div className="flex -space-x-2">
-        {['#F7931A', '#627EEA', '#9945FF'].map((c, i) => (
+        {SOCIAL_AVATARS.map((src, i) => (
           <motion.div
             key={i}
-            className="rounded-full"
+            className="rounded-full overflow-hidden flex-shrink-0"
             style={{
-              width: 24, height: 24,
-              background: `linear-gradient(135deg, ${c} 0%, ${c}80 100%)`,
+              width: 28, height: 28,
               border: '2px solid #FFFFFF',
-              zIndex: 3 - i,
+              zIndex: SOCIAL_AVATARS.length - i,
             }}
             initial={{ scale: 0, x: -10 }}
             animate={{ scale: 1, x: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.3 + i * 0.1 }}
-          />
+          >
+            <img src={src} alt="" className="w-full h-full object-cover" />
+          </motion.div>
         ))}
       </div>
-      <span style={{ color: TEXT_SECONDARY, fontSize: 13 }}>
-        <strong style={{ color: TEXT_PRIMARY, fontWeight: 700 }}>{formatted}</strong> pessoas investiram essa semana
+      <span style={{ color: TEXT_PRIMARY, fontSize: 13, fontWeight: 600 }}>
+        {formatted} pessoas negociando
       </span>
     </div>
   )

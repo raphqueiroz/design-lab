@@ -1,6 +1,6 @@
 /**
  * Discover — dark-themed asset discovery/explore screen.
- * Filterable by category + search. Sections: Favoritos, Maiores altas, Mais negociados, Todos.
+ * Filterable by category + search. Sections: Maiores altas, Mais negociados, Todos.
  * Pure custom Tailwind + inline styles + Framer Motion. NO library components.
  */
 import { useState, useMemo } from 'react'
@@ -8,10 +8,11 @@ import { motion } from 'framer-motion'
 import {
   RiArrowLeftLine, RiSearchLine,
 } from '@remixicon/react'
+import IconButton from '@/library/inputs/IconButton'
 import { stagger } from './shared/animations'
 import type { FlowScreenProps } from '@/pages/simulator/flowRegistry'
 import {
-  ASSETS, isFavorite,
+  ASSETS,
 } from './shared/data'
 import type { AssetCategory } from './shared/data'
 import {
@@ -114,20 +115,13 @@ export default function Screen1_Discover({ onBack, onElementTap, onNext }: FlowS
     <div className="flex flex-col min-h-screen" style={{ background: BG }}>
       <div style={{ height: 'var(--safe-area-top)' }} />
 
-      {/* Top bar: back + search */}
-      <motion.div {...fadeUp(0)} className="flex items-center gap-3 px-4 pt-3 pb-2">
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={onBack}
-          className="flex items-center justify-center rounded-full border-none cursor-pointer flex-shrink-0"
-          style={{
-            width: 36,
-            height: 36,
-            background: BG_CARD,
-          }}
-        >
-          <RiArrowLeftLine size={18} color={TEXT_PRIMARY} />
-        </motion.button>
+      {/* Top bar: back + search — padded */}
+      <motion.div {...fadeUp(0)} className="flex items-center gap-3 page-pad pt-3 pb-2">
+        <IconButton
+          variant="base"
+          icon={<RiArrowLeftLine size={24} className="text-content-primary" />}
+          onPress={onBack}
+        />
 
         {/* Search input */}
         <div
@@ -158,8 +152,8 @@ export default function Screen1_Discover({ onBack, onElementTap, onNext }: FlowS
         </div>
       </motion.div>
 
-      {/* Category pills */}
-      <motion.div {...fadeUp(0.05)} className="flex gap-2 px-4 py-3 overflow-x-auto">
+      {/* Category pills — padded, scrolls horizontally */}
+      <motion.div {...fadeUp(0.05)} className="flex gap-2 page-pad py-3 overflow-x-auto">
         {CATEGORIES.map(cat => (
           <CategoryPill
             key={cat.id}
@@ -174,10 +168,10 @@ export default function Screen1_Discover({ onBack, onElementTap, onNext }: FlowS
       <div className="flex-1 overflow-y-auto">
         {showSections ? (
           <>
-            {/* Maiores altas — FavoriteCard-style cards */}
+            {/* Maiores altas — full bleed section with horizontal scroll */}
             <motion.div {...fadeUp(0.1)} className="mb-5">
               <Subheader text="Maiores altas" description="Ativos com maior valorização nas últimas 24h" />
-              <div className="flex gap-2 px-5 overflow-x-auto pb-3 pt-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
+              <div className="flex gap-2 px-6 overflow-x-auto pb-3 pt-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
                 {trending.map((asset, i) => (
                   <motion.div
                     key={asset.ticker}
@@ -199,10 +193,10 @@ export default function Screen1_Discover({ onBack, onElementTap, onNext }: FlowS
               </div>
             </motion.div>
 
-            {/* Mais negociados */}
+            {/* Mais negociados — full bleed section with horizontal scroll */}
             <motion.div {...fadeUp(0.2)} className="mb-5">
               <Subheader text="Mais negociados" description="Os ativos mais comprados pela comunidade" />
-              <div className="flex gap-2 px-5 overflow-x-auto pb-3 pt-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
+              <div className="flex gap-2 px-6 overflow-x-auto pb-3 pt-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
                 {mostTraded.map((asset, i) => (
                   <motion.div
                     key={asset.ticker}
@@ -224,7 +218,7 @@ export default function Screen1_Discover({ onBack, onElementTap, onNext }: FlowS
               </div>
             </motion.div>
 
-            {/* Todos os ativos */}
+            {/* Todos os ativos — full bleed asset list */}
             <motion.div {...fadeUp(0.3)} className="mb-6">
               <Subheader text="Todos os ativos" sortOptions={SORT_OPTIONS} sortValue={sort} onSortChange={v => setSort(v as SortOptionValue)} />
               <div className="flex flex-col">
@@ -233,8 +227,6 @@ export default function Screen1_Discover({ onBack, onElementTap, onNext }: FlowS
                     key={asset.ticker}
                     ticker={asset.ticker}
                     variant="market"
-                    showFavorite
-                    isFavorite={isFavorite(asset.ticker)}
                     onPress={() => handleAssetTap(asset.name)}
                   />
                 ))}
@@ -242,12 +234,11 @@ export default function Screen1_Discover({ onBack, onElementTap, onNext }: FlowS
             </motion.div>
           </>
         ) : (
-          /* Filtered / Search results */
+          /* Filtered / Search results — full bleed */
           <motion.div {...fadeUp(0.1)} className="mb-6">
             <Subheader
-              text={isFiltered && !isSearching
-                ? (CATEGORIES.find(c => c.id === activeCategory)?.label ?? 'Resultados')
-                : `${filteredAssets.length} ${filteredAssets.length === 1 ? 'ativo' : 'ativos'}`}
+              text={`${filteredAssets.length} ${filteredAssets.length === 1 ? 'ativo disponível' : 'ativos disponíveis'}`}
+              size="sm"
               sortOptions={SORT_OPTIONS}
               sortValue={sort}
               onSortChange={v => setSort(v as SortOptionValue)}
@@ -259,8 +250,6 @@ export default function Screen1_Discover({ onBack, onElementTap, onNext }: FlowS
                   key={asset.ticker}
                   ticker={asset.ticker}
                   variant="market"
-                  showFavorite
-                  isFavorite={isFavorite(asset.ticker)}
                   onPress={() => handleAssetTap(asset.name)}
                 />
               ))}

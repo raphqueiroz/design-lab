@@ -15,6 +15,7 @@ import CurrencyInput from '@/library/inputs/CurrencyInput'
 import DataList from '@/library/display/DataList'
 import Banner from '@/library/display/Banner'
 import { DataListSkeleton } from '@/library/feedback/Skeleton'
+import { BRL_FLAG } from '@/lib/flags'
 import type { AssetTicker } from '../shared/data'
 import { getAsset, getPosition, isVolatile } from '../shared/data'
 
@@ -70,7 +71,7 @@ export default function Screen1_AmountEntry({ onNext, onBack, onElementTap, onSt
           label={volatile ? 'Vender' : 'Resgatar'}
           value={amount}
           onChange={setAmount}
-          tokenIcon="https://flagcdn.com/w80/br.png"
+          tokenIcon={BRL_FLAG}
           currencySymbol="R$"
           balance={balanceDisplay}
           onBalanceTap={() => setAmount(Math.round(balance * 100).toString())}

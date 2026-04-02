@@ -9,14 +9,22 @@ import Screen0_Dashboard from './Screen0_Dashboard'
 import Screen1_Discover from './Screen1_Discover'
 import Screen2_AssetPage from './Screen2_AssetPage'
 import Screen3_Trade from './Screen3_Trade'
-import Screen3b_TpSlConfig from './Screen3b_TpSlConfig'
+import Screen3_Sell from './Screen3_Sell'
+import Screen3c_OrderConfig from './Screen3c_OrderConfig'
 import Screen4_Review from './Screen4_Review'
 import Screen5_Processing from './Screen5_Processing'
 import Screen6_Success from './Screen6_Success'
 import Screen7_OpenOrders from './Screen7_OpenOrders'
 import Screen8_Favorites from './Screen8_Favorites'
 import Screen9_Statement from './Screen9_Statement'
-import Receive_Screen1 from './receive/Screen1_Receive'
+import Screen10_ExportStatement from './Screen10_ExportStatement'
+import Screen11_PortfolioPerformance from './Screen11_PortfolioPerformance'
+import Receive_Screen1_RiskWarning from './receive/Screen1_RiskWarning'
+import Receive_Screen2_SelectAsset from './receive/Screen2_SelectAsset'
+import Receive_Screen3_SelectChain from './receive/Screen3_SelectChain'
+import Receive_Screen4_Amount from './receive/Screen4_Amount'
+import Receive_Screen5_DepositAddress from './receive/Screen5_DepositAddress'
+import Receive_Screen6_Awaiting from './receive/Screen6_Awaiting'
 import Send_Screen1 from './send/Screen1_Send'
 
 // ═══════════════════════════════════════════════════════════════
@@ -34,7 +42,7 @@ const exploreScreenDefs = [
       { id: 'sc-negociar', component: 'ShortcutButton', label: 'Negociar' },
       { id: 'sc-favoritos', component: 'ShortcutButton', label: 'Favoritos' },
       { id: 'sc-ordens', component: 'ShortcutButton', label: 'Ordens' },
-      { id: 'li-depositar', component: 'ListItem', label: 'Depositar ativos' },
+      { id: 'li-depositar', component: 'ListItem', label: 'Depositar criptomoedas' },
       { id: 'li-enviar', component: 'ListItem', label: 'Enviar ativos' },
       { id: 'li-documentos', component: 'ListItem', label: 'Documentos' },
       { id: 'li-relatorio', component: 'ListItem', label: 'Relatório de Ganhos' },
@@ -47,6 +55,8 @@ const exploreScreenDefs = [
     states: [
       { id: 'first-access', name: 'First Access', description: 'Hero onboarding with Summary benefits', isDefault: true, data: { dashboard: 'first-access' } },
       { id: 'empty', name: 'Empty', description: 'No investments — psychology-driven onboarding', data: { dashboard: 'empty' } },
+      { id: 'portfolio-new', name: 'Portfolio New', description: 'Just invested — no chart yet, waiting for 7 days', data: { dashboard: 'portfolio-new' } },
+      { id: 'portfolio-7day', name: 'Portfolio 7-Day', description: '7 days of data — flat line then real values at the end', data: { dashboard: 'portfolio-3day' } },
       { id: 'portfolio', name: 'Portfolio', description: 'User has positions', data: { dashboard: 'portfolio' } },
     ],
   },
@@ -116,11 +126,33 @@ const exploreScreenDefs = [
   {
     id: 'il-statement',
     title: 'Statement (Visual)',
-    description: 'Light theme filterable transaction history.',
-    componentsUsed: ['Custom'],
+    description: 'Light theme transaction history grouped by date with token avatars and type badges.',
+    componentsUsed: ['Custom', 'Header', 'ListItem', 'Avatar', 'GroupHeader'],
     component: Screen9_Statement,
     interactiveElements: [
-      { id: 'btn-pdf', component: 'Button', label: 'Gerar PDF' },
+      { id: 'li-export', component: 'ListItem', label: 'Exportar extrato' },
+    ],
+  },
+  {
+    id: 'il-export-statement',
+    title: 'Export Statement (Visual)',
+    description: 'Form to configure PDF export: date range, currency, language.',
+    componentsUsed: ['Header', 'TextInput', 'Select', 'Button', 'StickyFooter'],
+    component: Screen10_ExportStatement,
+    interactiveElements: [
+      { id: 'btn-export', component: 'Button', label: 'Gerar extrato' },
+    ],
+  },
+  {
+    id: 'il-portfolio-performance',
+    title: 'Portfolio Performance (Visual)',
+    description: 'Full-screen interactive portfolio chart with time ranges and stats.',
+    componentsUsed: ['Header', 'DataList', 'Custom'],
+    component: Screen11_PortfolioPerformance,
+    interactiveElements: [],
+    states: [
+      { id: '3-day', name: '3-day', description: 'Early portfolio — flat 3-day chart', isDefault: true, data: { chartMode: '3-day' } },
+      { id: 'full', name: 'Full', description: 'Mature portfolio — 30-day chart', data: { chartMode: 'full' } },
     ],
   },
 ]
@@ -132,12 +164,15 @@ const exploreScreenDefs = [
 const buyScreenDefs = [
   {
     id: 'il-trade-buy',
-    title: 'Trade – Buy (Visual)',
-    description: 'Light theme custom keypad amount entry with % quick-fill.',
-    componentsUsed: ['Custom'],
+    title: 'Trade – Buy',
+    description: 'Amount entry with order type selector (market/programmed), dual currency inputs.',
+    componentsUsed: ['Header', 'CurrencyInput', 'ListItem', 'DataList', 'Banner', 'Button'],
     component: Screen3_Trade,
     interactiveElements: [
       { id: 'btn-continuar', component: 'Button', label: 'Continuar' },
+      { id: 'btn-configurar', component: 'Button', label: 'Configurar ordem' },
+      { id: 'li-market', component: 'ListItem', label: 'Compra a mercado' },
+      { id: 'li-programmed', component: 'ListItem', label: 'Compra programada' },
     ],
     states: [
       { id: 'btc-buy', name: 'BTC Buy', isDefault: true, data: { assetTicker: 'BTC', mode: 'buy' } },
@@ -145,36 +180,38 @@ const buyScreenDefs = [
     ],
   },
   {
-    id: 'il-tpsl-buy',
-    title: 'TP/SL Config – Buy (Visual)',
-    description: 'Light theme chart overlay with TP/SL toggles and custom price sheets.',
-    componentsUsed: ['Custom', 'LineChart'],
-    component: Screen3b_TpSlConfig,
+    id: 'il-order-config',
+    title: 'Order Config – Programmed Buy',
+    description: 'Edge-to-edge chart with draggable TP/SL lines, toggle rows with descriptions, custom price labels.',
+    componentsUsed: ['Header', 'LineChart', 'Toggle', 'DataList', 'Button', 'GroupHeader', 'Text'],
+    component: Screen3c_OrderConfig,
     interactiveElements: [
-      { id: 'btn-continuar', component: 'Button', label: 'Continuar' },
+      { id: 'btn-revisar', component: 'Button', label: 'Revisar ordem' },
     ],
     states: [
       { id: 'btc', name: 'BTC', isDefault: true, data: { assetTicker: 'BTC' } },
+      { id: 'eth', name: 'ETH', data: { assetTicker: 'ETH' } },
     ],
   },
   {
     id: 'il-review-buy',
-    title: 'Review – Buy (Visual)',
-    description: 'Light theme slide-to-confirm with glass summary card.',
-    componentsUsed: ['Custom'],
+    title: 'Review – Buy',
+    description: 'Review with grouped DataLists. Market: single section. Programmed: details + TP/SL orders.',
+    componentsUsed: ['Header', 'DataList', 'GroupHeader', 'Banner', 'Text', 'Button'],
     component: Screen4_Review,
     interactiveElements: [
       { id: 'btn-confirmar', component: 'Button', label: 'Confirmar compra' },
     ],
     states: [
-      { id: 'btc-buy', name: 'BTC Buy', isDefault: true, data: { assetTicker: 'BTC', mode: 'buy' } },
+      { id: 'btc-market', name: 'BTC (Mercado)', isDefault: true, data: { assetTicker: 'BTC', mode: 'buy', orderType: 'market' } },
+      { id: 'btc-programmed', name: 'BTC (Programada)', data: { assetTicker: 'BTC', mode: 'buy', orderType: 'programmed', tpPrice: 409721, slPrice: 335226 } },
     ],
   },
   {
     id: 'il-processing-buy',
-    title: 'Processing – Buy (Visual)',
-    description: 'Light theme orbital animation with step messages.',
-    componentsUsed: ['Custom'],
+    title: 'Processing – Buy',
+    description: 'LoadingScreen with step messages and auto-advance.',
+    componentsUsed: ['LoadingScreen'],
     component: Screen5_Processing,
     states: [
       { id: 'btc', name: 'BTC', isDefault: true, data: { assetTicker: 'BTC' } },
@@ -182,9 +219,9 @@ const buyScreenDefs = [
   },
   {
     id: 'il-success-buy',
-    title: 'Success – Buy (Visual)',
-    description: 'Light theme confetti celebration with glass summary.',
-    componentsUsed: ['Custom'],
+    title: 'Success – Buy',
+    description: 'FeedbackLayout with DataList summary and confirmation button.',
+    componentsUsed: ['FeedbackLayout', 'DataList', 'GroupHeader', 'Text', 'Button'],
     component: Screen6_Success,
     interactiveElements: [
       { id: 'btn-entendi', component: 'Button', label: 'Entendi' },
@@ -202,22 +239,22 @@ const buyScreenDefs = [
 const sellScreenDefs = [
   {
     id: 'il-trade-sell',
-    title: 'Trade – Sell (Visual)',
-    description: 'Light theme keypad for sell amount.',
-    componentsUsed: ['Custom'],
-    component: Screen3_Trade,
+    title: 'Trade – Sell',
+    description: 'Sell amount entry with dual currency inputs (crypto → USD), balance display.',
+    componentsUsed: ['Header', 'CurrencyInput', 'DataList', 'Button'],
+    component: Screen3_Sell,
     interactiveElements: [
       { id: 'btn-continuar', component: 'Button', label: 'Continuar' },
     ],
     states: [
-      { id: 'btc-sell', name: 'BTC Sell', isDefault: true, data: { assetTicker: 'BTC', mode: 'sell' } },
+      { id: 'btc-sell', name: 'BTC Sell', isDefault: true, data: { assetTicker: 'BTC' } },
     ],
   },
   {
     id: 'il-review-sell',
-    title: 'Review – Sell (Visual)',
-    description: 'Light theme slide-to-confirm for sell.',
-    componentsUsed: ['Custom'],
+    title: 'Review – Sell',
+    description: 'Review sell order with grouped DataLists.',
+    componentsUsed: ['Header', 'DataList', 'GroupHeader', 'Banner', 'Text', 'Button'],
     component: Screen4_Review,
     interactiveElements: [
       { id: 'btn-confirmar', component: 'Button', label: 'Confirmar venda' },
@@ -228,9 +265,9 @@ const sellScreenDefs = [
   },
   {
     id: 'il-processing-sell',
-    title: 'Processing – Sell (Visual)',
-    description: 'Light theme orbital for sell.',
-    componentsUsed: ['Custom'],
+    title: 'Processing – Sell',
+    description: 'LoadingScreen with sell step messages.',
+    componentsUsed: ['LoadingScreen'],
     component: Screen5_Processing,
     states: [
       { id: 'btc-sell', name: 'BTC Sell', isDefault: true, data: { assetTicker: 'BTC' } },
@@ -238,9 +275,9 @@ const sellScreenDefs = [
   },
   {
     id: 'il-success-sell',
-    title: 'Success – Sell (Visual)',
-    description: 'Light theme confetti for sell.',
-    componentsUsed: ['Custom'],
+    title: 'Success – Sell',
+    description: 'FeedbackLayout with sell summary.',
+    componentsUsed: ['FeedbackLayout', 'DataList', 'GroupHeader', 'Text', 'Button'],
     component: Screen6_Success,
     interactiveElements: [
       { id: 'btn-entendi', component: 'Button', label: 'Entendi' },
@@ -257,11 +294,58 @@ const sellScreenDefs = [
 
 const receiveScreenDefs = [
   {
-    id: 'il-receive',
-    title: 'Receive (Visual)',
-    description: 'Light theme QR code + address + network selector.',
-    componentsUsed: ['Custom'],
-    component: Receive_Screen1,
+    id: 'il-receive-warning',
+    title: 'Risk Warning (Visual)',
+    description: 'BottomSheet risk warning with checkbox before deposit crypto.',
+    componentsUsed: ['BottomSheet', 'Checkbox', 'Button'],
+    component: Receive_Screen1_RiskWarning,
+    interactiveElements: [
+      { id: 'btn-continuar', component: 'Button', label: 'Continuar' },
+    ],
+  },
+  {
+    id: 'il-receive-select-asset',
+    title: 'Select Asset (Visual)',
+    description: 'Searchable crypto asset list for deposit selection.',
+    componentsUsed: ['Header', 'SearchBar', 'AssetListItem'],
+    component: Receive_Screen2_SelectAsset,
+  },
+  {
+    id: 'il-receive-select-chain',
+    title: 'Select Chain (Visual)',
+    description: 'Network selection for crypto deposit.',
+    componentsUsed: ['Header', 'ListItem', 'Avatar'],
+    component: Receive_Screen3_SelectChain,
+  },
+  {
+    id: 'il-receive-amount',
+    title: 'Deposit Amount (Visual)',
+    description: 'Crypto amount entry with USD equivalent.',
+    componentsUsed: ['Header', 'CurrencyInput', 'DataList', 'Button'],
+    component: Receive_Screen4_Amount,
+    interactiveElements: [
+      { id: 'btn-continuar', component: 'Button', label: 'Continuar' },
+    ],
+  },
+  {
+    id: 'il-receive-address',
+    title: 'Deposit Address (Visual)',
+    description: 'QR code + copyable address + warning banner.',
+    componentsUsed: ['Header', 'DataList', 'Banner', 'Button'],
+    component: Receive_Screen5_DepositAddress,
+    interactiveElements: [
+      { id: 'btn-sent', component: 'Button', label: 'Já enviei' },
+    ],
+  },
+  {
+    id: 'il-receive-awaiting',
+    title: 'Awaiting Deposit (Visual)',
+    description: 'FeedbackLayout confirmation with delayed toast notification.',
+    componentsUsed: ['FeedbackLayout', 'DataList', 'Toast', 'Button'],
+    component: Receive_Screen6_Awaiting,
+    interactiveElements: [
+      { id: 'btn-entendi', component: 'Button', label: 'Entendi' },
+    ],
   },
 ]
 
@@ -385,9 +469,11 @@ const xR = 600
       data: { label: 'Tap Ordens', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'ShortcutButton: Ordens' } as FlowNodeData },
     // More modal actions
     { id: 'n-tap-depositar', type: 'action', position: { x: xL, y: ROW * 2 },
-      data: { label: 'Tap Depositar', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'ListItem: Depositar ativos' } as FlowNodeData },
-    { id: 'n-tap-enviar', type: 'action', position: { x: xR, y: ROW * 2 },
-      data: { label: 'Tap Enviar', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'ListItem: Enviar ativos' } as FlowNodeData },
+      data: { label: 'Tap Depositar', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'ListItem: Depositar criptomoedas' } as FlowNodeData },
+    { id: 'n-tap-extrato', type: 'action', position: { x: xR, y: ROW * 2 },
+      data: { label: 'Tap Extrato', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'ListItem: Extrato' } as FlowNodeData },
+    { id: 'n-statement', type: 'screen', position: { x: xR, y: ROW * 2.5 },
+      data: { label: 'Statement', screenId: 'il-statement', nodeType: 'screen', pageId: 'il-statement', description: 'Transaction history' } as FlowNodeData },
     // Explore actions
     { id: 'n-tap-explorar', type: 'action', position: { x, y: ROW * 2 },
       data: { label: 'Tap Explorar', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'ListItem: Explorar mais ativos' } as FlowNodeData },
@@ -422,6 +508,11 @@ const xR = 600
       data: { label: 'Receive Flow', screenId: null, nodeType: 'flow-reference', targetFlowId: 'invest-2-light-receive' } as FlowNodeData },
     { id: 'n-ref-send', type: 'flow-reference', position: { x: xR, y: ROW * 2.5 },
       data: { label: 'Send Flow', screenId: null, nodeType: 'flow-reference', targetFlowId: 'invest-2-light-send' } as FlowNodeData },
+    // Statement → Export
+    { id: 'n-tap-export', type: 'action', position: { x: xR, y: ROW * 3.5 },
+      data: { label: 'Tap Export', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'ListItem: Exportar extrato' } as FlowNodeData },
+    { id: 'n-export', type: 'screen', position: { x: xR, y: ROW * 4.5 },
+      data: { label: 'Export Statement', screenId: 'il-export-statement', nodeType: 'screen', pageId: 'il-export-statement', description: 'PDF export config' } as FlowNodeData },
   ]
 
   const edges = [
@@ -431,7 +522,7 @@ const xR = 600
     { id: 'e-3', source: 'n-dash', target: 'n-tap-ordens', sourceHandle: 'right-source', targetHandle: 'top' },
     // Dashboard → more modal actions
     { id: 'e-4', source: 'n-dash', target: 'n-tap-depositar', sourceHandle: 'left-source', targetHandle: 'top' },
-    { id: 'e-5', source: 'n-dash', target: 'n-tap-enviar', sourceHandle: 'right-source', targetHandle: 'top' },
+    { id: 'e-5', source: 'n-dash', target: 'n-tap-extrato', sourceHandle: 'right-source', targetHandle: 'top' },
     // Dashboard → explore
     { id: 'e-6', source: 'n-dash', target: 'n-tap-explorar', sourceHandle: 'bottom', targetHandle: 'top' },
     { id: 'e-6b', source: 'n-dash', target: 'n-tap-explorar-btn', sourceHandle: 'bottom', targetHandle: 'top' },
@@ -441,7 +532,7 @@ const xR = 600
     { id: 'e-9', source: 'n-tap-ordens', target: 'n-orders', sourceHandle: 'bottom', targetHandle: 'top' },
     // More modal → flow references
     { id: 'e-10', source: 'n-tap-depositar', target: 'n-ref-receive', sourceHandle: 'bottom', targetHandle: 'top' },
-    { id: 'e-11', source: 'n-tap-enviar', target: 'n-ref-send', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-11', source: 'n-tap-extrato', target: 'n-statement', sourceHandle: 'bottom', targetHandle: 'top' },
     // Explore → discover
     { id: 'e-12', source: 'n-tap-explorar', target: 'n-discover', sourceHandle: 'bottom', targetHandle: 'top' },
     { id: 'e-12b', source: 'n-tap-explorar-btn', target: 'n-discover', sourceHandle: 'bottom', targetHandle: 'top' },
@@ -455,22 +546,32 @@ const xR = 600
     { id: 'e-18', source: 'n-tap-buy', target: 'n-ref-buy', sourceHandle: 'bottom', targetHandle: 'top' },
     { id: 'e-19', source: 'n-tap-invest', target: 'n-ref-buy', sourceHandle: 'left-source', targetHandle: 'right-target' },
     { id: 'e-20', source: 'n-tap-sell', target: 'n-ref-sell', sourceHandle: 'bottom', targetHandle: 'top' },
+    // Statement → Export
+    { id: 'e-21', source: 'n-statement', target: 'n-tap-export', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-22', source: 'n-tap-export', target: 'n-export', sourceHandle: 'bottom', targetHandle: 'top' },
   ]
 
-  bootstrapFlowGraph('invest-2-light-explore', nodes, edges, 2)
+  bootstrapFlowGraph('invest-2-light-explore', nodes, edges, 4)
 }
 
 // ── Buy Flow Graph ──
 {
+  const COL_L = x - 200
+  const COL_R = x + 200
   const nodes = [
     { id: 'n-trade', type: 'screen', position: { x, y: 0 },
-      data: { label: 'Trade (Buy)', screenId: 'il-trade-buy', nodeType: 'screen', pageId: 'il-trade-buy', description: 'Custom keypad amount' } as FlowNodeData },
-    { id: 'n-tap1', type: 'action', position: { x, y: ROW },
+      data: { label: 'Trade (Buy)', screenId: 'il-trade-buy', nodeType: 'screen', pageId: 'il-trade-buy', description: 'Amount entry + order type selector' } as FlowNodeData },
+    // Market order path (left)
+    { id: 'n-tap-market', type: 'action', position: { x: COL_L, y: ROW },
       data: { label: 'Tap Continuar', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Button: Continuar' } as FlowNodeData },
-    { id: 'n-tpsl', type: 'screen', position: { x, y: ROW * 2 },
-      data: { label: 'TP/SL Config', screenId: 'il-tpsl-buy', nodeType: 'screen', pageId: 'il-tpsl-buy', description: 'Chart overlay with TP/SL' } as FlowNodeData },
-    { id: 'n-tap2', type: 'action', position: { x, y: ROW * 3 },
-      data: { label: 'Tap Continuar', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Button: Continuar' } as FlowNodeData },
+    // Programmed order path (right) — goes to order config first
+    { id: 'n-tap-config', type: 'action', position: { x: COL_R, y: ROW },
+      data: { label: 'Tap Configurar ordem', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Button: Configurar ordem' } as FlowNodeData },
+    { id: 'n-order-config', type: 'screen', position: { x: COL_R, y: ROW * 2 },
+      data: { label: 'Order Config', screenId: 'il-order-config', nodeType: 'screen', pageId: 'il-order-config', description: 'Edge-to-edge chart, draggable TP/SL' } as FlowNodeData },
+    { id: 'n-tap-confirm-order', type: 'action', position: { x: COL_R, y: ROW * 3 },
+      data: { label: 'Tap Revisar ordem', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Button: Revisar ordem' } as FlowNodeData },
+    // Both paths converge at review
     { id: 'n-review', type: 'screen', position: { x, y: ROW * 4 },
       data: { label: 'Review', screenId: 'il-review-buy', nodeType: 'screen', pageId: 'il-review-buy', description: 'Slide-to-confirm' } as FlowNodeData },
     { id: 'n-tap3', type: 'action', position: { x, y: ROW * 5 },
@@ -487,18 +588,23 @@ const xR = 600
       data: { label: 'Back to Explore', screenId: null, nodeType: 'flow-reference', targetFlowId: 'invest-2-light-explore' } as FlowNodeData },
   ]
   const edges = [
-    { id: 'e-b1', source: 'n-trade', target: 'n-tap1', sourceHandle: 'bottom', targetHandle: 'top' },
-    { id: 'e-b2', source: 'n-tap1', target: 'n-tpsl', sourceHandle: 'bottom', targetHandle: 'top' },
-    { id: 'e-b3', source: 'n-tpsl', target: 'n-tap2', sourceHandle: 'bottom', targetHandle: 'top' },
-    { id: 'e-b4', source: 'n-tap2', target: 'n-review', sourceHandle: 'bottom', targetHandle: 'top' },
-    { id: 'e-b5', source: 'n-review', target: 'n-tap3', sourceHandle: 'bottom', targetHandle: 'top' },
-    { id: 'e-b6', source: 'n-tap3', target: 'n-api', sourceHandle: 'bottom', targetHandle: 'top' },
-    { id: 'e-b7', source: 'n-api', target: 'n-processing', sourceHandle: 'bottom', targetHandle: 'top' },
-    { id: 'e-b8', source: 'n-processing', target: 'n-success', sourceHandle: 'bottom', targetHandle: 'top' },
-    { id: 'e-b9', source: 'n-success', target: 'n-tap4', sourceHandle: 'bottom', targetHandle: 'top' },
-    { id: 'e-b10', source: 'n-tap4', target: 'n-ref', sourceHandle: 'bottom', targetHandle: 'top' },
+    // Market path (left): Trade → Review directly
+    { id: 'e-b1', source: 'n-trade', target: 'n-tap-market', sourceHandle: 'left-source', targetHandle: 'top' },
+    { id: 'e-b2', source: 'n-tap-market', target: 'n-review', sourceHandle: 'bottom', targetHandle: 'left-target' },
+    // Programmed path (right): Trade → Order Config → Review
+    { id: 'e-b3', source: 'n-trade', target: 'n-tap-config', sourceHandle: 'right-source', targetHandle: 'top' },
+    { id: 'e-b4', source: 'n-tap-config', target: 'n-order-config', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-b5', source: 'n-order-config', target: 'n-tap-confirm-order', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-b6', source: 'n-tap-confirm-order', target: 'n-review', sourceHandle: 'bottom', targetHandle: 'right-target' },
+    // Shared path from review onward
+    { id: 'e-b7', source: 'n-review', target: 'n-tap3', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-b8', source: 'n-tap3', target: 'n-api', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-b9', source: 'n-api', target: 'n-processing', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-b10', source: 'n-processing', target: 'n-success', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-b11', source: 'n-success', target: 'n-tap4', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-b12', source: 'n-tap4', target: 'n-ref', sourceHandle: 'bottom', targetHandle: 'top' },
   ]
-  bootstrapFlowGraph('invest-2-light-buy', nodes, edges, 1)
+  bootstrapFlowGraph('invest-2-light-buy', nodes, edges, 4)
 }
 
 // ── Sell Flow Graph ──
@@ -533,15 +639,51 @@ const xR = 600
     { id: 'e-s7', source: 'n-success', target: 'n-tap3', sourceHandle: 'bottom', targetHandle: 'top' },
     { id: 'e-s8', source: 'n-tap3', target: 'n-ref', sourceHandle: 'bottom', targetHandle: 'top' },
   ]
-  bootstrapFlowGraph('invest-2-light-sell', nodes, edges, 1)
+  bootstrapFlowGraph('invest-2-light-sell', nodes, edges, 2)
 }
 
-// ── Receive Flow Graph ──
+// ── Receive Flow Graph (6 screens, 5 actions) ──
 {
-  bootstrapFlowGraph('invest-2-light-receive', [
-    { id: 'n-receive', type: 'screen', position: { x, y: 0 },
-      data: { label: 'Receive', screenId: 'il-receive', nodeType: 'screen', pageId: 'il-receive', description: 'QR + address' } as FlowNodeData },
-  ], [], 1)
+  const C1 = 0, C2 = 300, C3 = 600
+  const receiveNodes = [
+    // Screens
+    { id: 'n-warning', type: 'screen', position: { x: C1, y: 0 },
+      data: { label: 'Risk Warning', screenId: 'il-receive-warning', nodeType: 'screen', pageId: 'il-receive-warning', description: 'Caution checkbox + dual buttons' } as FlowNodeData },
+    { id: 'n-select-asset', type: 'screen', position: { x: C3, y: 0 },
+      data: { label: 'Select Asset', screenId: 'il-receive-select-asset', nodeType: 'screen', pageId: 'il-receive-select-asset', description: 'Searchable asset list' } as FlowNodeData },
+    { id: 'n-select-chain', type: 'screen', position: { x: C1, y: ROW * 3 },
+      data: { label: 'Select Chain', screenId: 'il-receive-select-chain', nodeType: 'screen', pageId: 'il-receive-select-chain', description: 'Network selection' } as FlowNodeData },
+    { id: 'n-amount', type: 'screen', position: { x: C3, y: ROW * 3 },
+      data: { label: 'Amount', screenId: 'il-receive-amount', nodeType: 'screen', pageId: 'il-receive-amount', description: 'Crypto amount + USD equivalent' } as FlowNodeData },
+    { id: 'n-address', type: 'screen', position: { x: C1, y: ROW * 6 },
+      data: { label: 'Deposit Address', screenId: 'il-receive-address', nodeType: 'screen', pageId: 'il-receive-address', description: 'QR code + copy address' } as FlowNodeData },
+    { id: 'n-awaiting', type: 'screen', position: { x: C3, y: ROW * 6 },
+      data: { label: 'Awaiting', screenId: 'il-receive-awaiting', nodeType: 'screen', pageId: 'il-receive-awaiting', description: 'Confirmation + toast after 30s' } as FlowNodeData },
+    // Actions
+    { id: 'n-accept', type: 'action', position: { x: C2, y: 0 },
+      data: { label: 'Accept Risk', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Button: Continuar' } as FlowNodeData },
+    { id: 'n-tap-asset', type: 'action', position: { x: C2, y: ROW * 1.5 },
+      data: { label: 'Tap Asset', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'ListItem: Bitcoin' } as FlowNodeData },
+    { id: 'n-tap-chain', type: 'action', position: { x: C2, y: ROW * 3 },
+      data: { label: 'Tap Chain', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'ListItem: Gnosis Chain' } as FlowNodeData },
+    { id: 'n-continue', type: 'action', position: { x: C2, y: ROW * 4.5 },
+      data: { label: 'Continue', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Button: Continuar' } as FlowNodeData },
+    { id: 'n-sent', type: 'action', position: { x: C2, y: ROW * 6 },
+      data: { label: 'Confirm Sent', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Button: Já enviei' } as FlowNodeData },
+  ]
+  const receiveEdges = [
+    { id: 'e-r1', source: 'n-warning', target: 'n-accept', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-r2', source: 'n-accept', target: 'n-select-asset', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-r3', source: 'n-select-asset', target: 'n-tap-asset', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-r4', source: 'n-tap-asset', target: 'n-select-chain', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-r5', source: 'n-select-chain', target: 'n-tap-chain', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-r6', source: 'n-tap-chain', target: 'n-amount', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-r7', source: 'n-amount', target: 'n-continue', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-r8', source: 'n-continue', target: 'n-address', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-r9', source: 'n-address', target: 'n-sent', sourceHandle: 'bottom', targetHandle: 'top' },
+    { id: 'e-r10', source: 'n-sent', target: 'n-awaiting', sourceHandle: 'bottom', targetHandle: 'top' },
+  ]
+  bootstrapFlowGraph('invest-2-light-receive', receiveNodes, receiveEdges, 2)
 }
 
 // ── Send Flow Graph ──

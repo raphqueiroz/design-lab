@@ -23,7 +23,7 @@ export default function Screen4_Success({ onBack, onElementTap }: FlowScreenProp
           }}>
             Adicionar fundos
           </Button>
-          <Button fullWidth variant="secondary" onPress={() => {
+          <Button fullWidth variant="primary" onPress={() => {
             const handled = onElementTap?.('Button: Ver caixinhas')
             if (!handled) onBack()
           }}>

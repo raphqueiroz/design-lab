@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import type { FlowScreenProps } from '../../pages/simulator/flowRegistry'
 import { useScreenData } from '../../lib/ScreenDataContext'
+import { USD_FLAG, BRL_FLAG, EUR_FLAG } from '@/lib/flags'
 import Header from '../../library/navigation/Header'
 import BaseLayout from '../../library/layout/BaseLayout'
 import StickyFooter from '../../library/layout/StickyFooter'
@@ -16,27 +17,25 @@ import Banner from '../../library/display/Banner'
 import { DataListSkeleton, BannerSkeleton } from '../../library/feedback/Skeleton'
 
 const MOCK_RATE = 5.4583
-const USD_ICON = 'https://flagcdn.com/w80/us.png'
-const BRL_ICON = 'https://flagcdn.com/w80/br.png'
 
 const PAYMENT_METHODS = [
   {
     id: 'brl',
     title: 'Real Brasileiro',
     subtitle: 'Pague de sua conta bancária com Pix',
-    icon: BRL_ICON,
+    icon: BRL_FLAG,
   },
   {
     id: 'usd',
     title: 'Dólar Americano',
     subtitle: 'Pague de sua conta americana com transferência ACH',
-    icon: USD_ICON,
+    icon: USD_FLAG,
   },
   {
     id: 'eur',
     title: 'Euro',
     subtitle: 'Pague de sua conta internacional com SEPA',
-    icon: 'https://flagcdn.com/w80/eu.png',
+    icon: EUR_FLAG,
   },
   {
     id: 'crypto',
@@ -128,7 +127,7 @@ export default function Screen1_AmountEntry({ onNext, onBack, onElementTap, onSt
           label="Receba"
           value={displayUsd}
           onChange={handleUsdChange}
-          tokenIcon={USD_ICON}
+          tokenIcon={USD_FLAG}
           currencySymbol="US$"
         />
 
@@ -138,7 +137,7 @@ export default function Screen1_AmountEntry({ onNext, onBack, onElementTap, onSt
           label="Pague"
           value={displayBrl}
           onChange={handleBrlChange}
-          tokenIcon={BRL_ICON}
+          tokenIcon={BRL_FLAG}
           currencySymbol="R$"
         />
 
@@ -147,7 +146,7 @@ export default function Screen1_AmountEntry({ onNext, onBack, onElementTap, onSt
           subtitle={currentMethod.title}
           inverted
           right={
-            <Button variant="secondary" size="sm" onPress={() => setSheetOpen(true)}>
+            <Button variant="primary" size="sm" onPress={() => setSheetOpen(true)}>
               Mudar
             </Button>
           }

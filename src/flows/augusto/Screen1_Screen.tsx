@@ -92,7 +92,7 @@ export default function Screen({ onNext, onBack, onElementTap }: FlowScreenProps
       </Stack>
 
       <StickyFooter>
-        <Button variant="secondary" fullWidth onPress={() => {
+        <Button variant="primary" fullWidth onPress={() => {
           const handled = onElementTap?.('Button: Adicionar')
           if (!handled) onNext()
         }}>

@@ -48,7 +48,7 @@ export default function Modal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onBackdropPress}
-            className="fixed inset-0 bg-black/50 z-[999]"
+            className="absolute inset-0 bg-black/50 z-[999]"
           />
 
           {/* Modal content */}
@@ -59,7 +59,7 @@ export default function Modal({
             exit={isBottom ? { y: '100%', x: '-50%' } : { scale: 0.9, opacity: 0, x: '-50%', y: '-50%' }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
             className={`
-              fixed z-[1000] bg-white shadow-lg flex flex-col
+              absolute z-[1000] bg-white shadow-lg flex flex-col
               ${isBottom
                 ? 'bottom-0 left-1/2 w-full max-w-lg rounded-t-2xl p-6 pb-8'
                 : 'top-1/2 left-1/2 max-w-[90%] w-[420px] rounded-[var(--token-radius-md)] p-8'

@@ -1,4 +1,4 @@
-import { type ChangeEvent, useRef, useEffect } from 'react'
+import { type ChangeEvent, type ReactNode, useRef, useEffect } from 'react'
 import { RiErrorWarningLine } from '@remixicon/react'
 import { registerComponent } from '../registry'
 
@@ -8,9 +8,14 @@ export interface CurrencyInputProps {
   label?: string
   value?: string
   onChange?: (value: string) => void
-  tokenIcon?: string
+  /** Token avatar — URL string or ReactNode (e.g. web3icons SVG component) */
+  tokenIcon?: string | ReactNode
   /** Currency symbol displayed before the value (e.g. "US$", "R$") */
   currencySymbol?: string
+  /** Number of decimal places (default 2). Use 5 for crypto amounts. */
+  decimals?: number
+  /** Secondary converted value displayed below the amount (e.g. "≈ US$ 102,82") */
+  secondaryValue?: string
   helperText?: string
   /** Formatted balance string displayed below the input (e.g. "US$ 1.250,00") */
   balance?: string
@@ -24,13 +29,14 @@ export interface CurrencyInputProps {
   className?: string
 }
 
-function formatCurrency(raw: string): string {
+function formatCurrency(raw: string, decimals = 2): string {
   const digits = raw.replace(/\D/g, '')
   if (!digits) return ''
-  const cents = parseInt(digits, 10)
-  return (cents / 100).toLocaleString('pt-BR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+  const divisor = Math.pow(10, decimals)
+  const value = parseInt(digits, 10) / divisor
+  return value.toLocaleString('pt-BR', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   })
 }
 
@@ -50,6 +56,8 @@ export default function CurrencyInput({
   onChange,
   tokenIcon = DEFAULT_TOKEN_ICON,
   currencySymbol,
+  decimals = 2,
+  secondaryValue,
   helperText,
   balance,
   onBalanceTap,
@@ -60,7 +68,7 @@ export default function CurrencyInput({
   className = '',
 }: CurrencyInputProps) {
   const hasError = !!error
-  const displayValue = formatCurrency(value)
+  const displayValue = formatCurrency(value, decimals)
   const hasValue = displayValue.length > 0
   const inputRef = useRef<HTMLInputElement>(null)
   const measureRef = useRef<HTMLSpanElement>(null)
@@ -91,11 +99,17 @@ export default function CurrencyInput({
 
       <div className={`flex items-center justify-between w-full ${disabled ? 'opacity-50' : ''}`}>
         {/* Token avatar */}
-        <img
-          src={tokenIcon}
-          alt=""
-          className="w-[40px] h-[40px] rounded-full object-cover shrink-0"
-        />
+        {typeof tokenIcon === 'string' ? (
+          <img
+            src={tokenIcon}
+            alt=""
+            className="w-[40px] h-[40px] rounded-full object-cover shrink-0"
+          />
+        ) : (
+          <div className="w-[40px] h-[40px] shrink-0 flex items-center justify-center">
+            {tokenIcon}
+          </div>
+        )}
 
         {/* Currency symbol + value — right-aligned, symbol floats next to first digit */}
         <div className="flex gap-[4px] items-start justify-end flex-1 min-w-0 overflow-hidden">
@@ -133,6 +147,12 @@ export default function CurrencyInput({
           />
         </div>
       </div>
+
+      {secondaryValue && (
+        <span className="text-[length:var(--token-font-size-body-sm)] leading-[var(--token-line-height-body-sm)] text-content-secondary text-right">
+          {secondaryValue}
+        </span>
+      )}
 
       {balance && (
         <button

@@ -16,6 +16,8 @@ export interface AssetListItemProps {
   ticker: AssetTicker
   /** 'holding' shows portfolio value + quantity; 'market' shows market price + change */
   variant?: 'holding' | 'market'
+  /** Show inline sparkline chart (default true) */
+  showSparkline?: boolean
   showFavorite?: boolean
   isFavorite?: boolean
   onFavoriteToggle?: () => void
@@ -25,6 +27,7 @@ export interface AssetListItemProps {
 export default function AssetListItem({
   ticker,
   variant = 'market',
+  showSparkline = true,
   showFavorite,
   isFavorite,
   onFavoriteToggle,
@@ -57,7 +60,7 @@ export default function AssetListItem({
 
   return (
     <div
-      className="flex items-center gap-3 w-full px-5 py-4"
+      className="flex items-center gap-3 w-full pl-4 pr-5 py-4"
       style={{ borderBottom: `1px solid ${BORDER_LIGHT}` }}
     >
       {/* Tappable main area */}
@@ -67,11 +70,11 @@ export default function AssetListItem({
         className="flex items-center gap-3 flex-1 min-w-0 bg-transparent border-none cursor-pointer p-0 text-left"
       >
         {/* Icon */}
-        <TokenLogoCircle ticker={ticker} fallbackUrl={asset.icon} size={44} color={palette.bg} className="flex-shrink-0" />
+        <TokenLogoCircle ticker={ticker} fallbackUrl={asset.icon} size={40} color={palette.bg} className="flex-shrink-0" />
 
         {/* Name + subtitle */}
         <div className="flex flex-col flex-1 min-w-0">
-          <span className="truncate block" style={{ color: TEXT_PRIMARY, fontSize: 18, fontWeight: 500 }}>
+          <span className="truncate block" style={{ color: TEXT_PRIMARY, fontSize: 16, fontWeight: 600 }}>
             {asset.name}
           </span>
           <span className="inline-flex items-center" style={{ color: TEXT_SECONDARY, fontSize: 14 }}>
@@ -79,11 +82,15 @@ export default function AssetListItem({
           </span>
         </div>
 
-        {/* Sparkline — only for volatile assets */}
-        {volatile && <Sparkline data={sparkline} color={TEXT_PRIMARY} width={60} height={24} />}
+        {/* Sparkline — fixed width slot for vertical alignment across rows (volatile only) */}
+        {showSparkline && volatile && (
+          <div className="flex-shrink-0" style={{ width: 60 }}>
+            <Sparkline data={sparkline} color={TEXT_PRIMARY} width={60} height={24} />
+          </div>
+        )}
 
         {/* Right column */}
-        <div className="flex flex-col items-end flex-shrink-0 ml-2">
+        <div className="flex flex-col items-end flex-shrink-0 ml-2" style={showSparkline && volatile ? { width: 110 } : undefined}>
           <span style={{ color: TEXT_PRIMARY, fontSize: 16, fontWeight: 500 }}>
             {rightTitle}
           </span>

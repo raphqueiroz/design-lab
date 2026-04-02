@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { FlowScreenProps } from '@/pages/simulator/flowRegistry'
+import { BRL_FLAG } from '@/lib/flags'
 import BaseLayout from '@/library/layout/BaseLayout'
 import Header from '@/library/navigation/Header'
 import StickyFooter from '@/library/layout/StickyFooter'
@@ -31,7 +32,7 @@ export default function Screen5_BuyAmount({ onNext, onBack, onElementTap }: Flow
         value={value}
         onChange={setValue}
         currencySymbol="R$"
-        tokenIcon="https://flagcdn.com/w80/br.png"
+        tokenIcon={BRL_FLAG}
         balance={methodIndex === 0 ? 'R$ 12.450,00' : undefined}
         helperText={methodIndex === 1 ? 'Via Pix' : undefined}
       />

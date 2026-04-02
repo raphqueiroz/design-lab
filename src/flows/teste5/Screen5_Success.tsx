@@ -21,7 +21,7 @@ export default function Screen5_Success({ onNext, onElementTap }: FlowScreenProp
 
       <StickyFooter>
         <Button
-          variant="primary"
+          variant="accent"
           fullWidth
           onPress={() => {
             const handled = onElementTap?.('Button: Ir para o início')

@@ -22,11 +22,11 @@ export default function Screen8_WithdrawAmount({ onNext, onBack }: FlowScreenPro
         <CurrencyInput label="Valor do resgate" value={value} onChange={setValue} tokenIcon={USD_ICON} currencySymbol="US$" />
         <Stack direction="row" gap="sm">
           {WITHDRAW_QUICK_PICKS.map((pick) => (
-            <Button key={pick.label} variant="secondary" size="sm" onPress={() => setValue(rawDigitsFromAmount(MOCK_BALANCE * pick.pct))}>
+            <Button key={pick.label} variant="primary" size="sm" onPress={() => setValue(rawDigitsFromAmount(MOCK_BALANCE * pick.pct))}>
               {pick.label}
             </Button>
           ))}
-          <Button variant="secondary" size="sm" onPress={() => setValue('')}>Outro</Button>
+          <Button variant="primary" size="sm" onPress={() => setValue('')}>Outro</Button>
         </Stack>
         <DataList
           data={[

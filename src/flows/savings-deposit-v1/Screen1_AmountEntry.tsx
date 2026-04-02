@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import type { FlowScreenProps } from '@/pages/simulator/flowRegistry'
 import { useScreenData } from '@/lib/ScreenDataContext'
+import { USD_FLAG, BRL_FLAG } from '@/lib/flags'
 import Header from '@/library/navigation/Header'
 import BaseLayout from '@/library/layout/BaseLayout'
 import StickyFooter from '@/library/layout/StickyFooter'
@@ -19,8 +20,6 @@ import { DataListSkeleton } from '@/library/feedback/Skeleton'
 
 const MOCK_RATE = 5.4583
 const MOCK_CARD_BALANCE = 1250.00
-const USD_ICON = 'https://flagcdn.com/w80/us.png'
-const BRL_ICON = 'https://flagcdn.com/w80/br.png'
 
 type PaymentMethod = 'card-balance' | 'pix' | 'ach'
 type CalcState = 'idle' | 'loading' | 'ready'
@@ -35,8 +34,8 @@ interface MethodOption {
 }
 
 const METHODS: MethodOption[] = [
-  { id: 'card-balance', title: 'Saldo do Cartão', subtitle: 'Deposite usando seu saldo em dólar', icon: USD_ICON, blocked: false },
-  { id: 'pix', title: 'Real Brasileiro', subtitle: 'Deposite via PIX da sua conta bancária', icon: BRL_ICON, blocked: false },
+  { id: 'card-balance', title: 'Saldo do Cartão', subtitle: 'Deposite usando seu saldo em dólar', icon: USD_FLAG, blocked: false },
+  { id: 'pix', title: 'Real Brasileiro', subtitle: 'Deposite via PIX da sua conta bancária', icon: BRL_FLAG, blocked: false },
 ]
 
 function rawDigitsFromAmount(amount: number): string {
@@ -91,16 +90,16 @@ export default function Screen1_AmountEntry({ onNext, onBack, onElementTap, onSt
         <Stack gap="none">
           {isPix ? (
             <>
-              <CurrencyInput label="Receba" value={receiveUsd} onChange={() => {}} tokenIcon={USD_ICON} currencySymbol="US$" readOnly />
+              <CurrencyInput label="Receba" value={receiveUsd} onChange={() => {}} tokenIcon={USD_FLAG} currencySymbol="US$" readOnly />
               <Divider />
-              <CurrencyInput label="Pague" value={amount} onChange={setAmount} tokenIcon={BRL_ICON} currencySymbol="R$" />
+              <CurrencyInput label="Pague" value={amount} onChange={setAmount} tokenIcon={BRL_FLAG} currencySymbol="R$" />
             </>
           ) : (
             <CurrencyInput
               label="Guarde"
               value={amount}
               onChange={setAmount}
-              tokenIcon={USD_ICON}
+              tokenIcon={USD_FLAG}
               currencySymbol="US$"
               balance={`US$ ${MOCK_CARD_BALANCE.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
               onBalanceTap={() => setAmount(rawDigitsFromAmount(MOCK_CARD_BALANCE))}
@@ -113,7 +112,7 @@ export default function Screen1_AmountEntry({ onNext, onBack, onElementTap, onSt
             subtitle={currentMethod.title}
             inverted
             left={null}
-            right={<Button variant="secondary" size="sm" onPress={() => setSheetOpen(true)}>Mudar</Button>}
+            right={<Button variant="primary" size="sm" onPress={() => setSheetOpen(true)}>Mudar</Button>}
             trailing={null}
           />
         </Stack>

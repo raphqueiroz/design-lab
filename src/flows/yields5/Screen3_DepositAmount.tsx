@@ -69,7 +69,7 @@ export default function Screen3_DepositAmount({ onNext, onBack, onElementTap, on
             subtitle={currentSource.title}
             left={<Avatar src={currentSource.icon} size="sm" />}
             inverted
-            right={<Button variant="secondary" size="sm" onPress={() => setSheetOpen(true)}>Mudar</Button>}
+            right={<Button variant="primary" size="sm" onPress={() => setSheetOpen(true)}>Mudar</Button>}
             trailing={null}
           />
         </Stack>

@@ -75,7 +75,7 @@ export default function Screen1_CaixinhaList({ onNext, onElementTap }: FlowScree
         {/* Create new */}
         <Button
           fullWidth
-          variant={caixinhas.length > 0 ? 'secondary' : 'primary'}
+          variant={caixinhas.length > 0 ? 'primary' : 'accent'}
           onPress={handleCreate}
         >
           <Stack direction="row" gap="sm" align="center">

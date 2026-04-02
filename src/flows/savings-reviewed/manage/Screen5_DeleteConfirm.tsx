@@ -46,7 +46,7 @@ export default function Screen5_DeleteConfirm({ onBack, onElementTap }: FlowScre
           }}>
             Excluir caixinha
           </Button>
-          <Button fullWidth variant="secondary" onPress={onBack}>
+          <Button fullWidth variant="primary" onPress={onBack}>
             Cancelar
           </Button>
         </Stack>

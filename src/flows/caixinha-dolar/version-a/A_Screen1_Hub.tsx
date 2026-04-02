@@ -79,7 +79,7 @@ export default function A_Screen1_Hub({ onNext, onBack, onElementTap }: FlowScre
               left={<Avatar src={currentSource.icon} size="sm" />}
               inverted
               right={
-                <Button variant="secondary" size="sm" onPress={() => setSourceSheetOpen(true)}>
+                <Button variant="primary" size="sm" onPress={() => setSourceSheetOpen(true)}>
                   Mudar
                 </Button>
               }
@@ -172,7 +172,7 @@ export default function A_Screen1_Hub({ onNext, onBack, onElementTap }: FlowScre
             left={<Avatar src={currentSource.icon} size="sm" />}
             inverted
             right={
-              <Button variant="secondary" size="sm" onPress={() => setSourceSheetOpen(true)}>
+              <Button variant="primary" size="sm" onPress={() => setSourceSheetOpen(true)}>
                 Mudar
               </Button>
             }
@@ -198,11 +198,11 @@ export default function A_Screen1_Hub({ onNext, onBack, onElementTap }: FlowScre
 
           <Stack direction="row" gap="sm">
             {WITHDRAW_QUICK_PICKS.map((pick) => (
-              <Button key={pick.label} variant="secondary" size="sm" onPress={() => {}}>
+              <Button key={pick.label} variant="primary" size="sm" onPress={() => {}}>
                 {pick.label}
               </Button>
             ))}
-            <Button variant="secondary" size="sm" onPress={() => {}}>
+            <Button variant="primary" size="sm" onPress={() => {}}>
               Outro
             </Button>
           </Stack>

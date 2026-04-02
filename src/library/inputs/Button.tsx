@@ -4,7 +4,7 @@ import { RiLoaderLine } from '@remixicon/react'
 import { registerComponent } from '../registry'
 
 export interface ButtonProps {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'destructive'
+  variant?: 'accent' | 'primary' | 'secondary' | 'ghost' | 'destructive'
   size?: 'sm' | 'md' | 'lg'
   loading?: boolean
   disabled?: boolean
@@ -17,10 +17,12 @@ export interface ButtonProps {
 }
 
 const variantStyles = {
-  primary:
+  accent:
     'bg-[var(--color-interactive-default)] text-[var(--color-content-primary)] font-semibold hover:bg-[var(--color-interactive-hover)] active:bg-[var(--color-interactive-pressed)]',
-  secondary:
+  primary:
     'bg-[var(--color-interactive-primary)] text-[var(--color-content-inverse)] font-semibold hover:opacity-80 active:opacity-70',
+  secondary:
+    'bg-[var(--color-surface-shade)] text-[var(--color-content-primary)] font-semibold hover:opacity-80 active:opacity-70',
   ghost:
     'bg-transparent text-[var(--color-interactive-primary)] font-medium hover:bg-[var(--color-interactive-primary)]/5 active:bg-[var(--color-interactive-primary)]/10',
   destructive:
@@ -29,13 +31,13 @@ const variantStyles = {
 
 const primarySizeStyles = {
   sm: 'h-[36px] px-[16px] text-[14px] rounded-full',
-  md: 'h-[56px] px-[24px] text-[16px] tracking-[-0.16px] rounded-[12px]',
+  md: 'h-[48px] px-[24px] text-[15px] rounded-[12px]',
   lg: 'h-[56px] px-[24px] text-[16px] tracking-[-0.16px] rounded-[12px]',
 } as const
 
 const sizeStyles = {
   sm: 'h-[36px] px-[20px] text-[13px] rounded-full',
-  md: 'h-[44px] px-[24px] text-[15px] rounded-[12px]',
+  md: 'h-[48px] px-[24px] text-[15px] rounded-[12px]',
   lg: 'h-[56px] px-[32px] text-[16px] tracking-[-0.16px] rounded-[12px]',
 } as const
 
@@ -47,7 +49,7 @@ function deriveTextId(children: ReactNode): string | undefined {
 }
 
 export default function Button({
-  variant = 'primary',
+  variant = 'accent',
   size = 'md',
   loading = false,
   disabled = false,
@@ -74,7 +76,7 @@ export default function Button({
         inline-flex items-center justify-center font-medium
         transition-colors duration-[var(--token-transition-fast)]
         ${variantStyles[variant]}
-        ${variant === 'primary' ? primarySizeStyles[size] : sizeStyles[size]}
+        ${variant === 'ghost' || variant === 'secondary' ? sizeStyles[size] : primarySizeStyles[size]}
         ${fullWidth ? 'w-full' : ''}
         ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         ${className}
@@ -97,12 +99,12 @@ export default function Button({
 registerComponent({
   name: 'Button',
   category: 'actions',
-  description: 'Triggers an action. `primary` for main action, `secondary` for alternatives, `ghost` for inline, `destructive` for irreversible.',
+  description: 'Triggers an action. `accent` (green) for main action, `primary` (black) for strong secondary, `secondary` (gray) for alternatives, `ghost` for inline, `destructive` for irreversible.',
   component: Button,
-  variants: ['primary', 'secondary', 'ghost', 'destructive'],
+  variants: ['accent', 'primary', 'secondary', 'ghost', 'destructive'],
   sizes: ['sm', 'md', 'lg'],
   props: [
-    { name: 'variant', type: '"primary" | "secondary" | "ghost" | "destructive"', required: false, defaultValue: 'primary', description: 'Visual style' },
+    { name: 'variant', type: '"accent" | "primary" | "secondary" | "ghost" | "destructive"', required: false, defaultValue: 'accent', description: 'Visual style' },
     { name: 'size', type: '"sm" | "md" | "lg"', required: false, defaultValue: 'md', description: 'Button size' },
     { name: 'loading', type: 'boolean', required: false, defaultValue: 'false', description: 'Show loading spinner' },
     { name: 'disabled', type: 'boolean', required: false, defaultValue: 'false', description: 'Disable interaction' },

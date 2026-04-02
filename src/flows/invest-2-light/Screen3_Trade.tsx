@@ -1,129 +1,41 @@
 /**
- * Screen3_Trade — Custom keypad trade screen (buy/sell).
- * Pure custom Tailwind + inline styles + Framer Motion. NO library components.
+ * Screen3_Trade — Buy amount entry with order type selector.
+ * Two editable inputs: USD (pay) and crypto (receive) — editing one calculates the other.
+ * Market order shows detailed summary; programmed order shows banner.
  */
-import { useState, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { playKey, playTap } from './shared/sounds'
-import { useScreenData } from '@/lib/ScreenDataContext'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { FlowScreenProps } from '@/pages/simulator/flowRegistry'
+import { useScreenData } from '@/lib/ScreenDataContext'
+import { USD_FLAG } from '@/lib/flags'
+import Header from '@/library/navigation/Header'
+import BaseLayout from '@/library/layout/BaseLayout'
+import StickyFooter from '@/library/layout/StickyFooter'
+import Stack from '@/library/layout/Stack'
+import Button from '@/library/inputs/Button'
+import CurrencyInput from '@/library/inputs/CurrencyInput'
+import Divider from '@/library/foundations/Divider'
+import ListItem from '@/library/display/ListItem'
+import DataList from '@/library/display/DataList'
+import Banner from '@/library/display/Banner'
+import { DataListSkeleton } from '@/library/feedback/Skeleton'
 import {
-  BG, BG_CARD, BORDER, TEXT_PRIMARY, TEXT_TERTIARY, TEXT_MUTED,
-  RED, SAFE_TOP, SAFE_BOTTOM,
-  fadeUp, glass,
-} from './shared/theme'
-import {
-  getAsset, isVolatile, formatBRL,
+  getAsset, isVolatile, formatUSD, rawDigitsFromAmount,
 } from './shared/data'
 import type { AssetTicker } from './shared/data'
 import { getAssetPalette } from './shared/assetPalette'
+import { TokenLogoCircle } from './shared/TokenLogo'
+import {
+  OrderTypeSheet, getOrderType,
+} from './Screen3_Trade.parts'
 
-// ── Helpers ──
+const MOCK_CARD_BALANCE = 12450 // US$ 12.450,00
+const CRYPTO_DECIMALS = 5
 
-function digitsToAmount(digits: string): number {
-  if (!digits) return 0
-  return parseInt(digits, 10) / 100
-}
+type CalcState = 'idle' | 'loading' | 'ready'
+type ActiveField = 'usd' | 'crypto'
 
-function formatDisplay(digits: string): string {
-  const amount = digitsToAmount(digits)
-  if (amount <= 0) return '0,00'
-  return amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-function estimateQuantity(amountBRL: number, pricePerUnit: number): string {
-  if (pricePerUnit <= 0 || amountBRL <= 0) return '0'
-  const qty = amountBRL / pricePerUnit
-  if (qty < 0.0001) return qty.toFixed(8)
-  if (qty < 1) return qty.toFixed(6)
-  if (qty < 100) return qty.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
-  return qty.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-// ── Keypad key ──
-
-function KeypadKey({ label, onPress, wide }: {
-  label: string
-  onPress: () => void
-  wide?: boolean
-}) {
-  const isDelete = label === 'del'
-  return (
-    <motion.button
-      whileTap={{ scale: 0.92, backgroundColor: 'rgba(0,0,0,0.06)' }}
-      onClick={onPress}
-      className="flex items-center justify-center border-none cursor-pointer"
-      style={{
-        height: 64,
-        borderRadius: 16,
-        background: BG_CARD,
-        fontSize: 24,
-        fontWeight: 500,
-        color: TEXT_PRIMARY,
-        gridColumn: wide ? 'span 1' : undefined,
-      }}
-    >
-      {isDelete ? (
-        <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
-          <path
-            d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z"
-            stroke="white"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path d="M18 9l-6 6M12 9l6 6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      ) : (
-        label
-      )}
-    </motion.button>
-  )
-}
-
-// ── Quick-fill pill ──
-
-function QuickPill({ label, active, onPress }: {
-  label: string
-  active: boolean
-  onPress: () => void
-}) {
-  return (
-    <motion.button
-      whileTap={{ scale: 0.92 }}
-      onClick={onPress}
-      className="flex-1 flex items-center justify-center rounded-full border-none cursor-pointer py-2 relative"
-      style={{
-        ...glass,
-        border: active ? `1px solid ${TEXT_TERTIARY}` : `1px solid ${BORDER}`,
-        fontSize: 13,
-        fontWeight: 600,
-        color: active ? TEXT_PRIMARY : TEXT_TERTIARY,
-      }}
-    >
-      {active && (
-        <motion.div
-          layoutId="quickFill"
-          className="absolute inset-0 rounded-full"
-          style={{
-            background: 'rgba(0,0,0,0.06)',
-            border: `1px solid ${TEXT_TERTIARY}`,
-          }}
-          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-        />
-      )}
-      <span className="relative">{label}</span>
-    </motion.button>
-  )
-}
-
-// ── Main screen ──
-
-const BALANCE = 1245000 // R$ 12.450,00 in cents
-const MAX_DIGITS = 10
-
-export default function Screen3_Trade({ onNext, onBack, onElementTap }: FlowScreenProps) {
-  const { assetTicker = 'BTC', mode = 'buy' } = useScreenData<{
+export default function Screen3_Trade({ onNext, onBack, onElementTap, onStateChange }: FlowScreenProps) {
+  const { assetTicker = 'BTC' } = useScreenData<{
     assetTicker?: AssetTicker
     mode?: 'buy' | 'sell'
   }>()
@@ -131,215 +43,176 @@ export default function Screen3_Trade({ onNext, onBack, onElementTap }: FlowScre
   const asset = getAsset(assetTicker)
   const palette = getAssetPalette(assetTicker)
   const volatile = isVolatile(asset)
-  const isBuy = mode === 'buy'
+  const currentPrice = volatile ? (asset.price ?? 100) : 100
+  const tokenSvg = <TokenLogoCircle ticker={assetTicker} fallbackUrl={asset.icon} size={40} color={palette.bg} />
 
-  const [digits, setDigits] = useState('')
-  const [activeQuick, setActiveQuick] = useState<number | null>(null)
+  // Amount state — two fields, one drives the other
+  const [usdAmount, setUsdAmount] = useState('')
+  const [cryptoAmount, setCryptoAmount] = useState('')
+  const [activeField, setActiveField] = useState<ActiveField>('usd')
 
-  const amount = digitsToAmount(digits)
-  const isValid = amount >= 10
+  const parsedUsd = parseInt(usdAmount || '0', 10) / 100
+  const parsedCrypto = parseInt(cryptoAmount || '0', 10) / Math.pow(10, CRYPTO_DECIMALS)
+  const isValid = parsedUsd >= 1
+  const exceedsBalance = parsedUsd > MOCK_CARD_BALANCE
 
-  // Handlers
-  const appendDigit = useCallback((d: string) => {
-    setDigits(prev => {
-      if (prev.length >= MAX_DIGITS) return prev
-      return prev + d
-    })
-    setActiveQuick(null)
-  }, [])
+  // When USD changes, calculate crypto
+  const handleUsdChange = useCallback((val: string) => {
+    setUsdAmount(val)
+    setActiveField('usd')
+    const usd = parseInt(val || '0', 10) / 100
+    if (usd > 0 && currentPrice > 0 && volatile) {
+      const crypto = usd / currentPrice
+      setCryptoAmount(rawDigitsFromAmount(crypto, CRYPTO_DECIMALS))
+    } else {
+      setCryptoAmount('')
+    }
+  }, [currentPrice, volatile])
 
-  const deleteLast = useCallback(() => {
-    setDigits(prev => prev.slice(0, -1))
-    setActiveQuick(null)
-  }, [])
+  // When crypto changes, calculate USD
+  const handleCryptoChange = useCallback((val: string) => {
+    setCryptoAmount(val)
+    setActiveField('crypto')
+    const crypto = parseInt(val || '0', 10) / Math.pow(10, CRYPTO_DECIMALS)
+    if (crypto > 0 && currentPrice > 0) {
+      const usd = crypto * currentPrice
+      setUsdAmount(rawDigitsFromAmount(usd))
+    } else {
+      setUsdAmount('')
+    }
+  }, [currentPrice])
 
-  const applyPercent = useCallback((pct: number) => {
-    const value = Math.floor((BALANCE * pct) / 100)
-    setDigits(value.toString())
-    setActiveQuick(pct)
-  }, [])
+  // Order type state
+  const [orderTypeId, setOrderTypeId] = useState<'market' | 'programmed'>('market')
+  const [orderSheetOpen, setOrderSheetOpen] = useState(false)
+  const orderType = getOrderType(orderTypeId)
+  const isProgrammed = orderTypeId === 'programmed'
 
-  // Estimated quantity
-  const pricePerUnit = volatile ? (asset.price ?? 1) : 1
-  const estQty = volatile
-    ? `\u2248 ${estimateQuantity(amount, pricePerUnit)} ${assetTicker}`
-    : null
+  // Calc state machine
+  const [calcState, setCalcState] = useState<CalcState>('idle')
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!onStateChange) return
+    const stateMap: Record<CalcState, string> = { idle: 'default', loading: 'loading', ready: 'ready' }
+    onStateChange(stateMap[calcState])
+  }, [calcState, onStateChange])
+
+  useEffect(() => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    if (isValid && !exceedsBalance) {
+      setCalcState('loading')
+      timerRef.current = setTimeout(() => setCalcState('ready'), 1200)
+    } else {
+      setCalcState('idle')
+    }
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  }, [isValid, exceedsBalance, usdAmount])
+
+  const handleMaxTap = useCallback(() => {
+    handleUsdChange(rawDigitsFromAmount(MOCK_CARD_BALANCE))
+  }, [handleUsdChange])
+
+  const handleOrderSelect = useCallback((id: 'market' | 'programmed') => {
+    onElementTap?.(`ListItem: ${getOrderType(id).title}`)
+    setOrderTypeId(id)
+  }, [onElementTap])
+
+  // Market order summary
+  const marketSummaryData = [
+    { label: 'Preço atual', value: formatUSD(currentPrice) },
+    {
+      label: 'Nossa taxa',
+      value: <span className="text-[var(--color-feedback-success)] font-medium">Grátis</span>,
+    },
+    {
+      label: 'Outros custos',
+      info: () => {},
+      value: <span className="text-[var(--color-feedback-success)] font-medium">Grátis</span>,
+    },
+    { label: 'Meio de pagamento', value: 'Saldo em dólar' },
+    { label: 'Estimativa de entrega', value: 'Instantâneo' },
+  ]
+
+  const ctaLabel = isProgrammed ? 'Configurar ordem' : 'Continuar'
+  const canSubmit = isValid && !exceedsBalance && calcState === 'ready'
 
   return (
-    <div className="relative flex flex-col h-full" style={{ background: BG }}>
+    <BaseLayout>
+      <Header onClose={onBack} />
 
-      {/* Top bar */}
-      <motion.div
-        className="flex items-center px-4"
-        style={{ paddingTop: `calc(${SAFE_TOP} + 8px)`, paddingBottom: 8 }}
-        {...fadeUp(0)}
-      >
-        <motion.button
-          whileTap={{ scale: 0.85 }}
-          onClick={onBack}
-          className="flex items-center justify-center border-none cursor-pointer bg-transparent"
-          style={{ width: 40, height: 40 }}
-        >
-          <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
-            <path d="M18 6L6 18M6 6l12 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </motion.button>
-        <span className="flex-1 text-center" style={{
-          color: TEXT_PRIMARY,
-          fontSize: 16,
-          fontWeight: 700,
-        }}>
-          {isBuy ? 'Comprar' : 'Vender'} {asset.name}
-        </span>
-        <div style={{ width: 40 }} />
-      </motion.div>
+      <Stack gap="none">
+        <CurrencyInput
+          label="Você paga"
+          value={usdAmount}
+          onChange={handleUsdChange}
+          tokenIcon={USD_FLAG}
+          currencySymbol="US$"
+          balance={`US$ ${MOCK_CARD_BALANCE.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+          onBalanceTap={handleMaxTap}
+          balanceError={exceedsBalance}
+          error={exceedsBalance ? 'Saldo insuficiente' : undefined}
+        />
 
-      {/* Amount display area */}
-      <div className="flex flex-col items-center justify-center flex-1 px-4">
-        {/* Amount */}
-        <div className="flex items-baseline justify-center gap-1">
-          <span style={{
-            color: TEXT_TERTIARY,
-            fontSize: 28,
-            fontWeight: 600,
-          }}>
-            R$
-          </span>
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={formatDisplay(digits)}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.12 }}
-              style={{
-                color: TEXT_PRIMARY,
-                fontSize: 48,
-                fontWeight: 800,
-                lineHeight: 1,
-                letterSpacing: -2,
-              }}
-            >
-              {formatDisplay(digits)}
-            </motion.span>
-          </AnimatePresence>
-        </div>
-
-        {/* Estimated quantity */}
-        <AnimatePresence>
-          {estQty && (
-            <motion.span
-              key={estQty}
-              className="mt-2"
-              style={{ color: TEXT_TERTIARY, fontSize: 13 }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            >
-              {estQty}
-            </motion.span>
-          )}
-        </AnimatePresence>
-
-        {/* Balance */}
-        <motion.span
-          className="mt-1"
-          style={{ color: TEXT_MUTED, fontSize: 12 }}
-          {...fadeUp(0.08)}
-        >
-          Saldo: {formatBRL(BALANCE / 100)}
-        </motion.span>
-      </div>
-
-      {/* Info bar — slides in when amount >= 10 */}
-      <AnimatePresence>
-        {isValid && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 36 }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="flex items-center justify-center px-4 overflow-hidden"
-          >
-            <span
-              className="inline-flex items-center rounded-full px-3 py-1"
-              style={{
-                ...glass,
-                fontSize: 12,
-                fontWeight: 500,
-                color: TEXT_TERTIARY,
-              }}
-            >
-              Taxa: Gratis
-            </span>
-          </motion.div>
+        {/* Crypto receive input — editable for market orders */}
+        {!isProgrammed && volatile && (
+          <>
+            <Divider />
+            <CurrencyInput
+              label="Você recebe"
+              value={cryptoAmount}
+              onChange={handleCryptoChange}
+              tokenIcon={tokenSvg}
+              currencySymbol={assetTicker}
+              decimals={CRYPTO_DECIMALS}
+            />
+          </>
         )}
-      </AnimatePresence>
 
-      {/* Quick-fill pills */}
-      <motion.div className="flex items-center gap-2 px-4 mt-3 mb-3" {...fadeUp(0.1)}>
-        {[25, 50, 75, 100].map(pct => (
-          <QuickPill
-            key={pct}
-            label={`${pct}%`}
-            active={activeQuick === pct}
-            onPress={() => applyPercent(pct)}
-          />
-        ))}
-      </motion.div>
+        <ListItem
+          title="Tipo de ordem"
+          subtitle={orderType.title}
+          inverted
+          right={
+            <Button variant="primary" size="sm" onPress={() => setOrderSheetOpen(true)}>
+              Mudar
+            </Button>
+          }
+          trailing={null}
+        />
+      </Stack>
 
-      {/* Custom keypad */}
-      <motion.div
-        className="grid grid-cols-3 gap-2 px-4 mb-3"
-        {...fadeUp(0.15)}
-      >
-        {['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'del'].map(key => (
-          <KeypadKey
-            key={key}
-            label={key}
-            onPress={() => {
-              playKey()
-              if (key === 'del') deleteLast()
-              else if (key === '.') { /* decimal not used — BRL is cents-based */ }
-              else appendDigit(key)
-            }}
-          />
-        ))}
-      </motion.div>
+      {/* Banner for programmed orders */}
+      {isProgrammed && (
+        <Banner
+          variant="neutral"
+          title="Na próxima etapa, você define o preço de entrada e pode configurar ordens de saída automáticas."
+        />
+      )}
 
-      {/* CTA button */}
-      <motion.div
-        className="px-4"
-        style={{ paddingBottom: `calc(${SAFE_BOTTOM} + 4px)` }}
-        {...fadeUp(0.2)}
-      >
-        <motion.button
-          whileTap={isValid ? { scale: 0.97 } : undefined}
-          animate={{ scale: isValid ? [1, 1.02, 1] : 1 }}
-          transition={{ duration: 0.3 }}
-          onClick={() => {
-            if (!isValid) return
-            playTap()
-            const handled = onElementTap?.('Button: Continuar')
+      {/* Summary — only for market orders */}
+      {!isProgrammed && calcState === 'loading' && <DataListSkeleton rows={5} />}
+      {!isProgrammed && calcState === 'ready' && <DataList data={marketSummaryData} />}
+
+      <StickyFooter>
+        <Button
+          fullWidth
+          disabled={!canSubmit}
+          onPress={() => {
+            const handled = onElementTap?.(`Button: ${ctaLabel}`)
             if (!handled) onNext()
           }}
-          className="w-full flex items-center justify-center rounded-xl border-none cursor-pointer"
-          style={{
-            height: 52,
-            background: isValid
-              ? (isBuy ? palette.bg : RED)
-              : 'rgba(0,0,0,0.05)',
-            fontSize: 16,
-            fontWeight: 700,
-            color: isValid ? '#fff' : TEXT_MUTED,
-            opacity: isValid ? 1 : 0.5,
-            transition: 'background 0.2s, opacity 0.2s',
-          }}
         >
-          Continuar
-        </motion.button>
-      </motion.div>
-    </div>
+          {ctaLabel}
+        </Button>
+      </StickyFooter>
+
+      {/* Order type sheet */}
+      <OrderTypeSheet
+        open={orderSheetOpen}
+        onClose={() => setOrderSheetOpen(false)}
+        onSelect={handleOrderSelect}
+      />
+    </BaseLayout>
   )
 }

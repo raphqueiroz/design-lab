@@ -222,7 +222,7 @@ export default function Screen4_AssetPage({ onNext, onBack, onElementTap }: Flow
       {/* CTA for not-invested state */}
       {!hasPosition && (
         <StickyFooter>
-          <Button variant="primary" size="lg" fullWidth onPress={handleBuyButton}>
+          <Button variant="accent" size="lg" fullWidth onPress={handleBuyButton}>
             {vol ? 'Comprar' : 'Investir'}
           </Button>
         </StickyFooter>

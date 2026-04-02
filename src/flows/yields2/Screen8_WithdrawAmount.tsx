@@ -27,14 +27,14 @@ export default function Screen8_WithdrawAmount({ onNext, onBack }: FlowScreenPro
           {WITHDRAW_QUICK_PICKS.map((pick) => (
             <Button
               key={pick.label}
-              variant="secondary"
+              variant="primary"
               size="sm"
               onPress={() => setValue(rawDigitsFromAmount(MOCK_BALANCE * pick.pct))}
             >
               {pick.label}
             </Button>
           ))}
-          <Button variant="secondary" size="sm" onPress={() => setValue('')}>
+          <Button variant="primary" size="sm" onPress={() => setValue('')}>
             Outro
           </Button>
         </Stack>

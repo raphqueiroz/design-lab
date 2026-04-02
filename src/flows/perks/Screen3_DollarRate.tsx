@@ -84,7 +84,7 @@ export default function Screen3_DollarRate({ onNext, onBack }: FlowScreenProps) 
             {MOCK_SAVINGS}
           </span>
         </div>
-        <Button variant="primary" size="sm" onPress={() => setSheetOpen(true)} className="relative mt-auto w-fit">
+        <Button variant="accent" size="sm" onPress={() => setSheetOpen(true)} className="relative mt-auto w-fit">
           Compartilhar
         </Button>
       </div>

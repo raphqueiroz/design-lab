@@ -5,7 +5,7 @@
  */
 import { useState, useMemo, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { RiArrowLeftLine, RiArrowDownLine, RiArrowUpLine, RiMoreFill, RiDownloadLine, RiUploadLine, RiExchangeLine, RiFileListLine, RiHeartFill, RiHeartLine } from '@remixicon/react'
+import { RiArrowLeftLine, RiArrowDownLine, RiArrowUpLine, RiMoreFill, RiDownloadLine, RiUploadLine, RiHeartFill, RiHeartLine } from '@remixicon/react'
 import { useScreenData } from '@/lib/ScreenDataContext'
 import type { FlowScreenProps } from '@/pages/simulator/flowRegistry'
 import LineChart from '@/library/display/LineChart'
@@ -457,7 +457,7 @@ export default function Screen2_AssetPage({ onNext, onBack, onElementTap }: Flow
         }}
       >
         <Button
-          variant="primary"
+          variant="accent"
           size="lg"
           fullWidth
           onPress={() => {
@@ -486,43 +486,30 @@ export default function Screen2_AssetPage({ onNext, onBack, onElementTap }: Flow
         <motion.button
           whileTap={{ scale: 0.92 }}
           onClick={() => setMoreOpen(true)}
-          className="flex-shrink-0 flex items-center justify-center rounded-full border-none cursor-pointer"
+          className="flex-shrink-0 flex items-center justify-center rounded-full border-none cursor-pointer bg-[var(--color-surface-shade)]"
           style={{
             width: 52,
             height: 52,
-            background: TEXT_PRIMARY,
           }}
         >
-          <RiMoreFill size={22} color="#FFFFFF" />
+          <RiMoreFill size={22} className="text-content-primary" />
         </motion.button>
       </div>
 
       {/* ── Bottom Sheet ── */}
-      <BottomSheet open={moreOpen} onClose={() => setMoreOpen(false)} title="Mais opções">
+      <BottomSheet open={moreOpen} onClose={() => setMoreOpen(false)}>
         <div className="flex flex-col">
           <ListItem
             title="Depositar cripto"
             subtitle="Enviar ativos de outra carteira"
-            left={<RiDownloadLine size={22} color={TEXT_PRIMARY} />}
+            left={<Avatar icon={<RiDownloadLine size={20} />} size="md" />}
             onPress={() => handleMoreAction('Depositar cripto')}
           />
           <ListItem
             title="Sacar cripto"
             subtitle="Enviar para outra carteira"
-            left={<RiUploadLine size={22} color={TEXT_PRIMARY} />}
+            left={<Avatar icon={<RiUploadLine size={20} />} size="md" />}
             onPress={() => handleMoreAction('Sacar cripto')}
-          />
-          <ListItem
-            title="Converter"
-            subtitle="Trocar por outro ativo"
-            left={<RiExchangeLine size={22} color={TEXT_PRIMARY} />}
-            onPress={() => handleMoreAction('Converter')}
-          />
-          <ListItem
-            title="Extrato"
-            subtitle="Ver histórico de operações"
-            left={<RiFileListLine size={22} color={TEXT_PRIMARY} />}
-            onPress={() => handleMoreAction('Extrato')}
           />
         </div>
       </BottomSheet>

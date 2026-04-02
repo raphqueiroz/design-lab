@@ -1,3 +1,5 @@
+import { USD_FLAG, BRL_FLAG, EUR_FLAG } from '@/lib/flags'
+
 // Asset types
 export type AssetCategory = 'crypto' | 'commodity' | 'fixed-income'
 
@@ -46,9 +48,9 @@ export const ASSETS: Asset[] = [
   { ticker: 'PAXG', name: 'Ouro', category: 'commodity', icon: 'https://assets.coingecko.com/coins/images/9519/small/paxg.PNG', price: 18500, change24h: 0.3, marketCap: 'R$ 3,2 bi', volume24h: 'R$ 180 mi' },
   { ticker: 'KAG', name: 'Prata', category: 'commodity', icon: 'https://assets.coingecko.com/coins/images/11802/small/KAG.png', price: 185, change24h: 0.1, marketCap: 'R$ 450 mi', volume24h: 'R$ 12 mi' },
   // Fixed Income
-  { ticker: 'RENDA-USD', name: 'Renda em Dólar', category: 'fixed-income', icon: 'https://flagcdn.com/w80/us.png', apy: 4.37, apyDisplay: '4,37% a.a.' },
-  { ticker: 'RENDA-BRL', name: 'Renda em Real', category: 'fixed-income', icon: 'https://flagcdn.com/w80/br.png', apy: 10, apyDisplay: '10% a.a.' },
-  { ticker: 'RENDA-EUR', name: 'Renda em Euro', category: 'fixed-income', icon: 'https://flagcdn.com/w80/eu.png', apy: 3, apyDisplay: '3% a.a.' },
+  { ticker: 'RENDA-USD', name: 'Renda em Dólar', category: 'fixed-income', icon: USD_FLAG, apy: 4.37, apyDisplay: '4,37% a.a.' },
+  { ticker: 'RENDA-BRL', name: 'Renda em Real', category: 'fixed-income', icon: BRL_FLAG, apy: 10, apyDisplay: '10% a.a.' },
+  { ticker: 'RENDA-EUR', name: 'Renda em Euro', category: 'fixed-income', icon: EUR_FLAG, apy: 3, apyDisplay: '3% a.a.' },
 ]
 
 export function getAsset(ticker: AssetTicker): Asset {

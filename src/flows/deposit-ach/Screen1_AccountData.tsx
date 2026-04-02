@@ -71,7 +71,7 @@ export default function Screen1_AccountData({ onNext, onBack, onElementTap }: Fl
           <Button fullWidth onPress={handleShare}>
             Compartilhar
           </Button>
-          <Button fullWidth variant="secondary" onPress={onNext}>
+          <Button fullWidth variant="primary" onPress={onNext}>
             Pronto
           </Button>
         </Stack>

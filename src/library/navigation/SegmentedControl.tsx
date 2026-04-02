@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import { registerComponent } from '../registry'
 import { cn } from '../../lib/cn'
@@ -30,6 +30,7 @@ export default function SegmentedControl({
   className = '',
   style,
 }: SegmentedControlProps) {
+  const instanceId = useId()
   return (
     <div
       data-component="SegmentedControl"
@@ -60,7 +61,7 @@ export default function SegmentedControl({
           >
             {isActive && (
               <motion.span
-                layoutId={`seg-bg-${className}`}
+                layoutId={`seg-bg-${instanceId}`}
                 className="absolute inset-0 bg-[var(--color-content-primary)] rounded-full"
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />

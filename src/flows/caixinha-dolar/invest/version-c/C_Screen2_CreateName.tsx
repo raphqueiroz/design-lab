@@ -28,7 +28,7 @@ export default function C_Screen2_CreateName({ onNext, onBack }: FlowScreenProps
             {EMOJI_OPTIONS.map((emoji) => (
               <Button
                 key={emoji}
-                variant={selectedEmoji === emoji ? 'primary' : 'secondary'}
+                variant={selectedEmoji === emoji ? 'accent' : 'primary'}
                 size="sm"
                 onPress={() => setSelectedEmoji(emoji)}
               >

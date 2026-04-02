@@ -119,7 +119,7 @@ export default function Screen2_Dashboard({ onNext, onBack, onElementTap }: Flow
               <Text variant="body-md" color="content-secondary" align="center">
                 Explore os ativos disponíveis e faça seu primeiro investimento.
               </Text>
-              <Button variant="secondary" onPress={() => setTabIndex(1)}>
+              <Button variant="primary" onPress={() => setTabIndex(1)}>
                 Explorar ativos
               </Button>
             </Stack>
@@ -166,7 +166,7 @@ export default function Screen2_Dashboard({ onNext, onBack, onElementTap }: Flow
 
       {tabIndex === 0 && hasPositions && (
         <StickyFooter>
-          <Button fullWidth variant="secondary" onPress={() => setTabIndex(1)}>
+          <Button fullWidth variant="primary" onPress={() => setTabIndex(1)}>
             Explorar mais ativos
           </Button>
         </StickyFooter>

@@ -89,7 +89,7 @@ function HorizontalRow({ item, isLast }: { item: DataListItem; isLast: boolean }
               onClick={typeof item.info === 'function' ? item.info : undefined}
               className="shrink-0 flex items-center justify-center cursor-pointer bg-transparent border-none p-0"
             >
-              <RiInformationLine size={16} className="text-content-tertiary" />
+              <RiInformationLine size={18} className="text-content-tertiary" />
             </button>
           )}
         </div>
@@ -183,7 +183,7 @@ function VerticalCell({ item }: { item: DataListItem }) {
             onClick={typeof item.info === 'function' ? item.info : undefined}
             className="shrink-0 flex items-center justify-center cursor-pointer bg-transparent border-none p-0"
           >
-            <RiInformationLine size={16} className="text-content-tertiary" />
+            <RiInformationLine size={18} className="text-content-tertiary" />
           </button>
         )}
       </div>

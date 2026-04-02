@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { FlowScreenProps } from '../../pages/simulator/flowRegistry'
 import { useScreenData } from '../../lib/ScreenDataContext'
+import { USD_FLAG, BRL_FLAG } from '@/lib/flags'
 import Header from '../../library/navigation/Header'
 import BaseLayout from '../../library/layout/BaseLayout'
 import StickyFooter from '../../library/layout/StickyFooter'
@@ -16,8 +17,6 @@ import Text from '../../library/foundations/Text'
 import Divider from '../../library/foundations/Divider'
 import { DataListSkeleton, BannerSkeleton } from '../../library/feedback/Skeleton'
 
-const USD_ICON = 'https://flagcdn.com/w80/us.png'
-const BRL_ICON = 'https://flagcdn.com/w80/br.png'
 const MOCK_RATE = 5.4583
 
 const FUNDING_SOURCES = [
@@ -25,13 +24,13 @@ const FUNDING_SOURCES = [
     id: 'usd-balance',
     title: 'USD Balance',
     subtitle: 'Available: US$ 4,230.00',
-    icon: USD_ICON,
+    icon: USD_FLAG,
   },
   {
     id: 'pix',
     title: 'Deposit with PIX',
     subtitle: 'Pay in BRL, earn in USD',
-    icon: BRL_ICON,
+    icon: BRL_FLAG,
   },
 ]
 
@@ -84,7 +83,7 @@ export default function Screen2_Amount({ onNext, onBack }: FlowScreenProps) {
           label="Deposit"
           value={usdValue}
           onChange={setUsdValue}
-          tokenIcon={USD_ICON}
+          tokenIcon={USD_FLAG}
           currencySymbol="US$"
         />
 
@@ -106,7 +105,7 @@ export default function Screen2_Amount({ onNext, onBack }: FlowScreenProps) {
           left={<Avatar src={currentSource.icon} size="sm" />}
           inverted
           right={
-            <Button variant="secondary" size="sm" onPress={() => setSheetOpen(true)}>
+            <Button variant="primary" size="sm" onPress={() => setSheetOpen(true)}>
               Change
             </Button>
           }

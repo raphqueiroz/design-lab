@@ -33,7 +33,7 @@ export default function PlaceholderScreen({
             {overlays.map((overlay) => (
               <Button
                 key={overlay.nodeId}
-                variant="secondary"
+                variant="primary"
                 size="md"
                 onPress={() => onOpenOverlay?.(overlay.nodeId)}
                 fullWidth
@@ -45,7 +45,7 @@ export default function PlaceholderScreen({
         )}
       </div>
       <StickyFooter>
-        <Button variant="primary" size="lg" onPress={onNext} fullWidth>Next</Button>
+        <Button variant="accent" size="lg" onPress={onNext} fullWidth>Next</Button>
       </StickyFooter>
     </BaseLayout>
   )

@@ -70,7 +70,7 @@ export default function PatternDetail({ pattern }: PatternDetailProps) {
 
   return (
     <div className="flex-1 overflow-y-auto bg-shell-bg">
-      <div className="p-[var(--token-spacing-lg)] max-w-[960px]">
+      <div className="py-[32px] px-[120px] max-w-[960px]">
         <div className="flex items-start justify-between mb-[var(--token-spacing-2)]">
           <h2 className="text-[length:var(--token-font-size-heading-lg)] font-semibold text-shell-text">
             {info.title}

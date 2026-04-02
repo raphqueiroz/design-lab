@@ -75,7 +75,7 @@ export default function Screen1_DashboardB({ onNext, onElementTap }: FlowScreenP
           </Stack>
         </Stack>
         <StickyFooter>
-          <Button variant="primary" size="lg" fullWidth onPress={handleExplorarButton}>
+          <Button variant="accent" size="lg" fullWidth onPress={handleExplorarButton}>
             Explorar investimentos
           </Button>
         </StickyFooter>

@@ -18,7 +18,7 @@ export default function Screen({ onNext, onBack, screenTitle, screenDescription 
         </Text>
       </Stack>
       <StickyFooter>
-        <Button variant="primary" size="lg" onPress={onNext} fullWidth>
+        <Button variant="accent" size="lg" onPress={onNext} fullWidth>
           Tentar novamente
         </Button>
       </StickyFooter>

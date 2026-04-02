@@ -1,6 +1,8 @@
+import { USD_FLAG, BRL_FLAG } from '@/lib/flags'
+
 export const MOCK_RATE = 5.4583
-export const USD_ICON = 'https://flagcdn.com/w80/us.png'
-export const BRL_ICON = 'https://flagcdn.com/w80/br.png'
+export const USD_ICON = USD_FLAG
+export const BRL_ICON = BRL_FLAG
 
 export const DESTINATIONS = [
   { id: 'pix', title: 'PIX', subtitle: 'Receba em reais na sua conta bancária', icon: BRL_ICON },

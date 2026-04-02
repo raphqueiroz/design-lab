@@ -14,7 +14,7 @@ export default function Screen({ onNext, onBack }: FlowScreenProps) {
         <Text variant="body-md">TODO: build this screen</Text>
       </Stack>
       <StickyFooter>
-        <Button variant="primary" size="lg" onPress={onNext} fullWidth>
+        <Button variant="accent" size="lg" onPress={onNext} fullWidth>
           Continuar
         </Button>
       </StickyFooter>

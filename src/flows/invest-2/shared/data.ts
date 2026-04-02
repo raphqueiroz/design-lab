@@ -1,3 +1,5 @@
+import { USD_FLAG, BRL_FLAG, EUR_FLAG } from '@/lib/flags'
+
 // ── Types ──
 
 export type AssetCategory = 'crypto' | 'commodity' | 'fixed-income' | 'stablecoin'
@@ -118,21 +120,21 @@ export const ASSETS: Asset[] = [
   // Fixed Income
   {
     ticker: 'RENDA-USD', name: 'Renda em Dólar', category: 'fixed-income',
-    icon: 'https://flagcdn.com/w80/us.png',
+    icon: USD_FLAG,
     apy: 0.0437, apyDisplay: '4,37% a.a.',
     description: 'Seu saldo em dólar rende automaticamente todos os dias. Resgate quando quiser.',
     tags: ['popular'],
   },
   {
     ticker: 'RENDA-BRL', name: 'Renda em Real', category: 'fixed-income',
-    icon: 'https://flagcdn.com/w80/br.png',
+    icon: BRL_FLAG,
     apy: 0.10, apyDisplay: '10% a.a.',
     description: 'Rendimento em reais acima da poupança. Sem carência e sem burocracia.',
     tags: ['popular', 'trending'],
   },
   {
     ticker: 'RENDA-EUR', name: 'Renda em Euro', category: 'fixed-income',
-    icon: 'https://flagcdn.com/w80/eu.png',
+    icon: EUR_FLAG,
     apy: 0.03, apyDisplay: '3% a.a.',
     description: 'Faça seus euros renderem automaticamente com resgate imediato.',
   },
@@ -186,7 +188,7 @@ export function getTrendingAssets(): Asset[] {
 }
 
 export function isVolatile(asset: Asset): boolean {
-  return asset.category === 'crypto' || asset.category === 'commodity'
+  return asset.category === 'crypto' || asset.category === 'commodity' || asset.category === 'stablecoin'
 }
 
 // ── Mock Portfolio ──
@@ -232,9 +234,10 @@ export function formatQuantity(qty: number, ticker: AssetTicker): string {
   return `${qty.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: decimals })} ${ticker}`
 }
 
-export function rawDigitsFromAmount(amount: number): string {
+export function rawDigitsFromAmount(amount: number, decimals = 2): string {
   if (amount <= 0) return ''
-  return Math.round(amount * 100).toString()
+  const multiplier = Math.pow(10, decimals)
+  return Math.round(amount * multiplier).toString()
 }
 
 export function getCurrencySymbol(ticker: AssetTicker): string {
@@ -384,30 +387,98 @@ export function getMockTransactions(ticker: AssetTicker): Transaction[] {
   ]
 }
 
+// ── Statement transactions (date-grouped, all assets) ──
+
+export type StatementTxType = 'buy' | 'sell' | 'deposit-crypto' | 'withdraw-crypto'
+
+export interface StatementTransaction {
+  id: string
+  type: StatementTxType
+  asset: AssetTicker
+  title: string
+  subtitle: string
+  date: string        // display date e.g. "13 mar 2026"
+  sortKey: number     // for sorting (higher = more recent)
+}
+
+const STATEMENT_TRANSACTIONS: StatementTransaction[] = [
+  { id: 'st-01', type: 'buy', asset: 'BTC', title: 'Comprou 0,025 BTC', subtitle: 'por US$ 800,00', date: '28 mar 2026', sortKey: 20260328_3 },
+  { id: 'st-03', type: 'sell', asset: 'ETH', title: 'Vendeu 0,5 ETH', subtitle: 'por US$ 1.200,00', date: '28 mar 2026', sortKey: 20260328_1 },
+  { id: 'st-04', type: 'buy', asset: 'SOL', title: 'Comprou 5,00 SOL', subtitle: 'por US$ 450,00', date: '25 mar 2026', sortKey: 20260325_1 },
+  { id: 'st-06', type: 'deposit-crypto', asset: 'BTC', title: 'Depósito de Bitcoin', subtitle: '0,01 BTC recebido', date: '22 mar 2026', sortKey: 20260322_1 },
+  { id: 'st-07', type: 'sell', asset: 'PAXG', title: 'Vendeu 0,10 PAXG', subtitle: 'por US$ 230,00', date: '20 mar 2026', sortKey: 20260320_2 },
+  { id: 'st-08', type: 'buy', asset: 'ETH', title: 'Comprou 0,30 ETH', subtitle: 'por US$ 540,00', date: '20 mar 2026', sortKey: 20260320_1 },
+  { id: 'st-09', type: 'withdraw-crypto', asset: 'ETH', title: 'Saque de Ethereum', subtitle: '0,15 ETH enviado', date: '18 mar 2026', sortKey: 20260318_1 },
+  { id: 'st-10', type: 'buy', asset: 'BTC', title: 'Comprou 0,003 BTC', subtitle: 'por US$ 280,00', date: '15 mar 2026', sortKey: 20260315_1 },
+  { id: 'st-12', type: 'sell', asset: 'SOL', title: 'Vendeu 2,00 SOL', subtitle: 'por US$ 180,00', date: '10 mar 2026', sortKey: 20260310_1 },
+  { id: 'st-13', type: 'buy', asset: 'PAXG', title: 'Comprou 0,20 PAXG', subtitle: 'por US$ 460,00', date: '05 mar 2026', sortKey: 20260305_1 },
+  { id: 'st-14', type: 'deposit-crypto', asset: 'SOL', title: 'Depósito de Solana', subtitle: '3,00 SOL recebido', date: '01 mar 2026', sortKey: 20260301_1 },
+]
+
+export interface StatementDateGroup {
+  date: string
+  transactions: StatementTransaction[]
+}
+
+export function getStatementTransactions(): StatementDateGroup[] {
+  const sorted = [...STATEMENT_TRANSACTIONS].sort((a, b) => b.sortKey - a.sortKey)
+  const groups: StatementDateGroup[] = []
+  for (const tx of sorted) {
+    const last = groups[groups.length - 1]
+    if (last && last.date === tx.date) {
+      last.transactions.push(tx)
+    } else {
+      groups.push({ date: tx.date, transactions: [tx] })
+    }
+  }
+  return groups
+}
+
 // ── Orders (TP/SL) ──
 
 export type OrderType = 'take-profit' | 'stop-loss'
+export type OrderSide = 'buy' | 'sell'
 
 export interface Order {
   id: string
   asset: AssetTicker
+  side: OrderSide
   type: OrderType
   triggerPrice: number  // BRL
+  value: number         // order value in BRL
   quantity: number
   createdAt: string     // date string
   status: 'active' | 'executed' | 'cancelled'
 }
 
 export const MOCK_ORDERS: Order[] = [
-  { id: 'ord-1', asset: 'BTC', type: 'take-profit', triggerPrice: 620000, quantity: 0.005, createdAt: '18 mar 2026', status: 'active' },
-  { id: 'ord-2', asset: 'BTC', type: 'stop-loss', triggerPrice: 480000, quantity: 0.005, createdAt: '18 mar 2026', status: 'active' },
-  { id: 'ord-3', asset: 'ETH', type: 'take-profit', triggerPrice: 22000, quantity: 0.3, createdAt: '20 mar 2026', status: 'active' },
-  { id: 'ord-4', asset: 'SOL', type: 'stop-loss', triggerPrice: 700, quantity: 2, createdAt: '22 mar 2026', status: 'active' },
+  { id: 'ord-1', asset: 'BTC', side: 'sell', type: 'take-profit', triggerPrice: 620000, value: 3100, quantity: 0.005, createdAt: '22 mar 2026', status: 'active' },
+  { id: 'ord-2', asset: 'BTC', side: 'buy', type: 'stop-loss', triggerPrice: 480000, value: 2400, quantity: 0.005, createdAt: '22 mar 2026', status: 'active' },
+  { id: 'ord-3', asset: 'ETH', side: 'sell', type: 'take-profit', triggerPrice: 22000, value: 6600, quantity: 0.3, createdAt: '20 mar 2026', status: 'executed' },
+  { id: 'ord-4', asset: 'SOL', side: 'buy', type: 'stop-loss', triggerPrice: 700, value: 1400, quantity: 2, createdAt: '18 mar 2026', status: 'cancelled' },
 ]
 
 export function getActiveOrders(ticker?: AssetTicker): Order[] {
   const active = MOCK_ORDERS.filter(o => o.status === 'active')
   return ticker ? active.filter(o => o.asset === ticker) : active
+}
+
+export interface OrderDateGroup {
+  date: string
+  orders: Order[]
+}
+
+export function getAllOrdersGrouped(): OrderDateGroup[] {
+  const groups: OrderDateGroup[] = []
+  for (const order of MOCK_ORDERS) {
+    const last = groups[groups.length - 1]
+    if (last && last.date === order.createdAt) {
+      last.orders.push(order)
+    } else {
+      groups.push({ date: order.createdAt, orders: [order] })
+    }
+  }
+  return groups
 }
 
 // ── Favorites ──

@@ -171,6 +171,16 @@
   }
 }
 
+/* Page-level padding utilities for mixed padded / edge-to-edge layouts */
+.page-pad {
+  padding-left: var(--token-spacing-6);
+  padding-right: var(--token-spacing-6);
+}
+.full-bleed {
+  margin-left: calc(-1 * var(--token-spacing-6));
+  margin-right: calc(-1 * var(--token-spacing-6));
+}
+
 /* React Flow dark theme overrides to match shell chrome */
 
 .react-flow__edge-path {
@@ -223,4 +233,15 @@
 .desktop-visible-scroll::-webkit-scrollbar-track,
 .desktop-visible-scroll *::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.03);
+}
+
+/* Flat black phone frame for component demo */
+.demo-phone-flat > div > div {
+  box-shadow: 0 0 0 8px #000 !important;
+}
+.demo-phone-flat [class*="bg-[#2a2a2a]"] {
+  background-color: #000 !important;
+}
+.demo-phone-flat [class*="bg-neutral-900"] {
+  background-color: #000 !important;
 }

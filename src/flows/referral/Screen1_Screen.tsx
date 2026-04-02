@@ -158,7 +158,7 @@ export default function Screen({ onNext, onElementTap }: FlowScreenProps) {
             value={email}
             onChange={setEmail}
           />
-          <Button variant="primary" size="lg" onPress={handleClaim} fullWidth>
+          <Button variant="accent" size="lg" onPress={handleClaim} fullWidth>
             Quero meu bônus de US$ 10 <RiArrowRightLine size={18} className="inline ml-[4px] -mt-[2px]" />
           </Button>
           <Text variant="caption" color="content-tertiary" align="center">

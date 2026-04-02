@@ -59,7 +59,7 @@ export default function Screen({ onBack, onNext, onElementTap }: FlowScreenProps
 
       <StickyFooter>
         <Stack gap="sm">
-          <Button variant="primary" fullWidth onPress={() => setDateSheet(true)}>
+          <Button variant="accent" fullWidth onPress={() => setDateSheet(true)}>
             Namorar
           </Button>
           <Button variant="ghost" fullWidth onPress={() => setDeleteSheet(true)}>
@@ -74,7 +74,7 @@ export default function Screen({ onBack, onNext, onElementTap }: FlowScreenProps
           <Text variant="body-md" color="content-secondary">
             Você e Maria Clara vão iniciar um relacionamento. Tem certeza?
           </Text>
-          <Button variant="primary" fullWidth onPress={() => {
+          <Button variant="accent" fullWidth onPress={() => {
             setDateSheet(false)
             const handled = onElementTap?.('Button: Confirmar namoro')
             if (!handled) onNext()
@@ -90,7 +90,7 @@ export default function Screen({ onBack, onNext, onElementTap }: FlowScreenProps
           <Text variant="body-md" color="content-secondary">
             Maria Clara será removida da sua lista. Essa ação não pode ser desfeita.
           </Text>
-          <Button variant="primary" fullWidth onPress={() => {
+          <Button variant="accent" fullWidth onPress={() => {
             setDeleteSheet(false)
             const handled = onElementTap?.('Button: Confirmar remoção')
             if (!handled) onNext()

@@ -27,19 +27,24 @@ export interface SubheaderProps {
   onSortChange?: (value: string) => void
   /** Custom trailing content */
   right?: ReactNode
+  /** Title size — 'lg' (default 24px heading) or 'sm' (16px body) */
+  size?: 'lg' | 'sm'
   className?: string
 }
 
-export default function Subheader({ text, description, actionLabel, onAction, sortOptions, sortValue, onSortChange, right, className }: SubheaderProps) {
+export default function Subheader({ text, description, actionLabel, onAction, sortOptions, sortValue, onSortChange, right, size = 'lg', className }: SubheaderProps) {
   const [sortOpen, setSortOpen] = useState(false)
   const activeSort = sortOptions?.find(o => o.value === sortValue)
 
   return (
-    <div data-component="Subheader" className={cn('flex items-center justify-between px-[var(--token-spacing-5)] pt-[var(--token-spacing-3)] pb-[var(--token-spacing-4)]', className)}>
+    <div data-component="Subheader" className={cn('flex items-center justify-between px-[var(--token-spacing-6)] pt-[var(--token-spacing-3)] pb-[var(--token-spacing-4)]', className)}>
       <div className="flex flex-col">
         <span
           data-text-id={text}
-          className="text-[24px] font-semibold tracking-[-0.5px] text-[var(--color-content-primary)] leading-none"
+          className={cn(
+            'font-semibold text-[var(--color-content-primary)] leading-none',
+            size === 'sm' ? 'text-[16px] tracking-normal text-[var(--color-content-secondary)]' : 'text-[24px] tracking-[-0.5px]',
+          )}
           style={{ fontFamily: 'Inter, sans-serif' }}
         >
           {text}
@@ -101,7 +106,7 @@ export default function Subheader({ text, description, actionLabel, onAction, so
           </div>
         )}
         {actionLabel && onAction && (
-          <Button variant="secondary" size="sm" onPress={onAction}>
+          <Button variant="primary" size="sm" onPress={onAction}>
             {actionLabel}
           </Button>
         )}

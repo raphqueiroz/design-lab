@@ -3,6 +3,7 @@
  * Do not import from other screens — extract to src/library/ if reuse is needed.
  */
 
+import { USD_FLAG, BRL_FLAG, EUR_FLAG } from '@/lib/flags'
 import Stack from '../../library/layout/Stack'
 import BottomSheet from '../../library/layout/BottomSheet'
 import ListItem from '../../library/display/ListItem'
@@ -20,19 +21,19 @@ const PAYMENT_METHODS: PaymentMethod[] = [
     id: 'brl',
     title: 'Real Brasileiro',
     subtitle: 'Pague de sua conta bancária com Pix',
-    icon: 'https://flagcdn.com/w80/br.png',
+    icon: BRL_FLAG,
   },
   {
     id: 'usd',
     title: 'Dólar Americano',
     subtitle: 'Pague de sua conta americana com transferência ACH',
-    icon: 'https://flagcdn.com/w80/us.png',
+    icon: USD_FLAG,
   },
   {
     id: 'eur',
     title: 'Euro',
     subtitle: 'Pague de sua conta internacional com SEPA',
-    icon: 'https://flagcdn.com/w80/eu.png',
+    icon: EUR_FLAG,
   },
   {
     id: 'crypto',

@@ -1,11 +1,13 @@
+import { USD_FLAG, BRL_FLAG } from '@/lib/flags'
+
 export const APY = 0.05
 export const MOCK_BALANCE = 1243.57
 export const YIELD_TODAY = 0.17
 export const YIELD_MONTH = 12.34
 export const MOCK_RATE = 5.4583
 
-export const USD_ICON = 'https://flagcdn.com/w80/us.png'
-export const BRL_ICON = 'https://flagcdn.com/w80/br.png'
+export const USD_ICON = USD_FLAG
+export const BRL_ICON = BRL_FLAG
 
 export const FUNDING_SOURCES = [
   {

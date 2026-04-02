@@ -106,7 +106,7 @@ export default function Screen2_CardInfo({ onBack, onNext, onElementTap }: FlowS
             label: 'Limite diário de gastos',
             value: 'US$ 5.000,00',
             action: (
-              <Button variant="secondary" size="sm" onPress={handleEditLimits}>
+              <Button variant="primary" size="sm" onPress={handleEditLimits}>
                 Editar
               </Button>
             ),

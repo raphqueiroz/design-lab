@@ -90,7 +90,7 @@ export default function Screen1_DepositAmount({ onNext, onBack }: FlowScreenProp
             left={<Avatar src={currentSource.icon} size="sm" />}
             inverted
             right={
-              <Button variant="secondary" size="sm" onPress={() => setSheetOpen(true)}>
+              <Button variant="primary" size="sm" onPress={() => setSheetOpen(true)}>
                 Mudar
               </Button>
             }

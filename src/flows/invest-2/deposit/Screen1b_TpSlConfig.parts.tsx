@@ -9,6 +9,7 @@ import Stack from '@/library/layout/Stack'
 import BottomSheet from '@/library/layout/BottomSheet'
 import Button from '@/library/inputs/Button'
 import CurrencyInput from '@/library/inputs/CurrencyInput'
+import { BRL_FLAG } from '@/lib/flags'
 import { formatBRL, rawDigitsFromAmount } from '../shared/data'
 
 // ── PriceLevelLine ──
@@ -153,7 +154,7 @@ export function PriceInputSheet({
           value={rawValue}
           onChange={setRawValue}
           currencySymbol="R$"
-          tokenIcon="https://flagcdn.com/w80/br.png"
+          tokenIcon={BRL_FLAG}
         />
 
         {/* Distance from current price */}

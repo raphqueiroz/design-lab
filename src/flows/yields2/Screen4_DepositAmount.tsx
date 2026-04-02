@@ -87,7 +87,7 @@ export default function Screen4_DepositAmount({ onNext, onBack, onElementTap, on
             left={<Avatar src={currentSource.icon} size="sm" />}
             inverted
             right={
-              <Button variant="secondary" size="sm" onPress={() => setSheetOpen(true)}>
+              <Button variant="primary" size="sm" onPress={() => setSheetOpen(true)}>
                 Mudar
               </Button>
             }
