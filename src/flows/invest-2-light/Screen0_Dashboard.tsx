@@ -8,7 +8,7 @@ import { motion } from 'framer-motion'
 import {
   RiArrowLeftRightLine, RiHeartFill, RiFileListLine, RiMoreFill,
   RiDownloadLine, RiFileTextLine, RiBarChartBoxLine,
-  RiShieldCheckFill, RiFlashlightFill, RiPieChartFill, RiTimerFlashFill,
+  RiFlashlightFill, RiPieChartFill, RiTimerFlashFill,
 } from '@remixicon/react'
 import type { FlowScreenProps } from '@/pages/simulator/flowRegistry'
 import { useScreenData } from '@/lib/ScreenDataContext'
@@ -186,11 +186,6 @@ export default function Screen0_Dashboard({ onNext, onElementTap }: FlowScreenPr
         icon: <RiPieChartFill size={24} className="text-content-primary" />,
         title: 'Cripto, commodities e renda fixa',
         description: 'Diversifique entre Bitcoin, ouro, dólar digital e rendimentos automáticos.',
-      },
-      {
-        icon: <RiShieldCheckFill size={24} className="text-content-primary" />,
-        title: 'Regulado e custodiado',
-        description: 'Seus investimentos são custodiados por instituições reguladas e autorizadas.',
       },
       {
         icon: <RiFlashlightFill size={24} className="text-content-primary" />,
