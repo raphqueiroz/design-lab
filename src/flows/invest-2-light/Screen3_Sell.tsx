@@ -198,7 +198,7 @@ export default function Screen3_Sell({ onNext, onBack, onElementTap, onStateChan
             currencySymbol={assetTicker}
             decimals={CRYPTO_DECIMALS}
             secondaryValue={parsedCrypto > 0 ? `≈ ${formatUSD(parsedCrypto * currentPrice)}` : undefined}
-            balance={balanceLabel}
+            balance={`${cryptoBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${assetTicker}`}
             onBalanceTap={handleMaxTap}
             balanceError={exceedsBalance}
           />

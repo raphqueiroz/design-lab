@@ -52,7 +52,6 @@ export default function Screen3_Trade({ onNext, onBack, onElementTap, onStateCha
   const [, setActiveField] = useState<ActiveField>('usd')
 
   const parsedUsd = parseInt(usdAmount || '0', 10) / 100
-  const _parsedCrypto = parseInt(cryptoAmount || '0', 10) / Math.pow(10, CRYPTO_DECIMALS)
   const isValid = parsedUsd >= 1
   const exceedsBalance = parsedUsd > MOCK_CARD_BALANCE
 

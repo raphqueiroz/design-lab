@@ -22,7 +22,6 @@ import Button from '@/library/inputs/Button'
 import ShortcutButton from '@/library/inputs/ShortcutButton'
 import {
   ASSETS, MOCK_POSITIONS, getAsset, getPortfolioTotal, getFavoriteAssets,
-  formatBRL,
 } from './shared/data'
 import type { AssetTicker } from './shared/data'
 // getAssetPalette used transitively via parts/AssetListItem
@@ -544,7 +543,6 @@ export default function Screen0_Dashboard({ onNext, onElementTap }: FlowScreenPr
     )
     // First real datapoint is at index 23 (day user started investing)
     const investStartValue = data7d[23].value
-    const _last7d = data7d[data7d.length - 1].value
 
     // Scrub interaction (same pattern as portfolio)
     const chart7dRef = useRef<SVGSVGElement>(null)

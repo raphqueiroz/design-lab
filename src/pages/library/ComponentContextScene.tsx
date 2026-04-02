@@ -2,11 +2,9 @@ import { type ReactNode } from 'react'
 import type { ComponentMeta } from '../../library/registry'
 import { LayoutProvider } from '../../library/layout/LayoutProvider'
 import ListItem from '../../library/display/ListItem'
-import Toast from '../../library/feedback/Toast'
 import Text from '../../library/foundations/Text'
 import Avatar from '../../library/display/Avatar'
 import LoadingSpinner from '../../library/feedback/LoadingSpinner'
-import TabBar from '../../library/navigation/TabBar'
 import { RiHomeLine, RiWalletLine, RiUserLine, RiSendPlaneLine, RiAddLine, RiInformationLine } from '@remixicon/react'
 
 interface Props {
