@@ -125,7 +125,7 @@ registerFlow({
   id: 'invest-manage',
   name: 'Investments',
   description: 'Investment management: portfolio dashboard, onboarding, asset discovery, and per-asset detail pages.',
-  domain: 'investments',
+  domain: 'earn',
   level: 1,
   linkedFlows: [],
   entryPoints: ['dashboard-investments', 'quick-action'],

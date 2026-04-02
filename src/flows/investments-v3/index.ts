@@ -146,7 +146,7 @@ registerFlow({
   id: 'investments-v3',
   name: 'Investimentos V3 (Dark)',
   description: 'Bold dark-themed investments: discovery with sparklines, immersive asset pages, keypad trade, slide-to-confirm, orbital processing, confetti success.',
-  domain: 'investments',
+  domain: 'earn',
   level: 2,
   screens: screenDefs.map(s => ({ ...s, pageId: s.id })),
 })

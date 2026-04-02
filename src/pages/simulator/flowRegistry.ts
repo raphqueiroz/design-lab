@@ -72,7 +72,6 @@ registerDomain({ id: 'add-funds', name: 'Add Funds', order: 5 })
 registerDomain({ id: 'send-funds', name: 'Send Funds', order: 6 })
 registerDomain({ id: 'perks', name: 'Perks', order: 7 })
 registerDomain({ id: 'earn', name: 'Earn', order: 8 })
-registerDomain({ id: 'investments', name: 'Investments', order: 8.5 })
 registerDomain({ id: 'transaction-history', name: 'Transaction History', order: 9 })
 registerDomain({ id: 'settings', name: 'Settings', order: 10 })
 

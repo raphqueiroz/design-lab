@@ -184,7 +184,7 @@ registerFlow({
   id: 'investments',
   name: 'Investimentos',
   description: 'Browse and invest in crypto, commodities, and fixed-income products. Buy with Picnic balance or Pix, sell back to balance.',
-  domain: 'investments',
+  domain: 'earn',
   level: 2,
   screens: screenDefs.map(s => ({ ...s, pageId: s.id })),
 })
