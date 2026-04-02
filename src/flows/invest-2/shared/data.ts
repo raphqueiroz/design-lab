@@ -199,6 +199,7 @@ export const MOCK_POSITIONS: Position[] = [
   { asset: 'SOL', quantity: 5, avgCost: 780, currentValue: 4450, investedSince: '02 fev 2026' },
   { asset: 'RENDA-USD', quantity: 200, avgCost: 1, currentValue: 4072.40, investedSince: '10 dez 2025' },
   { asset: 'PAXG', quantity: 0.1, avgCost: 17800, currentValue: 1850, investedSince: '25 jan 2026' },
+  { asset: 'USDT', quantity: 1800, avgCost: 5.71, currentValue: 10278, investedSince: '05 jan 2026' },
 ]
 
 export function getPosition(ticker: AssetTicker): Position | undefined {

@@ -25,6 +25,7 @@ interface ScreenData {
   assetTicker?: AssetTicker
   mode?: 'buy' | 'sell'
   orderType?: 'market' | 'programmed'
+  payWith?: AssetTicker
   tpPrice?: number
   slPrice?: number
 }
@@ -34,6 +35,7 @@ export default function Screen4_Review({ onNext, onBack, onElementTap }: FlowScr
     assetTicker = 'BTC',
     mode = 'buy',
     orderType = 'market',
+    payWith,
     tpPrice,
     slPrice,
   } = useScreenData<ScreenData>()
@@ -43,6 +45,12 @@ export default function Screen4_Review({ onNext, onBack, onElementTap }: FlowScr
   const volatile = isVolatile(asset)
   const isBuy = mode === 'buy'
   const currentPrice = volatile ? (asset.price ?? 100) : 100
+
+  // Pay asset info (for USDT state)
+  const payAsset = payWith ? getAsset(payWith) : null
+  const payPalette = payWith ? getAssetPalette(payWith) : null
+  const payAssetPrice = payAsset?.price ?? 1
+  const payPrice = payWith ? currentPrice / payAssetPrice : currentPrice
   const isProgrammed = orderType === 'programmed'
 
   const investAmount = 100
@@ -63,17 +71,23 @@ export default function Screen4_Review({ onNext, onBack, onElementTap }: FlowScr
           <GroupHeader text="Detalhes da operação" />
           <DataList data={[
             {
-              label: 'Ativo',
+              label: 'Você compra',
               value: (
                 <span className="inline-flex items-center gap-1.5 font-medium">
                   <TokenLogoCircle ticker={assetTicker} fallbackUrl={asset.icon} size={20} color={palette.bg} />
-                  {asset.name}
+                  {formatQuantity(estimatedQty, assetTicker)}
                 </span>
               ),
             },
-            { label: 'Você compra', value: formatQuantity(estimatedQty, assetTicker) },
-            { label: 'Você paga', value: formatUSD(investAmount) },
-            { label: 'Meio de pagamento', value: 'Saldo em conta' },
+            {
+              label: 'Você paga',
+              value: payWith && payAsset && payPalette ? (
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                  <TokenLogoCircle ticker={payWith} fallbackUrl={payAsset.icon} size={20} color={payPalette.bg} />
+                  {(investAmount * payAssetPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {payWith}
+                </span>
+              ) : formatUSD(investAmount),
+            },
             {
               label: 'Nossa taxa',
               value: <span className="text-[var(--color-feedback-success)] font-medium">Grátis</span>,
@@ -81,7 +95,7 @@ export default function Screen4_Review({ onNext, onBack, onElementTap }: FlowScr
             {
               label: 'VET',
               info: () => {},
-              value: `1 ${assetTicker} ⇄ ${formatUSD(currentPrice)}`,
+              value: payWith ? `1 ${assetTicker} ⇄ ${payPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${payWith}` : `1 ${assetTicker} ⇄ ${formatUSD(currentPrice)}`,
             },
           ]} />
         </Stack>

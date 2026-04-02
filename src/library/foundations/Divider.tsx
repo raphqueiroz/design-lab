@@ -7,7 +7,7 @@ export interface DividerProps {
 
 const spacingMap = {
   sm: 'my-[var(--token-spacing-sm)]',
-  md: 'my-[var(--token-spacing-md)]',
+  md: 'my-[8px]',
   lg: 'my-[var(--token-spacing-lg)]',
 } as const
 

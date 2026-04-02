@@ -18,7 +18,6 @@ import Screen7_OpenOrders from './Screen7_OpenOrders'
 import Screen8_Favorites from './Screen8_Favorites'
 import Screen9_Statement from './Screen9_Statement'
 import Screen10_ExportStatement from './Screen10_ExportStatement'
-import Screen11_PortfolioPerformance from './Screen11_PortfolioPerformance'
 import Receive_Screen1_RiskWarning from './receive/Screen1_RiskWarning'
 import Receive_Screen2_SelectAsset from './receive/Screen2_SelectAsset'
 import Receive_Screen3_SelectChain from './receive/Screen3_SelectChain'
@@ -143,18 +142,6 @@ const exploreScreenDefs = [
       { id: 'btn-export', component: 'Button', label: 'Gerar extrato' },
     ],
   },
-  {
-    id: 'il-portfolio-performance',
-    title: 'Portfolio Performance (Visual)',
-    description: 'Full-screen interactive portfolio chart with time ranges and stats.',
-    componentsUsed: ['Header', 'DataList', 'Custom'],
-    component: Screen11_PortfolioPerformance,
-    interactiveElements: [],
-    states: [
-      { id: '3-day', name: '3-day', description: 'Early portfolio — flat 3-day chart', isDefault: true, data: { chartMode: '3-day' } },
-      { id: 'full', name: 'Full', description: 'Mature portfolio — 30-day chart', data: { chartMode: 'full' } },
-    ],
-  },
 ]
 
 // ═══════════════════════════════════════════════════════════════
@@ -247,7 +234,8 @@ const sellScreenDefs = [
       { id: 'btn-continuar', component: 'Button', label: 'Continuar' },
     ],
     states: [
-      { id: 'btc-sell', name: 'BTC Sell', isDefault: true, data: { assetTicker: 'BTC' } },
+      { id: 'btc-sell', name: 'BTC Sell (USD)', isDefault: true, data: { assetTicker: 'BTC' } },
+      { id: 'btc-sell-usdt', name: 'BTC Sell (USDT)', data: { assetTicker: 'BTC', payWith: 'USDT' } },
     ],
   },
   {
@@ -260,7 +248,8 @@ const sellScreenDefs = [
       { id: 'btn-confirmar', component: 'Button', label: 'Confirmar venda' },
     ],
     states: [
-      { id: 'btc-sell', name: 'BTC Sell', isDefault: true, data: { assetTicker: 'BTC', mode: 'sell' } },
+      { id: 'btc-sell', name: 'BTC Sell (USD)', isDefault: true, data: { assetTicker: 'BTC', mode: 'sell' } },
+      { id: 'btc-sell-usdt', name: 'BTC Sell (USDT)', data: { assetTicker: 'BTC', mode: 'sell', payWith: 'USDT' } },
     ],
   },
   {
@@ -551,7 +540,7 @@ const xR = 600
     { id: 'e-22', source: 'n-tap-export', target: 'n-export', sourceHandle: 'bottom', targetHandle: 'top' },
   ]
 
-  bootstrapFlowGraph('invest-2-light-explore', nodes, edges, 4)
+  bootstrapFlowGraph('invest-2-light-explore', nodes, edges, 5)
 }
 
 // ── Buy Flow Graph ──

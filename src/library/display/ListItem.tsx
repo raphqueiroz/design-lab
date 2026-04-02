@@ -46,7 +46,7 @@ export default function ListItem({
               {title}
             </span>
             {subtitle && (
-              <span data-text-id={subtitle} className="text-[length:var(--token-font-size-body-md)] font-semibold leading-[var(--token-line-height-body-md)] tracking-[-0.16px] text-[var(--color-content-primary)] truncate">
+              <span data-text-id={subtitle} className="text-[length:var(--token-font-size-body-lg)] font-semibold leading-[var(--token-line-height-body-lg)] tracking-[-0.18px] text-[var(--color-content-primary)] truncate">
                 {subtitle}
               </span>
             )}

@@ -90,9 +90,9 @@ export default function CurrencyInput({
   const valueColor = hasValue ? 'text-content-primary' : 'text-content-tertiary'
 
   return (
-    <div data-component="CurrencyInput" className={`flex flex-col gap-[var(--token-spacing-3)] items-end pt-[6px] pb-[var(--token-spacing-4)] ${className}`}>
+    <div data-component="CurrencyInput" className={`flex flex-col gap-[8px] items-end pt-[6px] pb-[var(--token-spacing-4)] ${className}`}>
       {label && (
-        <span className="text-[14px] font-medium leading-[22px] text-content-tertiary">
+        <span className="text-[14px] font-medium leading-[22px] text-content-secondary">
           {label}
         </span>
       )}

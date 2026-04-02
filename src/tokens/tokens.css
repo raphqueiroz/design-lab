@@ -90,7 +90,7 @@
 
   /* Display — 36/44, semibold */
   --token-font-size-display: 36px;
-  --token-line-height-display: 44px;
+  --token-line-height-display: 40px;
   --token-font-weight-display: 600;
 
   /* Heading LG — 30/120%, semibold */

@@ -12,6 +12,8 @@ import successPendingAnimation from '../../assets/lottie/success-pending.json'
 export interface FeedbackLayoutProps {
   /** Lottie animation data. Defaults to success-pending. Pass null to hide. */
   animation?: object | null
+  /** Image URL — when provided, renders a 180x180 rounded image instead of Lottie. */
+  imageSrc?: string
   /** Close handler — renders close button top-right */
   onClose?: () => void
   children: ReactNode
@@ -23,6 +25,7 @@ const ANIMATION_SIZE = 180
 
 export default function FeedbackLayout({
   animation = successPendingAnimation,
+  imageSrc,
   onClose,
   children,
   className = '',
@@ -61,8 +64,15 @@ export default function FeedbackLayout({
             </div>
           )}
 
-          {/* Animation — left-aligned */}
-          {animation && (
+          {/* Visual — image or Lottie animation */}
+          {imageSrc ? (
+            <div
+              className="shrink-0 rounded-full overflow-hidden"
+              style={{ width: ANIMATION_SIZE, height: ANIMATION_SIZE }}
+            >
+              <img src={imageSrc} alt="" className="w-full h-full object-cover" />
+            </div>
+          ) : animation ? (
             <div
               style={{ width: ANIMATION_SIZE, height: ANIMATION_SIZE, marginLeft: -ANIMATION_SIZE * 0.2, marginBottom: 'calc(-1 * var(--token-spacing-6))' }}
               className="shrink-0"
@@ -73,7 +83,7 @@ export default function FeedbackLayout({
                 className="w-full h-full"
               />
             </div>
-          )}
+          ) : null}
 
           {rest}
         </div>
@@ -96,6 +106,12 @@ registerComponent({
       required: false,
       defaultValue: 'success-pending',
       description: 'Lottie animation data. Defaults to success-pending. Pass null to hide.',
+    },
+    {
+      name: 'imageSrc',
+      type: 'string',
+      required: false,
+      description: 'Image URL — renders a 180x180 rounded image instead of Lottie when provided.',
     },
     {
       name: 'onClose',

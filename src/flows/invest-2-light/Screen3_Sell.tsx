@@ -1,7 +1,7 @@
 /**
- * Screen3_Sell — Sell amount entry.
+ * Screen3_Sell — Sell amount entry (v2).
  * Inputs: BTC (top, "Você compra") → USD (bottom, "Você paga").
- * Order type + payment method selectors.
+ * Payment method selector with crypto positions.
  */
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import type { FlowScreenProps } from '@/pages/simulator/flowRegistry'
@@ -11,6 +11,7 @@ import Header from '@/library/navigation/Header'
 import BaseLayout from '@/library/layout/BaseLayout'
 import StickyFooter from '@/library/layout/StickyFooter'
 import Stack from '@/library/layout/Stack'
+import Section from '@/library/layout/Section'
 import BottomSheet from '@/library/layout/BottomSheet'
 import Button from '@/library/inputs/Button'
 import CurrencyInput from '@/library/inputs/CurrencyInput'
@@ -26,19 +27,6 @@ import {
 import type { AssetTicker } from './shared/data'
 import { getAssetPalette } from './shared/assetPalette'
 import { TokenLogoCircle } from './shared/TokenLogo'
-
-// ── Order types ──
-
-interface OrderType {
-  id: 'market' | 'limit'
-  title: string
-  description: string
-}
-
-const ORDER_TYPES: OrderType[] = [
-  { id: 'market', title: 'Ordem a mercado', description: 'Execução instantânea pelo preço atual' },
-  { id: 'limit', title: 'Ordem limitada', description: 'Defina o preço desejado para execução' },
-]
 
 // ── Payment options ──
 
@@ -60,8 +48,9 @@ const CRYPTO_DECIMALS = 5
 type CalcState = 'idle' | 'loading' | 'ready'
 
 export default function Screen3_Sell({ onNext, onBack, onElementTap, onStateChange }: FlowScreenProps) {
-  const { assetTicker = 'BTC' } = useScreenData<{
+  const { assetTicker = 'BTC', payWith } = useScreenData<{
     assetTicker?: AssetTicker
+    payWith?: AssetTicker
   }>()
 
   const asset = getAsset(assetTicker)
@@ -71,8 +60,15 @@ export default function Screen3_Sell({ onNext, onBack, onElementTap, onStateChan
   const cryptoBalance = MOCK_CRYPTO_BALANCE[assetTicker] ?? 0.01
   const tokenSvg = <TokenLogoCircle ticker={assetTicker} fallbackUrl={asset.icon} size={40} color={palette.bg} />
 
+  // Pay with crypto token info (for USDT state)
+  const payAsset = payWith ? getAsset(payWith) : null
+  const payPalette = payWith ? getAssetPalette(payWith) : null
+  const payTokenSvg = payWith && payAsset && payPalette
+    ? <TokenLogoCircle ticker={payWith} fallbackUrl={payAsset.icon} size={40} color={payPalette.bg} />
+    : null
+
   // Payment method
-  const [paymentId, setPaymentId] = useState('account')
+  const [paymentId, setPaymentId] = useState(payWith ?? 'account')
   const [paymentSheetOpen, setPaymentSheetOpen] = useState(false)
 
   const paymentOptions: PaymentOption[] = useMemo(() => [
@@ -82,16 +78,18 @@ export default function Screen3_Sell({ onNext, onBack, onElementTap, onStateChan
       subtitle: 'US$ 12.450,00 disponível',
       tokenIcon: USD_FLAG,
     },
-    ...MOCK_POSITIONS.map(pos => {
-      const a = getAsset(pos.asset)
-      const p = getAssetPalette(pos.asset)
-      return {
-        id: pos.asset,
-        title: a.name,
-        subtitle: `${formatUSD(pos.currentValue)} · ${pos.quantity.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${pos.asset}`,
-        tokenIcon: <TokenLogoCircle ticker={pos.asset} fallbackUrl={a.icon} size={40} color={p.bg} />,
-      }
-    }),
+    ...MOCK_POSITIONS
+      .filter(pos => getAsset(pos.asset).category !== 'fixed-income')
+      .map(pos => {
+        const a = getAsset(pos.asset)
+        const p = getAssetPalette(pos.asset)
+        return {
+          id: pos.asset,
+          title: a.name,
+          subtitle: `${formatUSD(pos.currentValue)} · ${pos.quantity.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${pos.asset}`,
+          tokenIcon: <TokenLogoCircle ticker={pos.asset} fallbackUrl={a.icon} size={40} color={p.bg} />,
+        }
+      }),
   ], [])
 
   const currentPayment = useMemo(
@@ -99,43 +97,59 @@ export default function Screen3_Sell({ onNext, onBack, onElementTap, onStateChan
     [paymentId, paymentOptions],
   )
 
-  // Order type
-  const [orderTypeId, setOrderTypeId] = useState<'market' | 'limit'>('market')
-  const [orderSheetOpen, setOrderSheetOpen] = useState(false)
-  const currentOrderType = ORDER_TYPES.find(o => o.id === orderTypeId) ?? ORDER_TYPES[0]
+  // Pay currency price — USDT price per unit of the buy asset
+  const payDecimals = payWith && payAsset?.category === 'stablecoin' ? 2 : payWith ? CRYPTO_DECIMALS : 2
+  const payPrice = useMemo(() => {
+    if (!payWith || !payAsset) return currentPrice // USD: BTC price in USD
+    // Price of buy asset in pay asset units (e.g. BTC in USDT)
+    const payAssetUsdPrice = payAsset.price ?? 1
+    return currentPrice / payAssetUsdPrice
+  }, [currentPrice, payWith, payAsset])
 
-  // Amount state — crypto on top, USD on bottom
+  // Amount state — crypto on top, pay amount on bottom
   const [cryptoAmount, setCryptoAmount] = useState('')
-  const [usdAmount, setUsdAmount] = useState('')
+  const [payAmount, setPayAmount] = useState('')
 
   const parsedCrypto = parseInt(cryptoAmount || '0', 10) / Math.pow(10, CRYPTO_DECIMALS)
-  const parsedUsd = parseInt(usdAmount || '0', 10) / 100
-  const isValid = parsedCrypto > 0 && parsedUsd >= 1
+  const parsedPay = parseInt(payAmount || '0', 10) / Math.pow(10, payDecimals)
+  const isValid = parsedCrypto > 0 && parsedPay >= (payWith ? 0.01 : 1)
   const exceedsBalance = parsedCrypto > cryptoBalance
 
   const handleCryptoChange = useCallback((val: string) => {
     setCryptoAmount(val)
     const crypto = parseInt(val || '0', 10) / Math.pow(10, CRYPTO_DECIMALS)
-    if (crypto > 0 && currentPrice > 0) {
-      setUsdAmount(rawDigitsFromAmount(crypto * currentPrice))
+    if (crypto > 0 && payPrice > 0) {
+      setPayAmount(rawDigitsFromAmount(crypto * payPrice, payDecimals))
     } else {
-      setUsdAmount('')
+      setPayAmount('')
     }
-  }, [currentPrice])
+  }, [payPrice, payDecimals])
 
-  const handleUsdChange = useCallback((val: string) => {
-    setUsdAmount(val)
-    const usd = parseInt(val || '0', 10) / 100
-    if (usd > 0 && currentPrice > 0 && volatile) {
-      setCryptoAmount(rawDigitsFromAmount(usd / currentPrice, CRYPTO_DECIMALS))
+  const handlePayChange = useCallback((val: string) => {
+    setPayAmount(val)
+    const pay = parseInt(val || '0', 10) / Math.pow(10, payDecimals)
+    if (pay > 0 && payPrice > 0 && volatile) {
+      setCryptoAmount(rawDigitsFromAmount(pay / payPrice, CRYPTO_DECIMALS))
     } else {
       setCryptoAmount('')
     }
-  }, [currentPrice, volatile])
+  }, [payPrice, payDecimals, volatile])
+
+  // Recalculate pay amount when payment method changes
+  useEffect(() => {
+    if (parsedCrypto > 0 && payPrice > 0) {
+      setPayAmount(rawDigitsFromAmount(parsedCrypto * payPrice, payDecimals))
+    }
+  }, [paymentId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleMaxTap = useCallback(() => {
-    handleCryptoChange(rawDigitsFromAmount(cryptoBalance, CRYPTO_DECIMALS))
-  }, [handleCryptoChange, cryptoBalance])
+    // Fill max pay balance and calculate crypto
+    const maxPay = payWith ? 1800 : 12450
+    setPayAmount(rawDigitsFromAmount(maxPay, payDecimals))
+    if (payPrice > 0) {
+      setCryptoAmount(rawDigitsFromAmount(maxPay / payPrice, CRYPTO_DECIMALS))
+    }
+  }, [payWith, payPrice, payDecimals])
 
   // Calc state
   const [calcState, setCalcState] = useState<CalcState>('idle')
@@ -175,45 +189,34 @@ export default function Screen3_Sell({ onNext, onBack, onElementTap, onStateChan
     <BaseLayout>
       <Header onClose={onBack} />
 
-      <Stack gap="none">
-        {/* Crypto input (top) — what you're buying */}
-        <CurrencyInput
-          label="Você compra"
-          value={cryptoAmount}
-          onChange={handleCryptoChange}
-          tokenIcon={tokenSvg}
-          currencySymbol={assetTicker}
-          decimals={CRYPTO_DECIMALS}
-          secondaryValue={parsedCrypto > 0 ? `≈ ${formatUSD(parsedCrypto * currentPrice)}` : undefined}
-          balance={balanceLabel}
-          onBalanceTap={handleMaxTap}
-          balanceError={exceedsBalance}
-          error={exceedsBalance ? 'Saldo insuficiente' : undefined}
-        />
+      <Section>
+        <Stack gap="none">
+          {/* Crypto input (top) — what you're buying */}
+          <CurrencyInput
+            label="Compre"
+            value={cryptoAmount}
+            onChange={handleCryptoChange}
+            tokenIcon={tokenSvg}
+            currencySymbol={assetTicker}
+            decimals={CRYPTO_DECIMALS}
+            secondaryValue={parsedCrypto > 0 ? `≈ ${formatUSD(parsedCrypto * currentPrice)}` : undefined}
+          />
 
-        <Divider />
+          <Divider />
 
-        {/* USD input (bottom) — what you pay */}
-        <CurrencyInput
-          label="Você paga"
-          value={usdAmount}
-          onChange={handleUsdChange}
-          tokenIcon={USD_FLAG}
-          currencySymbol="US$"
-        />
-
-        {/* Order type */}
-        <ListItem
-          title="Tipo de ordem"
-          subtitle={currentOrderType.title}
-          inverted
-          right={
-            <Button variant="primary" size="sm" onPress={() => setOrderSheetOpen(true)}>
-              Mudar
-            </Button>
-          }
-          trailing={null}
-        />
+          {/* Pay input (bottom) — USD or crypto token */}
+          <CurrencyInput
+            label="Pague"
+            value={payAmount}
+            onChange={handlePayChange}
+            tokenIcon={payTokenSvg ?? USD_FLAG}
+            currencySymbol={payWith ?? 'US$'}
+            decimals={payWith ? (payAsset?.category === 'stablecoin' ? 2 : CRYPTO_DECIMALS) : 2}
+            balance={payWith && payAsset ? `${(1800).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} ${payWith}` : 'US$ 12.450,00'}
+            onBalanceTap={handleMaxTap}
+            balanceError={exceedsBalance}
+          />
+        </Stack>
 
         {/* Payment method */}
         <ListItem
@@ -227,7 +230,7 @@ export default function Screen3_Sell({ onNext, onBack, onElementTap, onStateChan
           }
           trailing={null}
         />
-      </Stack>
+      </Section>
 
       {calcState === 'loading' && <DataListSkeleton rows={3} />}
       {calcState === 'ready' && <DataList data={summaryData} />}
@@ -245,26 +248,8 @@ export default function Screen3_Sell({ onNext, onBack, onElementTap, onStateChan
         </Button>
       </StickyFooter>
 
-      {/* Order type sheet */}
-      <BottomSheet open={orderSheetOpen} onClose={() => setOrderSheetOpen(false)}>
-        <Stack gap="none">
-          {ORDER_TYPES.map(opt => (
-            <ListItem
-              key={opt.id}
-              title={opt.title}
-              subtitle={opt.description}
-              onPress={() => {
-                onElementTap?.(`ListItem: ${opt.title}`)
-                setOrderTypeId(opt.id)
-                setOrderSheetOpen(false)
-              }}
-            />
-          ))}
-        </Stack>
-      </BottomSheet>
-
       {/* Payment method sheet */}
-      <BottomSheet open={paymentSheetOpen} onClose={() => setPaymentSheetOpen(false)}>
+      <BottomSheet open={paymentSheetOpen} onClose={() => setPaymentSheetOpen(false)} title="Como quer pagar?">
         <Stack gap="none">
           {paymentOptions.map(opt => (
             <ListItem
@@ -279,6 +264,12 @@ export default function Screen3_Sell({ onNext, onBack, onElementTap, onStateChan
                 onElementTap?.(`ListItem: ${opt.title}`)
                 setPaymentId(opt.id)
                 setPaymentSheetOpen(false)
+                // Switch simulator state based on payment method
+                if (opt.id === 'USDT') {
+                  onStateChange?.('btc-sell-usdt')
+                } else if (opt.id === 'account') {
+                  onStateChange?.('btc-sell')
+                }
               }}
             />
           ))}
