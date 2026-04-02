@@ -372,7 +372,7 @@ for (const s of allScreenDefs) {
     id: s.id,
     name: s.title,
     description: s.description,
-    area: 'Investments',
+    area: 'Earn',
     componentsUsed: [...s.componentsUsed],
     component: s.component,
     ...(states ? { states } : {}),
@@ -384,44 +384,44 @@ for (const s of allScreenDefs) {
 // ═══════════════════════════════════════════════════════════════
 
 registerFlow({
-  id: 'invest-2-light-explore',
+  id: 'trade-manage',
   name: 'Invest Light (Explore)',
   description: 'Light theme: dashboard, discover, asset page, orders, favorites, statement.',
-  domain: 'investments',
+  domain: 'earn',
   level: 1,
-  linkedFlows: ['invest-2-light-buy', 'invest-2-light-sell', 'invest-2-light-receive', 'invest-2-light-send'],
+  linkedFlows: ['trade-buy-order', 'trade-sell', 'trade-deposit-asset', 'invest-2-light-send'],
   screens: exploreScreenDefs.map(s => ({ ...s, pageId: s.id })),
 })
 
 registerFlow({
-  id: 'invest-2-light-buy',
+  id: 'trade-buy-order',
   name: 'Invest Light (Buy)',
   description: 'Light theme: keypad amount, TP/SL config, slide-confirm, orbital processing, confetti success.',
-  domain: 'investments',
+  domain: 'earn',
   level: 2,
-  linkedFlows: ['invest-2-light-explore'],
+  linkedFlows: ['trade-manage'],
   entryPoints: ['asset-page'],
   screens: buyScreenDefs.map(s => ({ ...s, pageId: s.id })),
 })
 
 registerFlow({
-  id: 'invest-2-light-sell',
+  id: 'trade-sell',
   name: 'Invest Light (Sell)',
   description: 'Light theme: sell keypad, slide-confirm, orbital processing, confetti success.',
-  domain: 'investments',
+  domain: 'earn',
   level: 2,
-  linkedFlows: ['invest-2-light-explore'],
+  linkedFlows: ['trade-manage'],
   entryPoints: ['asset-page'],
   screens: sellScreenDefs.map(s => ({ ...s, pageId: s.id })),
 })
 
 registerFlow({
-  id: 'invest-2-light-receive',
+  id: 'trade-deposit-asset',
   name: 'Invest Light (Receive)',
   description: 'Light theme: QR code, wallet address, network.',
-  domain: 'investments',
+  domain: 'earn',
   level: 2,
-  linkedFlows: ['invest-2-light-explore'],
+  linkedFlows: ['trade-manage'],
   screens: receiveScreenDefs.map(s => ({ ...s, pageId: s.id })),
 })
 
@@ -429,9 +429,9 @@ registerFlow({
   id: 'invest-2-light-send',
   name: 'Invest Light (Send)',
   description: 'Light theme: address, amount, network, fee.',
-  domain: 'investments',
+  domain: 'earn',
   level: 2,
-  linkedFlows: ['invest-2-light-explore'],
+  linkedFlows: ['trade-manage'],
   screens: sendScreenDefs.map(s => ({ ...s, pageId: s.id })),
 })
 
@@ -490,11 +490,11 @@ const xR = 600
       data: { label: 'Tap CTA', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Button: Comprar' } as FlowNodeData },
 
     { id: 'n-ref-buy', type: 'flow-reference', position: { x: xL, y: ROW * 7 },
-      data: { label: 'Buy Flow', screenId: null, nodeType: 'flow-reference', targetFlowId: 'invest-2-light-buy' } as FlowNodeData },
+      data: { label: 'Buy Flow', screenId: null, nodeType: 'flow-reference', targetFlowId: 'trade-buy-order' } as FlowNodeData },
     { id: 'n-ref-sell', type: 'flow-reference', position: { x: xR, y: ROW * 7 },
-      data: { label: 'Sell Flow', screenId: null, nodeType: 'flow-reference', targetFlowId: 'invest-2-light-sell' } as FlowNodeData },
+      data: { label: 'Sell Flow', screenId: null, nodeType: 'flow-reference', targetFlowId: 'trade-sell' } as FlowNodeData },
     { id: 'n-ref-receive', type: 'flow-reference', position: { x: xL, y: ROW * 2.5 },
-      data: { label: 'Receive Flow', screenId: null, nodeType: 'flow-reference', targetFlowId: 'invest-2-light-receive' } as FlowNodeData },
+      data: { label: 'Receive Flow', screenId: null, nodeType: 'flow-reference', targetFlowId: 'trade-deposit-asset' } as FlowNodeData },
     { id: 'n-ref-send', type: 'flow-reference', position: { x: xR, y: ROW * 2.5 },
       data: { label: 'Send Flow', screenId: null, nodeType: 'flow-reference', targetFlowId: 'invest-2-light-send' } as FlowNodeData },
     // Statement → Export
@@ -540,7 +540,7 @@ const xR = 600
     { id: 'e-22', source: 'n-tap-export', target: 'n-export', sourceHandle: 'bottom', targetHandle: 'top' },
   ]
 
-  bootstrapFlowGraph('invest-2-light-explore', nodes, edges, 5)
+  bootstrapFlowGraph('trade-manage', nodes, edges, 6)
 }
 
 // ── Buy Flow Graph ──
@@ -574,7 +574,7 @@ const xR = 600
     { id: 'n-tap4', type: 'action', position: { x, y: ROW * 9 },
       data: { label: 'Tap Entendi', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Button: Entendi' } as FlowNodeData },
     { id: 'n-ref', type: 'flow-reference', position: { x, y: ROW * 10 },
-      data: { label: 'Back to Explore', screenId: null, nodeType: 'flow-reference', targetFlowId: 'invest-2-light-explore' } as FlowNodeData },
+      data: { label: 'Back to Explore', screenId: null, nodeType: 'flow-reference', targetFlowId: 'trade-manage' } as FlowNodeData },
   ]
   const edges = [
     // Market path (left): Trade → Review directly
@@ -593,7 +593,7 @@ const xR = 600
     { id: 'e-b11', source: 'n-success', target: 'n-tap4', sourceHandle: 'bottom', targetHandle: 'top' },
     { id: 'e-b12', source: 'n-tap4', target: 'n-ref', sourceHandle: 'bottom', targetHandle: 'top' },
   ]
-  bootstrapFlowGraph('invest-2-light-buy', nodes, edges, 4)
+  bootstrapFlowGraph('trade-buy-order', nodes, edges, 5)
 }
 
 // ── Sell Flow Graph ──
@@ -616,7 +616,7 @@ const xR = 600
     { id: 'n-tap3', type: 'action', position: { x, y: ROW * 7 },
       data: { label: 'Tap Entendi', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Button: Entendi' } as FlowNodeData },
     { id: 'n-ref', type: 'flow-reference', position: { x, y: ROW * 8 },
-      data: { label: 'Back to Explore', screenId: null, nodeType: 'flow-reference', targetFlowId: 'invest-2-light-explore' } as FlowNodeData },
+      data: { label: 'Back to Explore', screenId: null, nodeType: 'flow-reference', targetFlowId: 'trade-manage' } as FlowNodeData },
   ]
   const edges = [
     { id: 'e-s1', source: 'n-trade', target: 'n-tap1', sourceHandle: 'bottom', targetHandle: 'top' },
@@ -628,7 +628,7 @@ const xR = 600
     { id: 'e-s7', source: 'n-success', target: 'n-tap3', sourceHandle: 'bottom', targetHandle: 'top' },
     { id: 'e-s8', source: 'n-tap3', target: 'n-ref', sourceHandle: 'bottom', targetHandle: 'top' },
   ]
-  bootstrapFlowGraph('invest-2-light-sell', nodes, edges, 2)
+  bootstrapFlowGraph('trade-sell', nodes, edges, 3)
 }
 
 // ── Receive Flow Graph (6 screens, 5 actions) ──
@@ -672,7 +672,7 @@ const xR = 600
     { id: 'e-r9', source: 'n-address', target: 'n-sent', sourceHandle: 'bottom', targetHandle: 'top' },
     { id: 'e-r10', source: 'n-sent', target: 'n-awaiting', sourceHandle: 'bottom', targetHandle: 'top' },
   ]
-  bootstrapFlowGraph('invest-2-light-receive', receiveNodes, receiveEdges, 2)
+  bootstrapFlowGraph('trade-deposit-asset', receiveNodes, receiveEdges, 3)
 }
 
 // ── Send Flow Graph ──
@@ -683,7 +683,7 @@ const xR = 600
     { id: 'n-tap', type: 'action', position: { x, y: ROW },
       data: { label: 'Tap Enviar', screenId: null, nodeType: 'action', actionType: 'tap', actionTarget: 'Button: Enviar' } as FlowNodeData },
     { id: 'n-ref', type: 'flow-reference', position: { x, y: ROW * 2 },
-      data: { label: 'Back', screenId: null, nodeType: 'flow-reference', targetFlowId: 'invest-2-light-explore' } as FlowNodeData },
+      data: { label: 'Back', screenId: null, nodeType: 'flow-reference', targetFlowId: 'trade-manage' } as FlowNodeData },
   ]
   bootstrapFlowGraph('invest-2-light-send', nodes, [
     { id: 'e-1', source: 'n-send', target: 'n-tap', sourceHandle: 'bottom', targetHandle: 'top' },
@@ -696,13 +696,13 @@ const xR = 600
 // ═══════════════════════════════════════════════════════════════
 
 {
-  const GROUP_NAME = 'Invest 2 Light'
-  const DOMAIN = 'investments'
+  const GROUP_NAME = 'Trading'
+  const DOMAIN = 'earn'
   const FLOW_IDS = [
-    'invest-2-light-explore',
-    'invest-2-light-buy',
-    'invest-2-light-sell',
-    'invest-2-light-receive',
+    'trade-manage',
+    'trade-buy-order',
+    'trade-sell',
+    'trade-deposit-asset',
     'invest-2-light-send',
   ]
 
